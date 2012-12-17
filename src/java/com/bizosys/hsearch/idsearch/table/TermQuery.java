@@ -3,7 +3,7 @@ package com.bizosys.hsearch.idsearch.table;
 import java.io.IOException;
 
 //Now serializable 
-public class SearchTableQuery 
+public class TermQuery 
 {
 	private boolean _hasField = false;
 	private boolean _hasRecordType = false;
@@ -16,14 +16,14 @@ public class SearchTableQuery
   
 	public static void main(String[] args) 
 	{
-		SearchTableQuery i = new SearchTableQuery();
+		TermQuery i = new TermQuery();
 		i.setWordFieldtypeDoctype("Pramod", 1, 2);
 		String ser = i.toString();
 		
 		try 
 		{
-			SearchTableQuery o;
-			o = new SearchTableQuery(ser);
+			TermQuery o;
+			o = new TermQuery(ser);
 			System.out.println(o.toString());
 		} 
 		catch (IOException e) 
@@ -32,11 +32,11 @@ public class SearchTableQuery
 		}
 	}
 	
-	public SearchTableQuery() 
+	public TermQuery() 
 	{
 	}
 	
-	public SearchTableQuery(String input) throws IOException 
+	public TermQuery(String input) throws IOException 
 	{
 		if ( input.length() < 2) throw new IOException("Invalid input - " + input);
 		if ( input.charAt(0) == 'T') _hasField = true;

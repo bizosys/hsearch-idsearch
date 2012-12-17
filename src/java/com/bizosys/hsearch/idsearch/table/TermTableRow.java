@@ -1,6 +1,6 @@
 package com.bizosys.hsearch.idsearch.table;
 
-public class SearchTableSchema
+public class TermTableRow
 {
 	public int fieldCode;
 	public String field;

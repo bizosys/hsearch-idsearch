@@ -2,13 +2,10 @@ package com.bizosys.hsearch.idsearch.table;
 
 import java.io.BufferedReader;
 import java.io.File;
-import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStream;
-import java.io.InputStreamReader;
 import java.util.ArrayList;
 import java.util.Collection;
-import java.util.Map;
 
 import com.bizosys.hsearch.byteutils.SortedBytesFloat;
 import com.bizosys.hsearch.byteutils.SortedBytesInteger;
@@ -21,13 +18,13 @@ import com.bizosys.hsearch.treetable.Cell6;
 import com.bizosys.hsearch.treetable.CellComparator;
 import com.bizosys.hsearch.treetable.CellKeyValue;
 
-public class SearchTableUtil implements ITable 
+public class TermTable implements ITermTable 
 {
 
 	private Cell6<Integer, String, Integer, Integer, Integer, Float> 
 		fieldHash_field_recordType_fieldType_recordId_fieldWeight = null;
 	
-	public SearchTableUtil()
+	public TermTable()
 	{
 		fieldHash_field_recordType_fieldType_recordId_fieldWeight = new Cell6<Integer, String, Integer, Integer, Integer, Float>
 									(SortedBytesInteger.getInstance(), SortedBytesString.getInstance(), SortedBytesInteger.getInstance(), 
@@ -61,7 +58,7 @@ public class SearchTableUtil implements ITable
 		catch (Exception e) {
 		}
 		*/
-		SearchTableSchema searchData = new SearchTableSchema();
+		TermTableRow searchData = new TermTableRow();
 		
 		System.out.println("Making Cube Start");
 		for ( int i=0; i<10000000; i++) {
@@ -72,7 +69,7 @@ public class SearchTableUtil implements ITable
 
 	}
 	
-	public void addSearchData(SearchTableSchema searchData)
+	public void addSearchData(TermTableRow searchData)
 	{
 		fieldHash_field_recordType_fieldType_recordId_fieldWeight.put(searchData.fieldCode, 
 				searchData.field, searchData.recordType, searchData.fieldType, searchData.recordId, searchData.fieldWeight);
@@ -87,21 +84,21 @@ public class SearchTableUtil implements ITable
 	
 	@Override
 	public Cell2<Integer, Float> findIdsFromSerializedTableQuery(
-			byte[] input, SearchTableQuery filter) throws IOException {
-		
+			byte[] input, TermQuery filter) throws IOException {
+		return null;
 	}
 	
 	@Override
 	public Cell4<Integer, Integer, Integer, Float> findValuesFromSerializedTableQuery( 
-		byte[] input, SearchTableQuery filter) throws IOException {
+		byte[] input, TermQuery filter) throws IOException {
+		return null;
 		
 	}
 	
 
-	public void findIdsFromSerializedTableQuery(byte[] input, SearchTableQuery filter, 
+	public void findIdsFromSerializedTableQuery(byte[] input, TermQuery filter, 
 			Cell2<Integer, Float> idL, Cell4<Integer, Integer, Integer, Float> rowL) throws IOException
 	{
-		SearchTableResult out = new SearchTableResult();
 		
 		this.fieldHash_field_recordType_fieldType_recordId_fieldWeight.parseElements(input);
 		
@@ -140,7 +137,7 @@ public class SearchTableUtil implements ITable
 					{
 						for (CellKeyValue<Integer, Float> kv : cell2.getMap()) {
 							if ( idL != null ) idL.add(kv.getKey(), kv.getValue());
-							if ( rowL != null ) rowL.put(cell4., k2, k3, v)add(kv.getKey(), kv.getValue());
+							//if ( rowL != null ) rowL.put(cell4., k2, k3, v)add(kv.getKey(), kv.getValue());
 							
 						}
 					}
@@ -164,15 +161,13 @@ public class SearchTableUtil implements ITable
 
 	public static void main(String[] args)
 	{
-		SearchTableUtil stu = new SearchTableUtil();
-		SearchTableResult out = null;
 		try 
 		{
-			SearchTableQuery filter = new SearchTableQuery();
+			TermQuery filter = new TermQuery();
 			filter.setWordFieldtypeDoctype("Jyoti", 1, 1);
-			byte[] cellBytes = stu.toBytes(0);
-			out = stu.findIdsFromSerializedTableQuery(cellBytes, filter);
-			System.out.println("Final Output :" + out.recordIds.getMap().size());
+			//byte[] cellBytes = stu.toBytes(0);
+			//Cell2<Integer, Float> recordIds = stu.findIdsFromSerializedTableQuery(cellBytes, filter);
+			//System.out.println("Final Output :" + recordIds.getMap().size());
 		} 
 		catch (Exception e) 
 		{
