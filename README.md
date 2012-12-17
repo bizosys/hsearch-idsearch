@@ -1,0 +1,1 @@
+This is a textual search engine which indexes billions of documents and perform search using lucene syntax to find matching document ids.
