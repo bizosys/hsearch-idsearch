@@ -17,7 +17,7 @@ public class TermQuery
 	public static void main(String[] args) 
 	{
 		TermQuery i = new TermQuery();
-		i.setWordRecordtypeFieldType("Pramod", 1, 2);
+		i.setWordFieldtypeDoctype("Pramod", 1, 2);
 		String ser = i.toString();
 		
 		try 
@@ -57,7 +57,7 @@ public class TermQuery
 			index2 = text.indexOf('|', index1);
 		}
 		            
-		if (index1 < text.length())
+		if (index1 < text.length() - 1)
 			populate(position++, text.substring(index1));
 	}
 	
@@ -100,7 +100,7 @@ public class TermQuery
 		return sb.toString();
 	}
 	
-	public void setWordRecordtypeFieldType(String field, int recordType, int fieldType)
+	public void setWordFieldtypeDoctype(String field, int recordType, int fieldType)
 	{
 		setField(field);
 		setRecordType(recordType);
