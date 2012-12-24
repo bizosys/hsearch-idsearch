@@ -33,7 +33,11 @@ public class TermTable implements ITermTable
 		fieldHash_field_recordType_fieldType_recordId_fieldWeight = new Cell6<Integer, String, Integer, Integer, Integer, Float>
 									(SortedBytesInteger.getInstance(), SortedBytesString.getInstance(), SortedBytesInteger.getInstance(), 
 											SortedBytesInteger.getInstance(), SortedBytesInteger.getInstance(), SortedBytesFloat.getInstance());
-		getSearchTable();
+//		getSearchTable();
+	}
+	
+	public Cell6<Integer, String, Integer, Integer, Integer, Float> getTable() {
+		return fieldHash_field_recordType_fieldType_recordId_fieldWeight;
 	}
 	
 	private void getSearchTable()

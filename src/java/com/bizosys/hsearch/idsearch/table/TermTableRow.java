@@ -9,8 +9,19 @@ public class TermTableRow
 	public int recordId;
 	public float fieldWeight;
 	
-	public void setParams(String _field, Integer _recordType, Integer _fieldType, 
-			Integer _recordId, Float _fieldWeight)
+	public TermTableRow() {
+	}
+	
+	public TermTableRow(String field, int recordType, int fieldType, int recordId, float fieldWeight) {
+		this.field = field;
+		this.fieldCode = this.field.hashCode();
+		this.recordType = recordType;
+		this.fieldType = fieldType;
+		this.recordId = recordId;
+		this.fieldWeight = fieldWeight;
+	}
+	
+	public void setParams(String _field, int _recordType, int _fieldType, int _recordId, float _fieldWeight)
 	{
 		fieldCode = _field.hashCode();
 		field = _field;

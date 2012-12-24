@@ -2,13 +2,11 @@ package com.bizosys.hsearch.idsearch.meta;
 
 import java.io.IOException;
 import java.util.HashMap;
-import java.util.List;
 import java.util.Map;
 
 import com.bizosys.hsearch.byteutils.SortedBytesString;
 import com.bizosys.hsearch.treetable.Cell2;
 import com.bizosys.hsearch.treetable.CellComparator;
-import com.bizosys.hsearch.treetable.CellKeyValue;
 
 public class DocMetaCustomFields {
 	

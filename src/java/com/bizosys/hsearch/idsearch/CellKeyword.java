@@ -21,8 +21,6 @@ public class CellKeyword {
 		public static void main(String[] args) throws Exception {
 			Cell6<Integer, String, Integer, Integer, Integer, Float> searchTable = getSearchTable();
 
-			SortedBytesUnsignedShort sub = SortedBytesUnsignedShort.getInstanceShort();
-			
 			String inputData = 
 					"1199732752|hsearch1|11|1111|1|1.0\n" +
 					"1199732752|hsearch1|11|2222|2|2.0\n" +
