@@ -17,7 +17,7 @@
 * See the License for the specific language governing permissions and
 * limitations under the License.
 */
-package com.bizosys.hsearch.index;
+package com.bizosys.hsearch.unstructured.tokenizer;
 
 import java.io.ByteArrayInputStream;
 import java.io.InputStream;
@@ -25,8 +25,8 @@ import java.io.InputStreamReader;
 import java.util.ArrayList;
 import java.util.List;
 
-import com.bizosys.hsearch.index.util.ContentField;
-import com.bizosys.hsearch.index.util.ContentFieldReader;
+import com.bizosys.hsearch.unstructured.util.ContentField;
+import com.bizosys.hsearch.unstructured.util.ContentFieldReader;
 import com.oneline.ApplicationFault;
 import com.oneline.SystemFault;
 import com.oneline.util.StringUtils;

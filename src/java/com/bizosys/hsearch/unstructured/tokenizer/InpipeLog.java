@@ -17,24 +17,15 @@
 * See the License for the specific language governing permissions and
 * limitations under the License.
 */
-package com.bizosys.hsearch.index.util;
+package com.bizosys.hsearch.unstructured.tokenizer;
 
-import java.io.Reader;
+import org.apache.log4j.Logger;
 
 /**
- * Wrapped reader with document section and type information
+ * Logger class for inpipe package.
  * @author karan
  *
  */
-public class ContentFieldReader {
-	public Reader reader = null;
-	public int fieldName;
-	public int weight;
-
-	public ContentFieldReader(int fieldName, int weight, Reader reader ) {
-		this.fieldName = fieldName;
-		this.weight = weight;
-		this.reader = reader;
-	}
-
+public class InpipeLog {
+	public static Logger l = Logger.getLogger(InpipeLog.class.getName());
 }

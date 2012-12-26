@@ -1,4 +1,4 @@
-package com.bizosys.hsearch.federated;
+package com.bizosys.hsearch.idsearch.client;
 
 import java.io.IOException;
 import java.util.ArrayList;
@@ -33,7 +33,7 @@ public class FederatedSearch
 		queryDetails.put("idsearch:tQuery2", new QueryArgs(tQuery2.toString()));
 		
 		FederatedSearch federatedSearch = new FederatedSearch();
-		federatedSearch.initialize("idsearch:tQuery1 OR idsearch:tQuery2" , queryDetails);
+		federatedSearch.initialize("jdbc:tQuery1 OR hsearch:tQuery2" , queryDetails);
 		Map<String, ITermTable> searchIds = new HashMap<String, ITermTable>();
 		ITermTable termTable1 = TermTableFactory.getTable();
 		ITermTable termTable2 = TermTableFactory.getTable();
@@ -119,31 +119,31 @@ public class FederatedSearch
 				}
 				
 				HQuery hquery = null;
-				@Override
-				public final List<IRowId> execute(String query, Map<String, QueryArgs> queryArgs) throws Exception 
-				{
-					if ( null == hquery) 
-					{
-						this.hquery = new HQueryParser().parse(query);
-					}
-					
-					List<HTerm> terms = new ArrayList<HTerm>();
-					new HQuery().toTerms(hquery, terms);
-					
-					for (HTerm aTerm : terms) 
-					{
-						HResult result = new HResult();
-						QueryArgs qa = queryArgs.get(aTerm.type + ":" + aTerm.text);
-	
-						result.setRowIds(populate(aTerm.type, aTerm.text, qa.query, null));
-						aTerm.setResult(result);
-					}
-	
-					List<IRowId> finalResult = new ArrayList<IRowId>(4096);
-					new HQueryCombiner().combine(hquery, finalResult);
-					
-					return finalResult;
-				}			
+//				@Override
+//				public final List<IRowId> execute(String query, Map<String, QueryArgs> queryArgs) throws Exception 
+//				{
+//					if ( null == hquery) 
+//					{
+//						this.hquery = new HQueryParser().parse(query);
+//					}
+//					
+//					List<HTerm> terms = new ArrayList<HTerm>();
+//					new HQuery().toTerms(hquery, terms);
+//					
+//					for (HTerm aTerm : terms) 
+//					{
+//						HResult result = new HResult();
+//						QueryArgs qa = queryArgs.get(aTerm.type + ":" + aTerm.text);
+//	
+//						result.setRowIds(populate(aTerm.type, aTerm.text, qa.query, null));
+//						aTerm.setResult(result);
+//					}
+//	
+//					List<IRowId> finalResult = new ArrayList<IRowId>(4096);
+//					new HQueryCombiner().combine(hquery, finalResult);
+//					
+//					return finalResult;
+//				}			
 			};
 	}
 }

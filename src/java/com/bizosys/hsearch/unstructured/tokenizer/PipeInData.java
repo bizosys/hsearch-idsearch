@@ -1,13 +1,13 @@
-package com.bizosys.hsearch.index;
+package com.bizosys.hsearch.unstructured.tokenizer;
 
 import java.util.ArrayList;
 import java.util.List;
 
 import com.bizosys.hsearch.idsearch.table.TermTable;
-import com.bizosys.hsearch.index.util.ContentFieldReader;
-import com.bizosys.hsearch.index.util.Document;
-import com.bizosys.hsearch.index.util.IndexObjectFactory;
-import com.bizosys.hsearch.index.util.TermStream;
+import com.bizosys.hsearch.unstructured.util.ContentFieldReader;
+import com.bizosys.hsearch.unstructured.util.Document;
+import com.bizosys.hsearch.unstructured.util.IndexObjectFactory;
+import com.bizosys.hsearch.unstructured.util.TermStream;
 
 public class PipeInData {
 

@@ -17,17 +17,24 @@
 * See the License for the specific language governing permissions and
 * limitations under the License.
 */
-package com.bizosys.hsearch.index.util;
+package com.bizosys.hsearch.unstructured.util;
 
-import org.apache.lucene.util.Version;
+import org.apache.lucene.analysis.TokenStream;
 
 /**
- * This provides the current library versions used in the lucene
- * During migration, the old version will be loaded based on the 
- * configuration file.
+ * Wrapped Type TokenStream with sighting information.
  * @author karan
+ *
  */
-public class LuceneConstants {
-	public static final Version version = Version.LUCENE_35;
-
+public class TermStream {
+	
+	public int fieldName;
+	public TokenStream stream;
+	public int weight;
+	
+	public TermStream(int fieldName, TokenStream stream, int weight) {
+		this.fieldName = fieldName;
+		this.stream = stream;
+		this.weight = weight;
+	}
 }

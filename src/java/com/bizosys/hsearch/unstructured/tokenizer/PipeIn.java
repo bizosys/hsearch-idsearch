@@ -1,4 +1,4 @@
-package com.bizosys.hsearch.index;
+package com.bizosys.hsearch.unstructured.tokenizer;
 
 import com.oneline.ApplicationFault;
 import com.oneline.SystemFault;

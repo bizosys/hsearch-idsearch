@@ -17,63 +17,55 @@
 * See the License for the specific language governing permissions and
 * limitations under the License.
 */
-package com.bizosys.hsearch.index;
+package com.bizosys.hsearch.unstructured.tokenizer;
 
-import java.util.List;
-
+import org.apache.lucene.analysis.Analyzer;
 import org.apache.lucene.analysis.TokenStream;
+import org.apache.lucene.analysis.WhitespaceAnalyzer;
 
-import com.bizosys.hsearch.index.util.StemFilterWrap;
-import com.bizosys.hsearch.index.util.TermStream;
+import com.bizosys.hsearch.unstructured.util.ContentFieldReader;
+import com.bizosys.hsearch.unstructured.util.LuceneConstants;
+import com.bizosys.hsearch.unstructured.util.TermStream;
 import com.oneline.ApplicationFault;
 import com.oneline.SystemFault;
 import com.oneline.util.Configuration;
 
+public class TokenizeWhitespace implements PipeIn {
 
-/**
- * Stem the terms
- * @author karan
- *
- */
-public class FilterStem implements PipeIn {
-
-	@Override
+	public TokenizeWhitespace() {
+	}
+	
 	public PipeIn getInstance() {
 		return this;
 	}
 
-	@Override
 	public String getName() {
-		return "FilterLowercase";
+		return "TokenizeWhitespace";
 	}
 
-	@Override
 	public void init(Configuration conf) {
 	}
 
-	@Override
 	public void visit(PipeInData data) throws ApplicationFault, SystemFault {
 
-		List<TermStream> streams = data.processingDocTokenStreams;
-		if ( null == streams) {
-			System.out.println("**************** No Stream");
-			return; //Allow for no bodies
-		}
+		data.processingDocFieldReaders = TokenizeBase.getReaders(data.processingDoc.fields);
+    	if (null == data.processingDocFieldReaders) return;
 		
-		for (TermStream ts : streams) {
-			TokenStream stream = ts.stream;
-			if ( null == stream) {
-				System.out.println("**************** No Stream");
-				continue;
+		try {
+			
+    		Analyzer analyzer = new WhitespaceAnalyzer(LuceneConstants.version);
+	    	for (ContentFieldReader reader : data.processingDocFieldReaders ) {
+	    		TokenStream stream = analyzer.tokenStream( new Integer(reader.fieldName).toString(), reader.reader);
+	    		TermStream ts = new TermStream( reader.fieldName, stream, reader.weight); 
+	    		data.processingDocTokenStreams.add(ts);
 			}
-			stream = new StemFilterWrap(stream);
-			ts.stream = stream;
-		}
+	    	analyzer.close();
+    	} catch (Exception ex) {
+    		throw new SystemFault(ex);
+    	}
 	}
-	
+
 	@Override
 	public void commit(PipeInData data) {
 	}
-
-	
 }

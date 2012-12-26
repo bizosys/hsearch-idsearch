@@ -1,4 +1,4 @@
-package com.bizosys.hsearch.index.util;
+package com.bizosys.hsearch.unstructured.util;
 
 import com.bizosys.hsearch.idsearch.table.TermTableRow;
 

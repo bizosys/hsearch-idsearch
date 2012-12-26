@@ -1,11 +1,6 @@
 package com.bizosys.hsearch.idsearch.table;
 
-import java.io.BufferedReader;
-import java.io.File;
-import java.io.FileInputStream;
 import java.io.IOException;
-import java.io.InputStream;
-import java.io.InputStreamReader;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.Map;
@@ -38,44 +33,6 @@ public class TermTable implements ITermTable
 	
 	public Cell6<Integer, String, Integer, Integer, Integer, Float> getTable() {
 		return fieldHash_field_recordType_fieldType_recordId_fieldWeight;
-	}
-	
-	private void getSearchTable()
-	{
-		File searchFile = new File("f:\\work\\hsearch-idsearch\\reference\\searchdata.tsv");
-		BufferedReader reader = null;
-		InputStream stream = null;
-		
-		try 
-		{
-			stream = new FileInputStream(searchFile); 
-			reader = new BufferedReader ( new InputStreamReader(stream) );
-			
-			String line;
-			TermTableRow searchData;
-			while((line=reader.readLine())!=null)
-			{
-				String[] lineVars = line.split("\t");
-				searchData = new TermTableRow();
-				searchData.setParams(lineVars[0], Integer.parseInt(lineVars[1]), Integer.parseInt(lineVars[2]), 
-						Integer.parseInt(lineVars[3]), Float.parseFloat(lineVars[4]));
-				addSearchData(searchData);
-			}
-		}
-		catch (Exception e) 
-		{
-			e.printStackTrace();
-		}
-
-//		TermTableRow searchData = new TermTableRow();
-//		
-//		System.out.println("Making Cube Start");
-//		for ( int i=0; i<10000000; i++) {
-//			searchData.setParams( "Jyoti", 1, 1, i, 0.0f);
-//			addSearchData(searchData);
-//		}
-//		System.out.println("Making Cube Done");
-
 	}
 	
 	public void addSearchData(TermTableRow searchData)
@@ -193,32 +150,4 @@ public class TermTable implements ITermTable
 		}
 	}
 
-	public static void main(String[] args)
-	{
-		TermTable tt = new TermTable();
-		try 
-		{
-			TermQuery filter = new TermQuery();
-			filter.setWordRecordtypeFieldType("searchField2", 1, 2);
-			byte[] cellBytes = tt.toBytes();
-			
-			Cell2<Integer, Float> recordIds = 
-					new Cell2<Integer, Float>(SortedBytesInteger.getInstance(), SortedBytesFloat.getInstance());
-			Cell4<Integer, Integer, Integer, Float> records = 
-					new Cell4<Integer, Integer, Integer, Float>(SortedBytesInteger.getInstance(), 
-							SortedBytesInteger.getInstance(), SortedBytesInteger.getInstance(), 
-							SortedBytesFloat.getInstance());
-			
-			tt.findIdsFromSerializedTableQuery(cellBytes, filter, recordIds, records);
-			
-			for (CellKeyValue<Integer, Float> ckv : recordIds.getMap())
-			{
-				System.out.println("Final Output :" + ckv.getKey() +", " +ckv.getValue());
-			}
-		} 
-		catch (Exception e) 
-		{
-			e.printStackTrace();
-		}
-	}
 }

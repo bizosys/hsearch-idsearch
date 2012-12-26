@@ -17,7 +17,7 @@
 * See the License for the specific language governing permissions and
 * limitations under the License.
 */
-package com.bizosys.hsearch.index;
+package com.bizosys.hsearch.unstructured.tokenizer;
 
 import java.io.IOException;
 import java.util.List;
@@ -28,9 +28,9 @@ import org.apache.lucene.analysis.tokenattributes.OffsetAttribute;
 
 import com.bizosys.hsearch.idsearch.meta.DocMetaTableRow;
 import com.bizosys.hsearch.idsearch.table.TermTable;
-import com.bizosys.hsearch.index.util.ContentFieldReader;
-import com.bizosys.hsearch.index.util.Term;
-import com.bizosys.hsearch.index.util.TermStream;
+import com.bizosys.hsearch.unstructured.util.ContentFieldReader;
+import com.bizosys.hsearch.unstructured.util.Term;
+import com.bizosys.hsearch.unstructured.util.TermStream;
 import com.oneline.ApplicationFault;
 import com.oneline.SystemFault;
 import com.oneline.util.Configuration;

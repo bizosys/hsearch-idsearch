@@ -17,22 +17,37 @@
 * See the License for the specific language governing permissions and
 * limitations under the License.
 */
-package com.bizosys.hsearch.index;
+package com.bizosys.hsearch.unstructured.tokenizer;
+
+import java.util.ArrayList;
+import java.util.Iterator;
+import java.util.Map;
+import java.util.Map.Entry;
 
 import org.apache.lucene.analysis.Analyzer;
 import org.apache.lucene.analysis.TokenStream;
-import org.apache.lucene.analysis.WhitespaceAnalyzer;
+import org.apache.lucene.analysis.standard.StandardAnalyzer;
 
-import com.bizosys.hsearch.index.util.ContentFieldReader;
-import com.bizosys.hsearch.index.util.LuceneConstants;
-import com.bizosys.hsearch.index.util.TermStream;
+import com.bizosys.hsearch.idsearch.meta.DocMetaFilters;
+import com.bizosys.hsearch.idsearch.meta.DocMetaTableRow;
+import com.bizosys.hsearch.idsearch.table.TermTable;
+import com.bizosys.hsearch.treetable.Cell2;
+import com.bizosys.hsearch.treetable.Cell3;
+import com.bizosys.hsearch.treetable.Cell4;
+import com.bizosys.hsearch.treetable.Cell5;
+import com.bizosys.hsearch.treetable.CellKeyValue;
+import com.bizosys.hsearch.unstructured.util.ContentField;
+import com.bizosys.hsearch.unstructured.util.ContentFieldReader;
+import com.bizosys.hsearch.unstructured.util.Document;
+import com.bizosys.hsearch.unstructured.util.LuceneConstants;
+import com.bizosys.hsearch.unstructured.util.TermStream;
 import com.oneline.ApplicationFault;
 import com.oneline.SystemFault;
 import com.oneline.util.Configuration;
 
-public class TokenizeWhitespace implements PipeIn {
+public class TokenizeStandard implements PipeIn {
 
-	public TokenizeWhitespace() {
+	public TokenizeStandard() {
 	}
 	
 	public PipeIn getInstance() {
@@ -40,7 +55,7 @@ public class TokenizeWhitespace implements PipeIn {
 	}
 
 	public String getName() {
-		return "TokenizeWhitespace";
+		return "TokenizeStandard";
 	}
 
 	public void init(Configuration conf) {
@@ -53,7 +68,7 @@ public class TokenizeWhitespace implements PipeIn {
 		
 		try {
 			
-    		Analyzer analyzer = new WhitespaceAnalyzer(LuceneConstants.version);
+    		Analyzer analyzer = new StandardAnalyzer(LuceneConstants.version);
 	    	for (ContentFieldReader reader : data.processingDocFieldReaders ) {
 	    		TokenStream stream = analyzer.tokenStream( new Integer(reader.fieldName).toString(), reader.reader);
 	    		TermStream ts = new TermStream( reader.fieldName, stream, reader.weight); 

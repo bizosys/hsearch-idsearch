@@ -1,4 +1,4 @@
-package com.bizosys.hsearch.index;
+package com.bizosys.hsearch.unstructured.tokenizer;
 
 import java.util.List;
 
@@ -8,7 +8,7 @@ import org.apache.lucene.analysis.TokenStream;
 import com.oneline.ApplicationFault;
 import com.oneline.SystemFault;
 import com.oneline.util.Configuration;
-import com.bizosys.hsearch.index.util.TermStream;
+import com.bizosys.hsearch.unstructured.util.TermStream;
 
 public class FilterTermLength implements PipeIn {
 
