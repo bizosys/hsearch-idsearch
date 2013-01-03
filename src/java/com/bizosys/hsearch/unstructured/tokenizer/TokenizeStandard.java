@@ -19,26 +19,11 @@
 */
 package com.bizosys.hsearch.unstructured.tokenizer;
 
-import java.util.ArrayList;
-import java.util.Iterator;
-import java.util.Map;
-import java.util.Map.Entry;
-
 import org.apache.lucene.analysis.Analyzer;
 import org.apache.lucene.analysis.TokenStream;
 import org.apache.lucene.analysis.standard.StandardAnalyzer;
 
-import com.bizosys.hsearch.idsearch.meta.DocMetaFilters;
-import com.bizosys.hsearch.idsearch.meta.DocMetaTableRow;
-import com.bizosys.hsearch.idsearch.table.TermTable;
-import com.bizosys.hsearch.treetable.Cell2;
-import com.bizosys.hsearch.treetable.Cell3;
-import com.bizosys.hsearch.treetable.Cell4;
-import com.bizosys.hsearch.treetable.Cell5;
-import com.bizosys.hsearch.treetable.CellKeyValue;
-import com.bizosys.hsearch.unstructured.util.ContentField;
 import com.bizosys.hsearch.unstructured.util.ContentFieldReader;
-import com.bizosys.hsearch.unstructured.util.Document;
 import com.bizosys.hsearch.unstructured.util.LuceneConstants;
 import com.bizosys.hsearch.unstructured.util.TermStream;
 import com.oneline.ApplicationFault;

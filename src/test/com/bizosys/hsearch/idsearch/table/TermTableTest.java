@@ -9,10 +9,8 @@ import java.io.InputStreamReader;
 import junit.framework.TestCase;
 import junit.framework.TestFerrari;
 
-import com.bizosys.hsearch.byteutils.ByteStringTest;
 import com.bizosys.hsearch.byteutils.SortedBytesFloat;
 import com.bizosys.hsearch.byteutils.SortedBytesInteger;
-import com.bizosys.hsearch.idsearch.table.TermTableRow;
 import com.bizosys.hsearch.treetable.Cell2;
 import com.bizosys.hsearch.treetable.Cell4;
 import com.bizosys.hsearch.treetable.CellKeyValue;

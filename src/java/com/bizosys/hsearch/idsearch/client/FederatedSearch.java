@@ -1,50 +1,58 @@
 package com.bizosys.hsearch.idsearch.client;
 
 import java.io.IOException;
+import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+import com.bizosys.hsearch.byteutils.SortedBytesFloat;
+import com.bizosys.hsearch.byteutils.SortedBytesInteger;
 import com.bizosys.hsearch.federate.FederatedFacade;
+import com.bizosys.hsearch.federate.FederatedFacade.IRowId;
 import com.bizosys.hsearch.federate.QueryArgs;
 import com.bizosys.hsearch.idsearch.table.ITermTable;
 import com.bizosys.hsearch.idsearch.table.TermQuery;
+import com.bizosys.hsearch.idsearch.table.TermTable;
 import com.bizosys.hsearch.idsearch.table.TermTableFactory;
 import com.bizosys.hsearch.treetable.Cell2;
 import com.bizosys.hsearch.treetable.CellKeyValue;
+import com.oneline.dao.PoolFactory;
+import com.oneline.dao.ReadScalar;
+import com.oneline.util.FileReaderUtil;
 
 public class FederatedSearch 
 {
-	byte[] col1Val = null;
-	byte[] col2Val = null;
-	
 	public static void main(String[] args) throws Exception 
 	{
 		Map<String, QueryArgs> queryDetails = new HashMap<String, QueryArgs>();
 
-		TermQuery tQuery1 = new TermQuery();
-		tQuery1.setWordRecordtypeFieldType("searchField1", 1, 1);
+		TermQuery tQuery = new TermQuery();
+		tQuery.setField("cuboid");
 		
-		TermQuery tQuery2 = new TermQuery();
-		tQuery2.setWordRecordtypeFieldType("searchField2", 1, 2);
-
-		queryDetails.put("idsearch:tQuery1", new QueryArgs(tQuery1.toString()));
-		queryDetails.put("idsearch:tQuery2", new QueryArgs(tQuery2.toString()));
+		String sqlQuery = "SELECT FileReport_Id_n FROM i2iData.dbo.CMR_Study_FileReport AS FR " +
+				"INNER JOIN i2iData.dbo.CMR_Study_ReportDetails AS RD ON FR.Report_id_n = RD.Report_Id_n " +
+				"INNER JOIN [i2iData].[dbo].[CMR_Study_Info_Mst] AS SIM ON SIM.Study_Unique_Id_n = RD.Study_Id_n " +
+				"FULL OUTER JOIN [i2iData].[dbo].CMR_Patient_Info_Mst AS PIM ON SIM.Patient_Id_n = PIM.Patient_Unique_id_n " +
+				"WHERE SIM.Patient_Age_n BETWEEN ? AND ?";
+		
+		String query = "jdbc:q1 AND hsearch:q2";
+		QueryArgs sqlQueryArgs = new QueryArgs(sqlQuery, "29", "30");
+		queryDetails.put("jdbc:q1", sqlQueryArgs);
+		queryDetails.put("hsearch:q2", new QueryArgs(tQuery.toString()));
 		
 		FederatedSearch federatedSearch = new FederatedSearch();
-		federatedSearch.initialize("jdbc:tQuery1 OR hsearch:tQuery2" , queryDetails);
-		Map<String, ITermTable> searchIds = new HashMap<String, ITermTable>();
-		ITermTable termTable1 = TermTableFactory.getTable();
-		ITermTable termTable2 = TermTableFactory.getTable();
+		federatedSearch.initialize(query , queryDetails);
+
+		LoaderStep3_ByteFileCreator byteFileC = new LoaderStep3_ByteFileCreator();
+		byte[] cellBytes = byteFileC.createByteFile("F:\\Work Documents\\i2i\\reportsbkup\\source_data\\token_data.tsf");
 		
-		searchIds.put("tt1", termTable1);
-		searchIds.put("tt2", termTable2);
+		List<FederatedFacade<Long, Long>.IRowId> rows = federatedSearch.execute(cellBytes);
+		System.out.println("Number of results received: " +rows.size());
 		
-		for (ITermTable termTable : searchIds.values()) 
-		{
-			List<FederatedFacade<Long, Long>.IRowId> rows = federatedSearch.execute(termTable.toBytes());
-			System.out.println(rows.toString());
+		for (IRowId iRowId : rows) {
+			System.out.println("Document Id: " +iRowId.getDocId());
 		}
 	}
 	
@@ -84,66 +92,82 @@ public class FederatedSearch
 				public List<com.bizosys.hsearch.federate.FederatedFacade<Long, Long>.IRowId> populate(
 						String type, String queryId, String queryDetail, List<String> params) throws IOException 
 				{
-					TermQuery tQuery = null;
-					if ( termFilter.containsKey(queryDetail) ) 
-					{
-						tQuery = termFilter.get(queryDetail);
-					} 
-					else 
-					{
-						tQuery = new TermQuery(queryDetail);
-						termFilter.put(queryDetail, tQuery);
-					}
-					
-					Cell2<Integer, Float> out;
-					try 
-					{
-						out = termTable.findIdsFromSerializedTableQuery(cellBytes, termFilter);
-					} 
-					catch (Exception e) 
-					{
-						e.printStackTrace(System.err);
-						throw new IOException("Corrupted Cube");
-					}
-	
 					List<com.bizosys.hsearch.federate.FederatedFacade<Long, Long>.IRowId> results = 
-							new ArrayList<com.bizosys.hsearch.federate.FederatedFacade<Long, Long>.IRowId>(out.getMap().size());
-					
-					for (CellKeyValue<Integer, Float> _word : out.getMap()) 
+							new ArrayList<com.bizosys.hsearch.federate.FederatedFacade<Long, Long>.IRowId>();
+					IRowId primary;
+					if(type.equals("jdbc"))
 					{
-						IRowId primary = objectFactory.getPrimaryKeyRowId(_word.getKey().longValue());
-						results.add(primary);
+						System.out.println("Query Detail: " +queryDetail);
+						
+						int i = 0;
+						for (String param : params) 
+						{
+							System.out.println("Param" +i +": " +param);
+							queryDetail = queryDetail.replaceFirst("\\?", param);
+							i++;
+						}
+				        System.out.println(queryDetail);
+				        PoolFactory.getInstance().setup(FileReaderUtil.toString("db.conf"));
+				        List<Object> ids = new ArrayList<Object>();
+				        try 
+				        {
+							ids = new ReadScalar().execute(queryDetail, ids);
+						} 
+				        catch (SQLException e) 
+				        {
+							e.printStackTrace();
+						}
+				        
+				        for (Object resultObj : ids) 
+				        {
+							primary = objectFactory.getPrimaryKeyRowId((long)Integer.parseInt(resultObj.toString()));
+							results.add(primary);
+						}
 					}
+					else if(type.equals("hsearch"))
+					{
+						TermQuery tQuery = null;
+						if ( termFilter.containsKey(queryDetail) ) 
+						{
+							tQuery = termFilter.get(queryDetail);
+						} 
+						else 
+						{
+							tQuery = new TermQuery(queryDetail);
+							termFilter.put(queryDetail, tQuery);
+						}
+						
+						Cell2<Integer, Float> out = new Cell2<Integer, Float>(SortedBytesInteger.getInstance(), SortedBytesFloat.getInstance());;
+						try 
+						{
+							out = ((TermTable)termTable).findIdsFromSerializedTableQuery(cellBytes, termFilter);
+						} 
+						catch (Exception e) 
+						{
+							e.printStackTrace(System.err);
+							throw new IOException("Corrupted Cube");
+						}
+		
+						for (CellKeyValue<Integer, Float> _word : out.getMap()) 
+						{
+							primary = objectFactory.getPrimaryKeyRowId(_word.getKey().longValue());
+							results.add(primary);
+						}
+					}
+					else
+						System.out.println("Invalid Query Type");
+					
 					
 					return results;
 				}
-				
-				HQuery hquery = null;
-//				@Override
-//				public final List<IRowId> execute(String query, Map<String, QueryArgs> queryArgs) throws Exception 
-//				{
-//					if ( null == hquery) 
-//					{
-//						this.hquery = new HQueryParser().parse(query);
-//					}
-//					
-//					List<HTerm> terms = new ArrayList<HTerm>();
-//					new HQuery().toTerms(hquery, terms);
-//					
-//					for (HTerm aTerm : terms) 
-//					{
-//						HResult result = new HResult();
-//						QueryArgs qa = queryArgs.get(aTerm.type + ":" + aTerm.text);
-//	
-//						result.setRowIds(populate(aTerm.type, aTerm.text, qa.query, null));
-//						aTerm.setResult(result);
-//					}
-//	
-//					List<IRowId> finalResult = new ArrayList<IRowId>(4096);
-//					new HQueryCombiner().combine(hquery, finalResult);
-//					
-//					return finalResult;
-//				}			
 			};
+	}
+
+	public Map<String, QueryArgs> getQueryDetails() {
+		return queryDetails;
+	}
+
+	public String getFederatedQuery() {
+		return federatedQuery;
 	}
 }

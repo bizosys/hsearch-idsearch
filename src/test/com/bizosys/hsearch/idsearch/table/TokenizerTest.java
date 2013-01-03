@@ -21,7 +21,8 @@ import com.bizosys.hsearch.unstructured.util.Document;
 
 public class TokenizerTest {
 
-	public static void main(String[] args) throws Exception {
+	public static void main(String[] args) throws Exception 
+	{
 		ContentField fld = new ContentField();
 		fld.name = 98;
 		fld.content = "Going cars carried Pramod Rao";

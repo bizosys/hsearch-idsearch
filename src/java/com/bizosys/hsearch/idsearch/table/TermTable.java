@@ -1,6 +1,11 @@
 package com.bizosys.hsearch.idsearch.table;
 
+import java.io.BufferedReader;
+import java.io.File;
+import java.io.FileInputStream;
 import java.io.IOException;
+import java.io.InputStream;
+import java.io.InputStreamReader;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.Map;
@@ -35,6 +40,34 @@ public class TermTable implements ITermTable
 		return fieldHash_field_recordType_fieldType_recordId_fieldWeight;
 	}
 	
+ 	private void getSearchTable()
+ 	{
+		File searchFile = new File("f:\\work\\hsearch-idsearch\\reference\\searchdata.tsv");
+ 		BufferedReader reader = null;
+ 		InputStream stream = null;
+ 		
+ 		try 
+ 		{
+ 			stream = new FileInputStream(searchFile); 
+			reader = new BufferedReader ( new InputStreamReader(stream) );
+ 			
+ 			String line;
+			TermTableRow searchData;
+ 			while((line=reader.readLine())!=null)
+ 			{
+				String[] lineVars = line.split("\t");
+				searchData = new TermTableRow();
+				searchData.setParams(lineVars[0], Integer.parseInt(lineVars[1]), Integer.parseInt(lineVars[2]), 
+						Integer.parseInt(lineVars[3]), Float.parseFloat(lineVars[4]));
+ 				addSearchData(searchData);
+ 			}
+ 		}
+		catch (Exception e) 
+		{
+			e.printStackTrace();
+ 		}
+ 	}
+ 	
 	public void addSearchData(TermTableRow searchData)
 	{
 		fieldHash_field_recordType_fieldType_recordId_fieldWeight.put(searchData.fieldCode, 
