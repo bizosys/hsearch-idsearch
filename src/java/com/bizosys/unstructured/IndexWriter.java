@@ -154,7 +154,6 @@ public class IndexWriter {
 			double locationBoost = ( lastBoost - row.offset)/ lastBoost;
 			float finalBoost = (float) ( row.boost + occuranceBoost + locationBoost );
 			
-			System.out.println(row.token + "|" + row.offset + "|" + occuranceBoost + "|" + locationBoost + "|" + fieldBoost);
 			codecs.put(row.docType, row.fieldType, row.token.hashCode(), row.token, row.docId, finalBoost);
 		}
 		stream.close();

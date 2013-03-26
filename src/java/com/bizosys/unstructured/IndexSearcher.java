@@ -10,7 +10,6 @@ import org.apache.lucene.analysis.standard.StandardAnalyzer;
 import org.apache.lucene.index.Term;
 import org.apache.lucene.queryParser.QueryParser;
 import org.apache.lucene.search.Query;
-import org.apache.lucene.search.ScoreDoc;
 import org.apache.lucene.util.Version;
 
 import com.bizosys.hsearch.idsearch.config.FieldTypeCodes;
@@ -26,8 +25,9 @@ public class IndexSearcher {
 		fieldTypeCodes = SearchConfiguration.getInstance().getFieldTypeCodes();
 	}
 	
-	public ScoreDoc[] search(String defaultField, String query, Analyzer analyzer) throws Exception {
-		long s = System.currentTimeMillis();
+	public Map<String, Float> search(String defaultField, String query, Analyzer analyzer, Map<String, Float> output) throws Exception {
+		//long s = System.currentTimeMillis();
+		
 		Query q = new QueryParser(Version.LUCENE_35, defaultField, analyzer).parse(query);
 		Set<Term> terms = new HashSet<Term>();
 		q.extractTerms(terms);
@@ -45,7 +45,7 @@ public class IndexSearcher {
 			String expandedTerm = "*|" + fieldName.toString() + "|*|" + fieldText + "|*|*";
 			String lhs = colName + ":" + index;
 			multiQueryParts.put( lhs , expandedTerm);
-			termsL.put(fieldName.toString() + ":" + fieldText, lhs);
+			termsL.put(term.field() + ":" + fieldText, lhs);
 			index++;
 		}
 		
@@ -64,7 +64,7 @@ public class IndexSearcher {
 						caseQuery = query.toUpperCase();
 						break;
 				}
-			
+				//System.out.println( "**** " + caseQuery + "\t\t-\t\t" + term);
 				int caseTermIndex = caseQuery.indexOf(term + " ") ;
 				if ( caseTermIndex >= 0 ) {
 					query = query.substring(0, caseTermIndex) + termsL.get(term) + query.substring(caseTermIndex + term.length());
@@ -95,20 +95,29 @@ public class IndexSearcher {
 			}
 		}
 		
-		long e = System.currentTimeMillis();
+		/**
+		 * long e = System.currentTimeMillis();
+		 * System.out.println(query + "\n" + multiQueryParts.toString() + ".\nTime Taken in (ms) " + ( e - s)); 
+		 */
 		
-		System.out.println(query + "\n" + multiQueryParts.toString() + ".\nTime Taken in (ms) " + ( e - s));
+		if ( null == output) output = new ResultToStdout();
 		
-		Client client = new Client(new ResultToStdout());
-		client.execute("Documents:0 AND Documents:1", multiQueryParts);
-		return null;
+		Client client = new Client(output);
+		client.execute(query, multiQueryParts);
+		return output;
 	}
 	
-	public ScoreDoc[] search(String field, String query) throws Exception {
-		//directory.get(input, new HSearchQuery("*|" + query + "|*|*|*|*"), mapper);
-		return null;
+	public Map<String, Float> search(String field, String query) throws Exception {
+		
+		return search(field, query, 
+			new StandardAnalyzer(Version.LUCENE_35) , new HashMap<String, Float>());
 	}	
 	
+	public Map<String, Float> search(String field, String query, Analyzer analyzer) throws Exception {
+		
+		return search(field, query, analyzer, new HashMap<String, Float>());
+	}	
+
 	public static void main(String[] args) throws Exception {
 		new IndexSearcher().search(
 			"f", "ABINASH", new StandardAnalyzer(Version.LUCENE_35));

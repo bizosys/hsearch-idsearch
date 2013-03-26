@@ -43,12 +43,16 @@ public class Example {
     	} finally {
     		if ( null != analyzer ) analyzer.close();
     	}
-		byte[] data = writer.commit("merge1", "Documents");
+		//writer.commit("merge1", "Documents");
 		if ( null != writer) writer.close();
 		
 		Analyzer qAnalyzer = new StandardAnalyzer(Version.LUCENE_35);
-		new IndexSearcher().search("Documents", "city:Abinash AND description:Big", qAnalyzer);
+		Map<String, Float> outputIds = new IndexSearcher().search("Documents", "name:Abinash AND description:Big", qAnalyzer);
 		if ( null != qAnalyzer ) qAnalyzer.close();
+		
+		for ( String docId :  outputIds.keySet()) {
+			System.out.println("**** Found Document\t\t" + docId.toString() + "-" + outputIds.get(docId));
+		}
 		
 		/**
 		Map<String, Float> output = new HashMap<String, Float>();
