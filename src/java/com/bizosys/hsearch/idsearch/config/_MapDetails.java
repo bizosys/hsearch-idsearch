@@ -5,7 +5,6 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
 
 import com.bizosys.hsearch.byteutils.SortedBytesString;
 import com.bizosys.hsearch.treetable.Cell2;
@@ -51,7 +50,7 @@ public class _MapDetails {
 		}		
 		
 		public byte[] toBytes() throws IOException {
-			nameDetails.sort(new CellComparator.TextComparator<String>());
+			nameDetails.sort(new CellComparator.StringComparator<String>());
 			return nameDetails.toBytesOnSortedData();
 		}		
 		
