@@ -12,45 +12,60 @@ import org.apache.lucene.queryParser.QueryParser;
 import org.apache.lucene.search.Query;
 import org.apache.lucene.util.Version;
 
+import com.bizosys.hsearch.idsearch.config.DocumentTypeCodes;
 import com.bizosys.hsearch.idsearch.config.FieldTypeCodes;
-import com.bizosys.hsearch.idsearch.storage.Client;
-import com.bizosys.hsearch.idsearch.storage.DirectoryHSearch;
-import com.bizosys.hsearch.idsearch.storage.ResultToStdout;
+import com.bizosys.hsearch.util.Hashing;
+import com.bizosys.unstructured.util.Constants;
 
 public class IndexSearcher {
-	public DirectoryHSearch directory = new DirectoryHSearch();
+	private DocumentTypeCodes docTypeCodes = null;
 	private FieldTypeCodes fieldTypeCodes = null;
 
 	public IndexSearcher() throws InstantiationException {
-		fieldTypeCodes = SearchConfiguration.getInstance().getFieldTypeCodes();
+		SearchConfiguration sConf = SearchConfiguration.getInstance();
+		fieldTypeCodes = sConf.getFieldTypeCodes();
+		docTypeCodes  = sConf.getDocumentTypeCodes();
 	}
 	
-	public Map<String, Float> search(String defaultField, String query, Analyzer analyzer, Map<String, Float> output) throws Exception {
-		//long s = System.currentTimeMillis();
+	public String searchQueryPartsFill( String indexName, String docType, 
+		String query, Analyzer analyzer, Map<String, String> multiQueryParts) throws Exception {
 		
-		Query q = new QueryParser(Version.LUCENE_35, defaultField, analyzer).parse(query);
+		String defaultField = "BIZOSYSNONE";
+		
+		QueryParser qp = new QueryParser(Version.LUCENE_36, defaultField, analyzer); 
+		Query q = qp.parse(query);
 		Set<Term> terms = new HashSet<Term>();
 		q.extractTerms(terms);
 		
-		Map<String, String> multiQueryParts = new HashMap<String, String>();
 		int index = 0;
 		Map<String, String> termsL = new HashMap<String, String>();
-		
-		String colName = "Documents" ;
+		if ( ! "*".equals(docType) ) docType = docTypeCodes.getCode(docType).toString();
 		
 		for (Term term : terms) {
-			Integer fieldName = fieldTypeCodes.getCode(term.field()); 
-			String fieldText = term.text(); 
 			
-			String expandedTerm = "*|" + fieldName.toString() + "|*|" + fieldText + "|*|*";
-			String lhs = colName + ":" + index;
+			String fieldName = term.field();
+			if ( defaultField.equals(fieldName)) fieldName = "*";
+			else if ( "*".equals(fieldName)) fieldName = "*";
+			else fieldName = fieldTypeCodes.getCode(term.field()).toString(); 
+			
+			String fieldText = term.text(); 
+			System.out.println(fieldText);
+			
+			String expandedTerm = 
+				docType + "|" + fieldName + "|" + Hashing.hash(fieldText) + "|*|*";
+			
+			String lhs = indexName + ":" + index;
 			multiQueryParts.put( lhs , expandedTerm);
-			termsL.put(term.field() + ":" + fieldText, lhs);
+			
+			String fld = term.field();
+			if ( defaultField.equals(fld)) termsL.put(fieldText, lhs);
+			else termsL.put(term.field() + ":" + fieldText, lhs);
 			index++;
 		}
 		
 		//Replace the intermediate ones
 		for (String term : termsL.keySet()) {
+			
 			String caseQuery = null;
 			for ( int i=0; i<3; i++) {
 				switch (i) {
@@ -65,7 +80,9 @@ public class IndexSearcher {
 						break;
 				}
 				//System.out.println( "**** " + caseQuery + "\t\t-\t\t" + term);
+				term = term.replace(defaultField + ":", "");
 				int caseTermIndex = caseQuery.indexOf(term + " ") ;
+				//System.out.println( "#### " + term + "\t\t-\t\t" + caseTermIndex);
 				if ( caseTermIndex >= 0 ) {
 					query = query.substring(0, caseTermIndex) + termsL.get(term) + query.substring(caseTermIndex + term.length());
 				}
@@ -94,32 +111,34 @@ public class IndexSearcher {
 				}
 			}
 		}
+		System.out.println(query + "\n" + multiQueryParts.toString());
 		
-		/**
-		 * long e = System.currentTimeMillis();
-		 * System.out.println(query + "\n" + multiQueryParts.toString() + ".\nTime Taken in (ms) " + ( e - s)); 
-		 */
-		
-		if ( null == output) output = new ResultToStdout();
-		
-		Client client = new Client(output);
-		client.execute(query, multiQueryParts);
-		return output;
+		return query;
 	}
 	
-	public Map<String, Float> search(String field, String query) throws Exception {
+	public String searchQueryPartsFill(String indexName, String docType, 
+		String query, Map<String, String> multiQueryParts) throws Exception {
 		
-		return search(field, query, 
-			new StandardAnalyzer(Version.LUCENE_35) , new HashMap<String, Float>());
+		return searchQueryPartsFill(indexName, docType, query, 
+			new StandardAnalyzer(Constants.LUCENE_VERSION), multiQueryParts );
 	}	
 	
-	public Map<String, Float> search(String field, String query, Analyzer analyzer) throws Exception {
-		
-		return search(field, query, analyzer, new HashMap<String, Float>());
-	}	
-
 	public static void main(String[] args) throws Exception {
-		new IndexSearcher().search(
-			"f", "ABINASH", new StandardAnalyzer(Version.LUCENE_35));
+		Map<String, Integer> fldTypes = new HashMap<String, Integer>();
+		fldTypes.put("name", 2);
+		SearchConfiguration.getInstance().instantiateFieldTypeCodes(fldTypes);
+		
+		Map<String, Integer> docTypes = new HashMap<String, Integer>();
+		docTypes.put("emp", 1);
+		SearchConfiguration.getInstance().instantiateDocumentTypeCodes(docTypes);
+
+		Map<String, String> multiquery = new HashMap<String, String>();
+		String query = new IndexSearcher().searchQueryPartsFill(
+			"Documents", "*", "(abinash AND name:ava) OR name:jyoti", multiquery);
+		System.out.println(query + "\n" + multiquery.toString());
+		
+		System.out.println( "abinash" + "\t" + Hashing.hash("abinash"));
+		System.out.println( "ava" + "\t" + Hashing.hash("ava"));
+		System.out.println( "jyoti" + "\t" + Hashing.hash("jyoti"));
 	}
 }

@@ -1,7 +1,10 @@
-package com.bizosys.hsearch.idsearch.storage.donotmodify;
+package com.bizosys.hsearch.storage.donotmodify;
+
 import com.bizosys.hsearch.treetable.client.HSearchTableMultiQueryProcessor;
 import com.bizosys.hsearch.treetable.client.IHSearchTableCombiner;
+
 public class HSearchTableMultiQueryProcessorImpl extends HSearchTableMultiQueryProcessor {
+
 	public HSearchTableMultiQueryProcessorImpl() {
 		super();
 	}
@@ -10,4 +13,5 @@ public class HSearchTableMultiQueryProcessorImpl extends HSearchTableMultiQueryP
 	public IHSearchTableCombiner getCombiner() {
 		return new HSearchTableCombinerImpl();
 	}
+
 }

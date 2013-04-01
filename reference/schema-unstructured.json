@@ -1,0 +1,16 @@
+{
+    "module" : "com.delme.generated",
+    "table": "hsearch-index",
+    "columns": [
+        {
+            "name": "Documents",
+
+            "mergeId": {
+                "name": "mergeId",
+                "datatype": "String"
+            },
+            
+            "indexes": "schema-frequency"
+        }
+	]
+}

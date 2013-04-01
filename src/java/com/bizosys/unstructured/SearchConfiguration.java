@@ -11,6 +11,7 @@ import com.bizosys.hsearch.idsearch.config.FieldTypeCodes;
 import com.bizosys.hsearch.idsearch.config.FieldWeightCodes;
 import com.bizosys.hsearch.idsearch.config.Stopwords;
 import com.bizosys.hsearch.idsearch.config.Synonums;
+import com.bizosys.hsearch.util.Hashing;
 
 public class SearchConfiguration {
 	
@@ -21,7 +22,7 @@ public class SearchConfiguration {
 	
 	private SearchConfiguration ()  {
 	}
-	
+
 	/**
 	 * ****************************************************************************************************
 	 */

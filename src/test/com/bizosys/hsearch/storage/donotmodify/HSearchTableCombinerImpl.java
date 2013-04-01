@@ -1,8 +1,12 @@
-package com.bizosys.hsearch.idsearch.storage.donotmodify;
+package com.bizosys.hsearch.storage.donotmodify;
+
 import java.io.IOException;
+
 import com.bizosys.hsearch.treetable.client.HSearchTableCombiner;
 import com.bizosys.hsearch.treetable.client.IHSearchTable;
+
 public class HSearchTableCombinerImpl extends HSearchTableCombiner {
+
 	@Override
 	public IHSearchTable buildTable(String tableType) throws IOException {
 		
