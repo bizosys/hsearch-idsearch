@@ -1,6 +1,6 @@
 <?xml version="1.0"?>
 
-<!-- the normal classpath 
+<!-- 
 * Copyright 2010 Bizosys Technologies Limited
 *
 * Licensed to the Bizosys Technologies Limited (Bizosys) under one
@@ -60,20 +60,53 @@
 		    <src path="${src.dir}"/>
 		</javac>
 	</target>
+	
+	<target name="compile-test" depends="init">
+	  	<echo message="Java home: ${java.home} - ${ant.java.version} : javac.version - ${javac.version}"/>
+		<javac encoding="${build.encoding}" 
+			destdir="${build.classes}" debug="${javac.debug}" optimize="${javac.optimize}" 
+			target="${javac.version}" source="${javac.version}" deprecation="${javac.deprecation}">
+			<classpath refid="classpath" />
+		    <src path="${test.dir}"/>
+		</javac>
+	</target>
+	
 	<!-- ================================================================== -->
 	<!-- Make jar                                                     -->
 	<!-- ================================================================== -->
 	<!--                                                                    -->
 	<!-- ================================================================== -->
-	<target name="jar" depends="compile-core">
-		<jar jarfile="${build.dir}/${name}.jar" basedir="${build.classes}">
+	<target name="jar" depends="compile-core,jar-sources">
+		<jar jarfile="${name}.jar" basedir="${build.classes}">
 			<manifest>
 				<attribute name="Version" value="${version}"/>
 				<attribute name="Company" value="${company}"/>
 				<attribute name="BuildDate" value="${build.time}"/>
 			</manifest>				
 		</jar>
-</target>
+	</target>
+
+	<!-- ================================================================== -->
+	<!-- All source file jar -->
+	<!-- ================================================================== -->
+	<target name="jar-sources">
+		
+		<jar jarfile="src-${name}.jar" basedir="${src.dir}">
+			<manifest>
+				<attribute name="Created-By" value="${company}(${build.time})"/>
+				<attribute name="Version" value="${version}"/>
+				<attribute name="BuildDate" value="${build.time}"/>
+			</manifest>			
+		</jar>
+		
+		<jar jarfile="nightly/src-${name}_${version}.jar" basedir="${src.dir}">
+			<manifest>
+				<attribute name="Created-By" value="${company}(${build.time})"/>
+				<attribute name="Version" value="${version}"/>
+				<attribute name="BuildDate" value="${build.time}"/>
+			</manifest>			
+		</jar>
+	</target>	
 
 	<!-- ================================================================== -->
 	<!-- D I S T R I B U T I O N  Targets                                   -->
@@ -85,6 +118,7 @@
 	<!-- Clean.  Delete the build files, and their directories              -->
 	<!-- ================================================================== -->
 	<target name="clean">
+		<delete dir="${build.classes}" />
 		<delete dir="${build.dir}" />
 	</target>
 

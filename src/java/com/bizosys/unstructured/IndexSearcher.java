@@ -1,3 +1,22 @@
+/*
+* Copyright 2010 Bizosys Technologies Limited
+*
+* Licensed to the Bizosys Technologies Limited (Bizosys) under one
+* or more contributor license agreements.  See the NOTICE file
+* distributed with this work for additional information
+* regarding copyright ownership.  The Bizosys licenses this file
+* to you under the Apache License, Version 2.0 (the
+* "License"); you may not use this file except in compliance
+* with the License.  You may obtain a copy of the License at
+*
+*     http://www.apache.org/licenses/LICENSE-2.0
+*
+* Unless required by applicable law or agreed to in writing, software
+* distributed under the License is distributed on an "AS IS" BASIS,
+* WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+* See the License for the specific language governing permissions and
+* limitations under the License.
+*/
 package com.bizosys.unstructured;
 
 import java.util.HashMap;
@@ -12,23 +31,20 @@ import org.apache.lucene.queryParser.QueryParser;
 import org.apache.lucene.search.Query;
 import org.apache.lucene.util.Version;
 
-import com.bizosys.hsearch.idsearch.config.DocumentTypeCodes;
-import com.bizosys.hsearch.idsearch.config.FieldTypeCodes;
 import com.bizosys.hsearch.util.Hashing;
 import com.bizosys.unstructured.util.Constants;
 
 public class IndexSearcher {
-	private DocumentTypeCodes docTypeCodes = null;
-	private FieldTypeCodes fieldTypeCodes = null;
-
+	SearchConfiguration sConf = null;
 	public IndexSearcher() throws InstantiationException {
-		SearchConfiguration sConf = SearchConfiguration.getInstance();
-		fieldTypeCodes = sConf.getFieldTypeCodes();
-		docTypeCodes  = sConf.getDocumentTypeCodes();
+		this.sConf = SearchConfiguration.getInstance();
 	}
 	
 	public String searchQueryPartsFill( String indexName, String docType, 
 		String query, Analyzer analyzer, Map<String, String> multiQueryParts) throws Exception {
+		
+		System.err.println("\n\n\n************ Stop using this method and instead use the following method. ******************\n" + 
+		"public String searchQueryPartsFill( Analyzer analyzer, boolean isAllWords, String multiQuery, Map<String, String> multiQueryParts, String... partsToAnalyze) throws Exception\n\n\n");
 		
 		String defaultField = "BIZOSYSNONE";
 		
@@ -39,20 +55,17 @@ public class IndexSearcher {
 		
 		int index = 0;
 		Map<String, String> termsL = new HashMap<String, String>();
-		if ( ! "*".equals(docType) ) docType = docTypeCodes.getCode(docType).toString();
+		if ( ! "*".equals(docType) ) docType = this.sConf.getDocumentTypeCodes().getCode(docType).toString();
 		
 		for (Term term : terms) {
-			
 			String fieldName = term.field();
 			if ( defaultField.equals(fieldName)) fieldName = "*";
 			else if ( "*".equals(fieldName)) fieldName = "*";
-			else fieldName = fieldTypeCodes.getCode(term.field()).toString(); 
+			else fieldName = this.sConf.getFieldTypeCodes().getCode(term.field()).toString(); 
 			
 			String fieldText = term.text(); 
-			System.out.println(fieldText);
 			
-			String expandedTerm = 
-				docType + "|" + fieldName + "|" + Hashing.hash(fieldText) + "|*|*";
+			String expandedTerm = docType + "|" + fieldName + "|" + Hashing.hash(fieldText) + "|*|*";
 			
 			String lhs = indexName + ":" + index;
 			multiQueryParts.put( lhs , expandedTerm);
@@ -79,10 +92,8 @@ public class IndexSearcher {
 						caseQuery = query.toUpperCase();
 						break;
 				}
-				//System.out.println( "**** " + caseQuery + "\t\t-\t\t" + term);
 				term = term.replace(defaultField + ":", "");
 				int caseTermIndex = caseQuery.indexOf(term + " ") ;
-				//System.out.println( "#### " + term + "\t\t-\t\t" + caseTermIndex);
 				if ( caseTermIndex >= 0 ) {
 					query = query.substring(0, caseTermIndex) + termsL.get(term) + query.substring(caseTermIndex + term.length());
 				}
@@ -111,7 +122,6 @@ public class IndexSearcher {
 				}
 			}
 		}
-		System.out.println(query + "\n" + multiQueryParts.toString());
 		
 		return query;
 	}
@@ -123,22 +133,72 @@ public class IndexSearcher {
 			new StandardAnalyzer(Constants.LUCENE_VERSION), multiQueryParts );
 	}	
 	
-	public static void main(String[] args) throws Exception {
-		Map<String, Integer> fldTypes = new HashMap<String, Integer>();
-		fldTypes.put("name", 2);
-		SearchConfiguration.getInstance().instantiateFieldTypeCodes(fldTypes);
-		
-		Map<String, Integer> docTypes = new HashMap<String, Integer>();
-		docTypes.put("emp", 1);
-		SearchConfiguration.getInstance().instantiateDocumentTypeCodes(docTypes);
+	
+	public String searchQueryPartsFill( Analyzer analyzer, boolean isAllWords, String multiQuery,
+		Map<String, String> multiQueryParts, String... partsToAnalyze) throws Exception {
+			
+			String defaultField = "BIZOSYSNONE";
+			Map<Integer, String> explodedParts = new HashMap<Integer, String>();
+			
+			for (String qKey : partsToAnalyze) {
+				QueryParser qp = new QueryParser(Version.LUCENE_36, defaultField, analyzer); 
+				Set<Term> terms = new HashSet<Term>();
+				Query q = qp.parse(multiQueryParts.get(qKey));
+				q.extractTerms(terms);
 
-		Map<String, String> multiquery = new HashMap<String, String>();
-		String query = new IndexSearcher().searchQueryPartsFill(
-			"Documents", "*", "(abinash AND name:ava) OR name:jyoti", multiquery);
-		System.out.println(query + "\n" + multiquery.toString());
-		
-		System.out.println( "abinash" + "\t" + Hashing.hash("abinash"));
-		System.out.println( "ava" + "\t" + Hashing.hash("ava"));
-		System.out.println( "jyoti" + "\t" + Hashing.hash("jyoti"));
-	}
+				int index = 1;
+				explodedParts.clear();
+				
+				for (Term term : terms) {
+					String fieldName = term.field();
+					String fieldText = term.text();
+					String docType = "*";
+					String fieldType = "*";
+					int docAndFieldBreakPointIndex = fieldName.indexOf('/');
+					
+					if ( -1 == docAndFieldBreakPointIndex) {
+						docType = fieldName;
+					} else {
+						docType = fieldName.substring(0, docAndFieldBreakPointIndex);
+						fieldType = fieldName.substring(docAndFieldBreakPointIndex + 1);
+					}
+
+					if ( docType.equals(defaultField) ) docType = "*";
+					else if ( ! ( "*".equals(docType) || "".equals(docType) ) ) {
+						docType = sConf.getDocumentTypeCodes().getCode(docType).toString();
+					}
+					
+					if ( fieldType.equals(defaultField) ) fieldType = "*";
+					else if ( ! ( "*".equals(fieldType) || "".equals(fieldType) ) ) {
+						fieldType = sConf.getFieldTypeCodes().getCode(fieldType).toString();
+					} 
+
+					String expandedTerm = docType + "|" + fieldType + "|" + Hashing.hash(fieldText) + "|*|*";
+					explodedParts.put(index, expandedTerm);
+					index++;
+				}
+				
+				if ( explodedParts.size() > 1) {
+					multiQueryParts.remove(qKey);
+					
+					StringBuilder sb = new StringBuilder();
+					boolean isFirst = true;
+					for (Integer seq : explodedParts.keySet()) {
+						String explodedKey = qKey + seq.toString(); 
+						multiQueryParts.put(explodedKey, explodedParts.get(seq));
+						if ( isFirst ) isFirst = false;
+						else {
+							if ( isAllWords ) sb.append(" AND ");
+							else sb.append(" OR ");
+						}
+						sb.append(explodedKey);
+					}
+					multiQuery = multiQuery.replace(qKey, " ( " + sb.toString() + " ) ");
+				} else {
+					multiQueryParts.put(qKey, explodedParts.get(index - 1));
+				}
+			}
+			
+			return multiQuery;
+		}	
 }

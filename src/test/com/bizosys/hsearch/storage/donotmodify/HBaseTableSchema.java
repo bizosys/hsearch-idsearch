@@ -22,6 +22,7 @@ public class HBaseTableSchema {
 	private HBaseTableSchema() throws IOException {
 		
 		HBaseTableSchemaDefn.getInstance().tableName = "hsearch-index";
+		@SuppressWarnings("rawtypes")
 		Map<String, IPartition> columns = HBaseTableSchemaDefn.getInstance().columnPartions;
 		columns.put("Documents",new PartitionByFirstLetter());
 		columns.get("Documents").setPartitionsAndRange(

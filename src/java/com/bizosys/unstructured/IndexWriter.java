@@ -1,5 +1,24 @@
-package com.bizosys.unstructured;
+/*
+* Copyright 2010 Bizosys Technologies Limited
+*
+* Licensed to the Bizosys Technologies Limited (Bizosys) under one
+* or more contributor license agreements.  See the NOTICE file
+* distributed with this work for additional information
+* regarding copyright ownership.  The Bizosys licenses this file
+* to you under the Apache License, Version 2.0 (the
+* "License"); you may not use this file except in compliance
+* with the License.  You may obtain a copy of the License at
+*
+*     http://www.apache.org/licenses/LICENSE-2.0
+*
+* Unless required by applicable law or agreed to in writing, software
+* distributed under the License is distributed on an "AS IS" BASIS,
+* WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+* See the License for the specific language governing permissions and
+* limitations under the License.
+*/
 
+package com.bizosys.unstructured;
 
 import java.io.IOException;
 import java.io.StringReader;
@@ -21,25 +40,19 @@ import com.bizosys.hsearch.byteutils.SortedBytesInteger;
 import com.bizosys.hsearch.hbase.HWriter;
 import com.bizosys.hsearch.hbase.NV;
 import com.bizosys.hsearch.hbase.RecordScalar;
-import com.bizosys.hsearch.idsearch.config.DocumentTypeCodes;
-import com.bizosys.hsearch.idsearch.config.FieldTypeCodes;
 import com.bizosys.hsearch.treetable.client.partition.IPartition;
 import com.bizosys.hsearch.treetable.storage.HBaseTableSchemaDefn;
 import com.bizosys.hsearch.treetable.unstructured.IIndexFrequencyTable;
 import com.bizosys.hsearch.treetable.unstructured.IIndexOffsetTable;
 import com.bizosys.hsearch.treetable.unstructured.IIndexPositionsTable;
-import com.bizosys.unstructured.util.Constants;
 import com.bizosys.hsearch.util.Hashing;
+import com.bizosys.unstructured.util.Constants;
 
 
 public class IndexWriter {
 
 	private Analyzer analyzer = null;
 	private static String unknownDocumentType = "-";
-	private StringBuilder sb = new StringBuilder(4096);
-	
-	private FieldTypeCodes fieldTypeCodes = null;
-	private DocumentTypeCodes docTypeCodes = null;
 	
 	private static final int FREQUENCY_TABLE = 0;
 	private static final int OFFSET_TABLE = 1;
@@ -52,9 +65,10 @@ public class IndexWriter {
 	private IIndexOffsetTable tableOffset = null;
 	private IIndexPositionsTable tablePositions = null;
 	
+	SearchConfiguration sConf = null;	
+	
 	private IndexWriter() throws InstantiationException {
-		fieldTypeCodes = SearchConfiguration.getInstance().getFieldTypeCodes();
-		docTypeCodes= SearchConfiguration.getInstance().getDocumentTypeCodes();
+		sConf = SearchConfiguration.getInstance();
 	}
 	
 	public IndexWriter(IIndexFrequencyTable tableFrequency) throws InstantiationException {
@@ -79,12 +93,26 @@ public class IndexWriter {
 		
 		switch (tableType) {
 			case FREQUENCY_TABLE :
+				for (IndexRow row : this.cachedIndex) {
+					this.tableFrequency.put( row.docType, row.fieldType, 
+							row.hashCode(), row.docId, row.occurance);
+				}
 				return this.tableFrequency.toBytes();
 
 			case OFFSET_TABLE :
+				for (IndexRow row : this.cachedIndex) {
+					byte[] offsetB = SortedBytesInteger.getInstance().toBytes(row.offsetL);
+					this.tableOffset.put( row.docType, row.fieldType, 
+						row.hashCode(), row.docId, offsetB);
+				}
 				return this.tableOffset.toBytes();
 		
 			case POSITION_TABLE :
+				for (IndexRow row : this.cachedIndex) {
+					byte[] positionsB = SortedBytesInteger.getInstance().toBytes(row.positionL);
+					this.tablePositions.put( row.docType, row.fieldType, 
+						row.hashCode(), row.docId, positionsB);
+				}
 				return this.tablePositions.toBytes();
 			
 			default:
@@ -115,28 +143,28 @@ public class IndexWriter {
 		if ( null != analyzer) analyzer.close();
 	}	
 	
-	public void addDocument(int docId, Document doc) throws IOException {
+	public void addDocument(int docId, Document doc) throws IOException, InstantiationException {
 		addDocument(docId, doc, unknownDocumentType);
 	}
 
-	public void addDocument(int docId, Document doc, String documentType) throws IOException {
+	public void addDocument(int docId, Document doc, String documentType) throws IOException, InstantiationException {
 		if ( null == analyzer) analyzer = new StandardAnalyzer(Constants.LUCENE_VERSION);
 		addDocument(docId, doc, documentType, analyzer);
 	}
 
-	public void addDocument(int docId, Document doc, String documentType, Analyzer analyzer) throws CorruptIndexException, IOException {
+	public void addDocument(int docId, Document doc, String documentType, Analyzer analyzer) throws CorruptIndexException, IOException, InstantiationException {
 		Map<String, IndexRow> uniqueRows = new HashMap<String, IndexWriter.IndexRow>();
 		addDocument(docId, doc, documentType, analyzer, uniqueRows ); 
 	}	
 
 	public void addDocument(int docId, Document doc, String documentType, 
-		Analyzer analyzer, Map<String, IndexRow> uniqueTokens ) throws CorruptIndexException, IOException {
+		Analyzer analyzer, Map<String, IndexRow> uniqueTokens ) throws CorruptIndexException, IOException, InstantiationException {
 
-		int docType = docTypeCodes.getCode(documentType);
+		int docType = sConf.getDocumentTypeCodes().getCode(documentType);
 		
 		for (Fieldable field : doc.getFields() ) {
     		uniqueTokens.clear();
-    		int fieldType = fieldTypeCodes.getCode(field.name());
+    		int fieldType = sConf.getFieldTypeCodes().getCode(field.name());
     		
     		if ( field.isTokenized()) {
         		StringReader sr = new StringReader(field.stringValue());
@@ -177,7 +205,6 @@ public class IndexWriter {
 				data = getBytes(rows, data);
 				
 				byte[] colNameBytes = new String( new char[] {column} ).getBytes();
-				System.out.println(family + "----" + column);
 				
 				RecordScalar mergedTable = new RecordScalar(
 						mergeId.getBytes(), 
