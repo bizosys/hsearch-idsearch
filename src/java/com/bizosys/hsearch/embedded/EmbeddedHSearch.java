@@ -24,6 +24,7 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.Set;
 
+import org.apache.lucene.analysis.Analyzer;
 import org.apache.lucene.document.Document;
 import org.apache.lucene.document.Field;
 
@@ -37,15 +38,15 @@ import com.bizosys.unstructured.IndexWriter;
 
 public class EmbeddedHSearch {
 	
-	@SuppressWarnings("unused")
 	private static boolean DEBUG_MODE = EmbeddedHSearchLog.l.isDebugEnabled();
+	@SuppressWarnings("unused")
 	private static boolean INFO_MODE = EmbeddedHSearchLog.l.isInfoEnabled();
 	
     IndexWriter writer = null;
     byte[] indexBytes = null;
     boolean isAllWords = false;
     
-	CustomAnalyzer analyzer = null;
+	Analyzer analyzer = null;
 	FederatedSearch ff = createFederatedSearch(); 
     
     public EmbeddedHSearch(Set<String> stopwords, Map<String, String> synonums, char synonumSeparator) throws InstantiationException {
@@ -58,8 +59,12 @@ public class EmbeddedHSearch {
     	this.analyzer = analyzer;
     }
 
-    public CustomAnalyzer getAnalyzer() {
+    public Analyzer getAnalyzer() {
     	return analyzer;
+    }
+
+    public void setAnalyzer(Analyzer analyzer) {
+    	this.analyzer = analyzer;
     }
 
     public void addToIndex(String docType, String fieldType, Map<Integer, String> docIdWithFieldValue) throws IOException, InstantiationException {

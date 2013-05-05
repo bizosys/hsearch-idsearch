@@ -115,10 +115,12 @@ public class EmbeddedSearchExample {
         	if ( null != docIds) System.out.println(docIds.toString());
         	System.out.println("------------------------------");
 
+        	/**
         	for ( int i=0; i<1000000; i++) {
         		if ( i % 10000 == 0) System.out.println(i);
             	engine.searchIds("crm/subject:Bangalore");
     		}
+    		*/
     	}    	
     	
     	{
