@@ -27,18 +27,19 @@ public class Client extends HSearchTableReader {
         return filter;
     }
 
+    final byte[]  blankkey = "".getBytes();
     @Override
-    public void rows(Map<byte[], byte[]> results, HSearchProcessingInstruction instruction) {
+    public void rows(Collection<byte[]> results, HSearchProcessingInstruction instruction) {
 
         try {
 
             Collection<byte[]> merged = new ArrayList<byte[]>();
             Collection<byte[]> appendValueB = new ArrayList<byte[]>();
 
-            for (Map.Entry<byte[], byte[]> entry : results.entrySet()) {
+            for (byte[] data : results) {
                 appendValueB.clear();
-                SortedBytesArray.getInstance().parse(entry.getValue()).values(appendValueB);
-                this.filter.getReducer().appendRows(merged, entry.getKey(), appendValueB);
+                SortedBytesArray.getInstance().parse(data).values(appendValueB);
+                this.filter.getReducer().appendRows(merged, blankkey, appendValueB);
             }
 
             if (merged.iterator().hasNext()) {

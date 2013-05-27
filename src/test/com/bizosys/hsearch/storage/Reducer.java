@@ -1,36 +1,18 @@
 package com.bizosys.hsearch.storage;
 
+import java.io.IOException;
 import java.util.Arrays;
 import java.util.Collection;
 
 import com.bizosys.hsearch.byteutils.Storable;
 import com.bizosys.hsearch.functions.HSearchReducer;
+import com.bizosys.hsearch.functions.StatementWithOutput;
 
 public class Reducer implements HSearchReducer {
 
+	
     @Override
-    public void appendCols(Collection<byte[]> mergedB, Collection<byte[]> appendB) {
-
-        if (null == appendB) return;
-        
-        if (appendB.size() == 0) return;
-
-        if (mergedB.size() == 0) {
-            mergedB.addAll(appendB);
-            return;
-        }
-
-        byte[] merged = mergedB.iterator().next();
-        byte[] append = appendB.iterator().next();
-        
-        /**
-         * TODO:// De-serialize and compute.
-         */
-        
-        mergedB.clear();
-        /**
-         * TODO:// Add the processed bytes to merged container
-         */
+	public void appendCols(StatementWithOutput[] queryOutput, Collection<byte[]> finalColumns) throws IOException {
     }
 
     @Override
@@ -70,4 +52,5 @@ public class Reducer implements HSearchReducer {
         appendRows(mergedRows, appendRows);
 
     }
+
 }

@@ -135,7 +135,7 @@ public class EmbeddedSearchExample {
 
         	String multiQuery = "Documents:A AND Documents:B"; //Documents:A AND Findings:B
         	Map<String, String> multiqueryParts = new HashMap<String, String>();
-        	multiqueryParts.put("Documents:A", "crm/\\*:bangaluru");
+        	multiqueryParts.put("Documents:A", "\\*/subject:bangaluru");
         	multiqueryParts.put("Documents:B", "crm:city");
         	//System.out.print(multiQuery + "\n" + multiqueryParts.toString());
         	Set<Integer> docIds = engine.searchIds(multiQuery, multiqueryParts, "Documents:A", "Documents:B");

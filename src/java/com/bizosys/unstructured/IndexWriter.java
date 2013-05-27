@@ -95,7 +95,7 @@ public class IndexWriter {
 			case FREQUENCY_TABLE :
 				for (IndexRow row : this.cachedIndex) {
 					this.tableFrequency.put( row.docType, row.fieldType, 
-							row.hashCode(), row.docId, row.occurance);
+							row.hashCode(), row.docId, setPayloadWithOccurance(row.docId, row.occurance));
 				}
 				return this.tableFrequency.toBytes();
 
@@ -103,7 +103,7 @@ public class IndexWriter {
 				for (IndexRow row : this.cachedIndex) {
 					byte[] offsetB = SortedBytesInteger.getInstance().toBytes(row.offsetL);
 					this.tableOffset.put( row.docType, row.fieldType, 
-						row.hashCode(), row.docId, offsetB);
+						row.hashCode(), row.docId, setPayloadWithOffsets(row.docId, offsetB));
 				}
 				return this.tableOffset.toBytes();
 		
@@ -111,7 +111,7 @@ public class IndexWriter {
 				for (IndexRow row : this.cachedIndex) {
 					byte[] positionsB = SortedBytesInteger.getInstance().toBytes(row.positionL);
 					this.tablePositions.put( row.docType, row.fieldType, 
-						row.hashCode(), row.docId, positionsB);
+						row.hashCode(), row.docId, setPayloadWithPositions(row.docId, positionsB));
 				}
 				return this.tablePositions.toBytes();
 			
@@ -120,6 +120,18 @@ public class IndexWriter {
 		}
 	}
 	
+	public int setPayloadWithOccurance(int docId, int occurance) {
+		return occurance;
+	}
+	
+	public byte[] setPayloadWithPositions(int docId, byte[] positionsB) {
+		return positionsB;
+	}
+
+	public byte[] setPayloadWithOffsets(int docId, byte[] offsetB) {
+		return offsetB;
+	}
+
 	public void close() throws IOException {
 		
 		
