@@ -138,7 +138,8 @@ public class EmbeddedSearchExample {
         	multiqueryParts.put("Documents:A", "\\*/subject:bangaluru");
         	multiqueryParts.put("Documents:B", "crm:city");
         	//System.out.print(multiQuery + "\n" + multiqueryParts.toString());
-        	Set<Integer> docIds = engine.searchIds(multiQuery, multiqueryParts, "Documents:A", "Documents:B");
+        	Set<Integer> docIds = engine.searchIds(
+        		multiQuery, multiqueryParts, "Documents:A", "Documents:B");
         	if ( null != docIds) System.out.println(docIds.toString());
 
         	engine.close();

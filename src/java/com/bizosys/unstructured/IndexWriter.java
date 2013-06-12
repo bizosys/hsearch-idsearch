@@ -237,7 +237,7 @@ public class IndexWriter {
 					this.tableFrequency.put( row.docType, row.fieldType, 
 							row.hashCode(), row.docId, row.occurance);
 				}
-				data = this.tableFrequency.toBytes();
+				data = this.toBytes();
 				this.tableFrequency.clear();
 				break;
 
@@ -247,7 +247,7 @@ public class IndexWriter {
 					this.tablePositions.put( row.docType, row.fieldType, 
 						row.hashCode(), row.docId, positionsB);
 				}
-				data = this.tablePositions.toBytes();
+				data = this.toBytes();
 				this.tablePositions.clear();
 				break;
 		
@@ -257,7 +257,7 @@ public class IndexWriter {
 					this.tableOffset.put( row.docType, row.fieldType, 
 						row.hashCode(), row.docId, offsetB);
 				}
-				data = this.tableOffset.toBytes();
+				data = this.toBytes();
 				this.tableOffset.clear();
 				break;
 		
