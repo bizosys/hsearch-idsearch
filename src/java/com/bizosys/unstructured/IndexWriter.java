@@ -47,6 +47,7 @@ import com.bizosys.hsearch.treetable.unstructured.IIndexOffsetTable;
 import com.bizosys.hsearch.treetable.unstructured.IIndexPositionsTable;
 import com.bizosys.hsearch.util.Hashing;
 import com.bizosys.unstructured.util.Constants;
+import com.bizosys.unstructured.util.IdSearchLog;
 
 
 public class IndexWriter {
@@ -90,13 +91,15 @@ public class IndexWriter {
 	}
 	
 	public byte[] toBytes() throws IOException {
-		
+		IdSearchLog.l.fatal("IndexWriter:toBytes()");
 		switch (tableType) {
 			case FREQUENCY_TABLE :
+				IdSearchLog.l.fatal("IndexWriter:toBytes() FREQUENCY_TABLE");
 				for (IndexRow row : this.cachedIndex) {
 					this.tableFrequency.put( row.docType, row.fieldType, 
 							row.hashCode(), row.docId, setPayloadWithOccurance(row.docId, row.occurance));
 				}
+				IdSearchLog.l.fatal("IndexWriter:toBytes() FREQUENCY_TABLE" + this.cachedIndex.size());
 				return this.tableFrequency.toBytes();
 
 			case OFFSET_TABLE :
@@ -121,6 +124,7 @@ public class IndexWriter {
 	}
 	
 	public int setPayloadWithOccurance(int docId, int occurance) {
+		IdSearchLog.l.fatal("IndexWriter:setPayloadWithOccurance() ");
 		return occurance;
 	}
 	
@@ -134,6 +138,7 @@ public class IndexWriter {
 
 	public void close() throws IOException {
 		
+		IdSearchLog.l.fatal("IndexWriter:close() ");
 		
 		switch (tableType) {
 			case FREQUENCY_TABLE :
@@ -193,6 +198,8 @@ public class IndexWriter {
 	}
 	
 	public void commit(String mergeId, String indexName) throws IOException {
+		IdSearchLog.l.fatal("IndexWriter:commit() ");
+		
 		HBaseTableSchemaDefn schema = HBaseTableSchemaDefn.getInstance();
 		
 		String tableName = schema.tableName;
@@ -207,10 +214,12 @@ public class IndexWriter {
 		
 		for (String family : partitionCells.keySet()) {
 			
+			IdSearchLog.l.fatal("IndexWriter:commit() family " + family);
 			Map<Character, List<IndexRow>> cols = partitionCells.get(family);
 			
 			for ( Character column : cols.keySet()) {
 				
+				IdSearchLog.l.fatal("IndexWriter:commit() column" + column);
 				List<IndexRow> rows = cols.get(column);
 				byte[] data = null;
 				
@@ -230,9 +239,11 @@ public class IndexWriter {
 	}
 
 	private final byte[] getBytes(List<IndexRow> rows, byte[] data) throws IOException {
+		IdSearchLog.l.fatal("IndexWriter:commit() getBytes : " + tableType);
 		switch (tableType) {
 		
 			case FREQUENCY_TABLE :
+				IdSearchLog.l.fatal("IndexWriter:commit() getBytes :  FREQUENCY_TABLE");
 				for (IndexRow row : rows) {
 					this.tableFrequency.put( row.docType, row.fieldType, 
 							row.hashCode(), row.docId, row.occurance);
