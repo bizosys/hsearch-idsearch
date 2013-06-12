@@ -69,6 +69,7 @@ public class IndexWriter {
 	SearchConfiguration sConf = null;	
 	
 	private IndexWriter() throws InstantiationException {
+		System.out.println("IndexWriter Initialized" );
 		sConf = SearchConfiguration.getInstance();
 	}
 	
@@ -91,15 +92,15 @@ public class IndexWriter {
 	}
 	
 	public byte[] toBytes() throws IOException {
-		IdSearchLog.l.fatal("IndexWriter:toBytes()");
+		System.out.println("IndexWriter:toBytes()");
 		switch (tableType) {
 			case FREQUENCY_TABLE :
-				IdSearchLog.l.fatal("IndexWriter:toBytes() FREQUENCY_TABLE");
+				System.out.println("IndexWriter:toBytes() FREQUENCY_TABLE");
 				for (IndexRow row : this.cachedIndex) {
 					this.tableFrequency.put( row.docType, row.fieldType, 
 							row.hashCode(), row.docId, setPayloadWithOccurance(row.docId, row.occurance));
 				}
-				IdSearchLog.l.fatal("IndexWriter:toBytes() FREQUENCY_TABLE" + this.cachedIndex.size());
+				System.out.println("IndexWriter:toBytes() FREQUENCY_TABLE" + this.cachedIndex.size());
 				return this.tableFrequency.toBytes();
 
 			case OFFSET_TABLE :
@@ -124,7 +125,7 @@ public class IndexWriter {
 	}
 	
 	public int setPayloadWithOccurance(int docId, int occurance) {
-		IdSearchLog.l.fatal("IndexWriter:setPayloadWithOccurance() ");
+		System.out.println("IndexWriter:setPayloadWithOccurance() ");
 		return occurance;
 	}
 	
@@ -138,7 +139,7 @@ public class IndexWriter {
 
 	public void close() throws IOException {
 		
-		IdSearchLog.l.fatal("IndexWriter:close() ");
+		System.out.println("IndexWriter:close() ");
 		
 		switch (tableType) {
 			case FREQUENCY_TABLE :
@@ -198,7 +199,7 @@ public class IndexWriter {
 	}
 	
 	public void commit(String mergeId, String indexName) throws IOException {
-		IdSearchLog.l.fatal("IndexWriter:commit() ");
+		System.out.println("IndexWriter:commit() ");
 		
 		HBaseTableSchemaDefn schema = HBaseTableSchemaDefn.getInstance();
 		
@@ -214,12 +215,12 @@ public class IndexWriter {
 		
 		for (String family : partitionCells.keySet()) {
 			
-			IdSearchLog.l.fatal("IndexWriter:commit() family " + family);
+			System.out.println("IndexWriter:commit() family " + family);
 			Map<Character, List<IndexRow>> cols = partitionCells.get(family);
 			
 			for ( Character column : cols.keySet()) {
 				
-				IdSearchLog.l.fatal("IndexWriter:commit() column" + column);
+				System.out.println("IndexWriter:commit() column" + column);
 				List<IndexRow> rows = cols.get(column);
 				byte[] data = null;
 				
@@ -239,11 +240,11 @@ public class IndexWriter {
 	}
 
 	private final byte[] getBytes(List<IndexRow> rows, byte[] data) throws IOException {
-		IdSearchLog.l.fatal("IndexWriter:commit() getBytes : " + tableType);
+		System.out.println("IndexWriter:commit() getBytes : " + tableType);
 		switch (tableType) {
 		
 			case FREQUENCY_TABLE :
-				IdSearchLog.l.fatal("IndexWriter:commit() getBytes :  FREQUENCY_TABLE");
+				System.out.println("IndexWriter:commit() getBytes :  FREQUENCY_TABLE");
 				for (IndexRow row : rows) {
 					this.tableFrequency.put( row.docType, row.fieldType, 
 							row.hashCode(), row.docId, row.occurance);
