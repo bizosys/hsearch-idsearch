@@ -33,6 +33,7 @@ import com.bizosys.hsearch.federate.BitSetOrSet;
 import com.bizosys.hsearch.federate.FederatedSearch;
 import com.bizosys.hsearch.federate.QueryPart;
 import com.bizosys.hsearch.treetable.client.HSearchQuery;
+import com.bizosys.unstructured.AnalyzerFactory;
 import com.bizosys.unstructured.IndexSearcher;
 import com.bizosys.unstructured.IndexWriter;
 
@@ -68,11 +69,12 @@ public class EmbeddedHSearch {
     }
 
     public void addToIndex(String docType, String fieldType, Map<Integer, String> docIdWithFieldValue) throws IOException, InstantiationException {
+    	AnalyzerFactory analyzers = new AnalyzerFactory(analyzer);
     	
 		for (Integer docId : docIdWithFieldValue.keySet()) {
 		    Document lucenDoc = new Document();
 		    lucenDoc.add(new Field(fieldType, docIdWithFieldValue.get(docId), Field.Store.YES, Field.Index.ANALYZED));
-		    writer.addDocument(docId, lucenDoc,docType, analyzer);
+		    writer.addDocument(docId, lucenDoc,docType, analyzers);
 		}
 	}
     

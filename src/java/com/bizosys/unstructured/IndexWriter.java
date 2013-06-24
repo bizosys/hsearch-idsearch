@@ -27,9 +27,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-import org.apache.lucene.analysis.Analyzer;
 import org.apache.lucene.analysis.TokenStream;
-import org.apache.lucene.analysis.standard.StandardAnalyzer;
 import org.apache.lucene.analysis.tokenattributes.CharTermAttribute;
 import org.apache.lucene.analysis.tokenattributes.OffsetAttribute;
 import org.apache.lucene.document.Document;
@@ -45,20 +43,21 @@ import com.bizosys.hsearch.treetable.storage.HBaseTableSchemaDefn;
 import com.bizosys.hsearch.treetable.unstructured.IIndexFrequencyTable;
 import com.bizosys.hsearch.treetable.unstructured.IIndexOffsetTable;
 import com.bizosys.hsearch.treetable.unstructured.IIndexPositionsTable;
+import com.bizosys.hsearch.util.HSearchLog;
 import com.bizosys.hsearch.util.Hashing;
-import com.bizosys.unstructured.util.Constants;
-import com.bizosys.unstructured.util.IdSearchLog;
 
 
 public class IndexWriter {
 
-	private Analyzer analyzer = null;
+	private AnalyzerFactory analyzers = null;
 	private static String unknownDocumentType = "-";
 	
 	private static final int FREQUENCY_TABLE = 0;
 	private static final int OFFSET_TABLE = 1;
 	private static final int POSITION_TABLE = 2;
 	private int tableType = -1;
+	
+	static boolean INFO_ENABLED = HSearchLog.l.isInfoEnabled();
 	
 	private List<IndexRow> cachedIndex = new ArrayList<IndexWriter.IndexRow>();
 	
@@ -69,7 +68,6 @@ public class IndexWriter {
 	SearchConfiguration sConf = null;	
 	
 	private IndexWriter() throws InstantiationException {
-		System.out.println("IndexWriter Initialized" );
 		sConf = SearchConfiguration.getInstance();
 	}
 	
@@ -79,28 +77,25 @@ public class IndexWriter {
 		tableType = FREQUENCY_TABLE;
 	}
 	
-	public IndexWriter(IIndexOffsetTable tableFrequency) throws InstantiationException {
+	public IndexWriter(IIndexOffsetTable tableOffset) throws InstantiationException {
 		this();
-		this.tableOffset = tableFrequency;
+		this.tableOffset = tableOffset;
 		tableType = OFFSET_TABLE;
 	}
 
-	public IndexWriter(IIndexPositionsTable tableFrequency) throws InstantiationException {
+	public IndexWriter(IIndexPositionsTable tablePosition) throws InstantiationException {
 		this();
-		this.tablePositions = tableFrequency;
+		this.tablePositions = tablePosition;
 		tableType = POSITION_TABLE;
 	}
 	
 	public byte[] toBytes() throws IOException {
-		System.out.println("IndexWriter:toBytes()");
 		switch (tableType) {
 			case FREQUENCY_TABLE :
-				System.out.println("IndexWriter:toBytes() FREQUENCY_TABLE");
 				for (IndexRow row : this.cachedIndex) {
 					this.tableFrequency.put( row.docType, row.fieldType, 
 							row.hashCode(), row.docId, setPayloadWithOccurance(row.docId, row.occurance));
 				}
-				System.out.println("IndexWriter:toBytes() FREQUENCY_TABLE" + this.cachedIndex.size());
 				return this.tableFrequency.toBytes();
 
 			case OFFSET_TABLE :
@@ -125,7 +120,6 @@ public class IndexWriter {
 	}
 	
 	public int setPayloadWithOccurance(int docId, int occurance) {
-		System.out.println("IndexWriter:setPayloadWithOccurance() ");
 		return occurance;
 	}
 	
@@ -139,7 +133,6 @@ public class IndexWriter {
 
 	public void close() throws IOException {
 		
-		System.out.println("IndexWriter:close() ");
 		
 		switch (tableType) {
 			case FREQUENCY_TABLE :
@@ -158,7 +151,9 @@ public class IndexWriter {
 				throw new IOException("Unknown Index Type");
 		}
 		
-		if ( null != analyzer) analyzer.close();
+		if ( null != analyzers) {
+			analyzers.close();
+		}
 	}	
 	
 	public void addDocument(int docId, Document doc) throws IOException, InstantiationException {
@@ -166,17 +161,20 @@ public class IndexWriter {
 	}
 
 	public void addDocument(int docId, Document doc, String documentType) throws IOException, InstantiationException {
-		if ( null == analyzer) analyzer = new StandardAnalyzer(Constants.LUCENE_VERSION);
-		addDocument(docId, doc, documentType, analyzer);
+		this.analyzers = new AnalyzerFactory();
+		this.analyzers.setDefault();
+		addDocument(docId, doc, documentType, analyzers);
 	}
 
-	public void addDocument(int docId, Document doc, String documentType, Analyzer analyzer) throws CorruptIndexException, IOException, InstantiationException {
+	public void addDocument(int docId, Document doc, String documentType, AnalyzerFactory analyzer) throws CorruptIndexException, IOException, InstantiationException {
 		Map<String, IndexRow> uniqueRows = new HashMap<String, IndexWriter.IndexRow>();
 		addDocument(docId, doc, documentType, analyzer, uniqueRows ); 
 	}	
 
 	public void addDocument(int docId, Document doc, String documentType, 
-		Analyzer analyzer, Map<String, IndexRow> uniqueTokens ) throws CorruptIndexException, IOException, InstantiationException {
+		AnalyzerFactory analyzers, Map<String, IndexRow> uniqueTokens ) throws CorruptIndexException, IOException, InstantiationException {
+
+		this.analyzers = analyzers;
 
 		int docType = sConf.getDocumentTypeCodes().getCode(documentType);
 		
@@ -186,7 +184,7 @@ public class IndexWriter {
     		
     		if ( field.isTokenized()) {
         		StringReader sr = new StringReader(field.stringValue());
-        		TokenStream stream = analyzer.tokenStream(field.name(), sr);
+        		TokenStream stream = analyzers.getAnalyzer(documentType, field.name()).tokenStream(field.name(), sr);
         		tokenize(stream, docId, docType , fieldType, uniqueTokens);
         		sr.close();
     		} else {
@@ -199,7 +197,6 @@ public class IndexWriter {
 	}
 	
 	public void commit(String mergeId, String indexName) throws IOException {
-		System.out.println("IndexWriter:commit() ");
 		
 		HBaseTableSchemaDefn schema = HBaseTableSchemaDefn.getInstance();
 		
@@ -215,12 +212,10 @@ public class IndexWriter {
 		
 		for (String family : partitionCells.keySet()) {
 			
-			System.out.println("IndexWriter:commit() family " + family);
 			Map<Character, List<IndexRow>> cols = partitionCells.get(family);
 			
 			for ( Character column : cols.keySet()) {
 				
-				System.out.println("IndexWriter:commit() column" + column);
 				List<IndexRow> rows = cols.get(column);
 				byte[] data = null;
 				
@@ -240,16 +235,15 @@ public class IndexWriter {
 	}
 
 	private final byte[] getBytes(List<IndexRow> rows, byte[] data) throws IOException {
-		System.out.println("IndexWriter:commit() getBytes : " + tableType);
 		switch (tableType) {
 		
 			case FREQUENCY_TABLE :
-				System.out.println("IndexWriter:commit() getBytes :  FREQUENCY_TABLE");
 				for (IndexRow row : rows) {
 					this.tableFrequency.put( row.docType, row.fieldType, 
 							row.hashCode(), row.docId, row.occurance);
 				}
 				data = this.toBytes();
+				if ( INFO_ENABLED )  HSearchLog.l.info("Total rows in frequency table:\t" + rows.size());
 				this.tableFrequency.clear();
 				break;
 
@@ -260,6 +254,7 @@ public class IndexWriter {
 						row.hashCode(), row.docId, positionsB);
 				}
 				data = this.toBytes();
+				if ( INFO_ENABLED )  HSearchLog.l.info("Total rows in position table:\t" + rows.size());
 				this.tablePositions.clear();
 				break;
 		
@@ -270,6 +265,7 @@ public class IndexWriter {
 						row.hashCode(), row.docId, offsetB);
 				}
 				data = this.toBytes();
+				if ( INFO_ENABLED )  HSearchLog.l.info("Total rows in offset table:\t" + rows.size());
 				this.tableOffset.clear();
 				break;
 		

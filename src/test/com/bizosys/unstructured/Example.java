@@ -39,12 +39,13 @@ public class Example {
 		String INDEX_NAME = "Documents";
 
 		Analyzer analyzer = getAnalyzer();
+		AnalyzerFactory analyzers = new AnalyzerFactory(analyzer);
 
 		IndexWriter writer = new IndexWriter(new HSearchTableDocuments());
 		 try {
-			 writer.addDocument(1, doc, "emp", analyzer);
+			 writer.addDocument(1, doc, "emp", analyzers);
     	} finally {
-    		if ( null != analyzer ) analyzer.close();
+    		analyzers.close();
     	}
 
 		HBaseTableSchema.getInstance().getSchema(); 
