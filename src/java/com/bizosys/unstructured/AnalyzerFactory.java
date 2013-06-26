@@ -48,7 +48,7 @@ public class AnalyzerFactory {
 		
 		if ( null != this.defaultAnalyzer) {
 			System.out.println(this.defaultAnalyzer.toString());
-			this.defaultAnalyzer.close();
+			try { this.defaultAnalyzer.close(); } catch (Exception ex) {/**Eat and digest*/}
 			this.defaultAnalyzer = null;
 		}
 	}
