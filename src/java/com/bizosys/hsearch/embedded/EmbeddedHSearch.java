@@ -141,8 +141,7 @@ public class EmbeddedHSearch {
 	}
 	
 	public void close() throws IOException {
-		this.analyzer.close();
-		this.writer.close();
+		if ( null != this.writer ) this.writer.close();
 	}
 	
    		

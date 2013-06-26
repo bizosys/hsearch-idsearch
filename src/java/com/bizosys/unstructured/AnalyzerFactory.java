@@ -40,7 +40,9 @@ public class AnalyzerFactory {
 	
 	public void close() {
 		for (Analyzer analyzer : analyzerTypes.values()) {
-			if ( null != analyzer ) analyzer.close();
+			if ( null != analyzer ) {
+				try { analyzer.close(); } catch (Exception ex) {/**Eat and digest*/}
+			}
 		}
 		analyzerTypes.clear();
 		
