@@ -24,8 +24,10 @@ import java.io.IOException;
 import java.io.StringReader;
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 import org.apache.lucene.analysis.TokenStream;
 import org.apache.lucene.analysis.tokenattributes.CharTermAttribute;
@@ -93,8 +95,10 @@ public class IndexWriter {
 		switch (tableType) {
 			case FREQUENCY_TABLE :
 				for (IndexRow row : this.cachedIndex) {
+					int wordHash = row.hashCode(); 
 					this.tableFrequency.put( row.docType, row.fieldType, 
-							row.hashCode(), row.docId, setPayloadWithOccurance(row.docId, row.occurance));
+							wordHash, row.docId, setPayloadWithOccurance(
+								row.docType, row.fieldType,wordHash, row.docId,  row.occurance));
 				}
 				return this.tableFrequency.toBytes();
 
@@ -119,7 +123,52 @@ public class IndexWriter {
 		}
 	}
 	
-	public int setPayloadWithOccurance(int docId, int occurance) {
+	public byte[] toBytesOnUnique() throws IOException {
+		Set<String> uniqueRows = new HashSet<String>();
+		StringBuilder sb = null;
+		
+		switch (tableType) {
+			case FREQUENCY_TABLE :
+				for (IndexRow row : this.cachedIndex) {
+					int wordHash = row.hashCode(); 
+					if ( null == sb ) sb = new StringBuilder(1024);
+					else sb.delete(0, sb.capacity());
+					sb.append(row.docType).append('\t').append(row.fieldType).append('\t').append(wordHash).append('\t').append(row.docId).append('\t').append(row.occurance);
+					String uniqueId = sb.toString();
+					if ( uniqueRows.contains(uniqueId) ) continue;
+					else {
+						uniqueRows.add(uniqueId);
+						this.tableFrequency.put( row.docType, row.fieldType,wordHash, row.docId,setPayloadWithOccurance( 
+							row.docType, row.fieldType, wordHash, row.docId,  row.occurance));
+					}
+					
+				}
+				byte[] ser = this.tableFrequency.toBytes();
+				uniqueRows.clear();
+				return ser;
+
+			case OFFSET_TABLE :
+				for (IndexRow row : this.cachedIndex) {
+					byte[] offsetB = SortedBytesInteger.getInstance().toBytes(row.offsetL);
+					this.tableOffset.put( row.docType, row.fieldType, 
+						row.hashCode(), row.docId, setPayloadWithOffsets(row.docId, offsetB));
+				}
+				return this.tableOffset.toBytes();
+		
+			case POSITION_TABLE :
+				for (IndexRow row : this.cachedIndex) {
+					byte[] positionsB = SortedBytesInteger.getInstance().toBytes(row.positionL);
+					this.tablePositions.put( row.docType, row.fieldType, 
+						row.hashCode(), row.docId, setPayloadWithPositions(row.docId, positionsB));
+				}
+				return this.tablePositions.toBytes();
+			
+			default:
+				throw new IOException("Unknown Index Type");
+		}
+	}	
+	
+	public int setPayloadWithOccurance(int docType, int fieldType, int wordHash, int docId, int occurance) {
 		return occurance;
 	}
 	
