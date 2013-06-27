@@ -100,7 +100,7 @@ public class IndexWriter {
 		switch (tableType) {
 		
 			case FREQUENCY_TABLE :
-			return toBytesFrequency(rows, isUnique);
+				return toBytesFrequency(rows, isUnique);
 
 			case OFFSET_TABLE :
 				return toBytesOffset(rows, isUnique);

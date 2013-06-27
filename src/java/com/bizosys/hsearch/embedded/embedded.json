@@ -1,0 +1,10 @@
+{
+    "module":"com.bizosys.hsearch.embedded",
+    "table":"embedded-index",
+    "columns": [
+	 	{
+	            "name": "Documents",
+	            "indexes": "schema-frequency"
+		}
+    ]
+}
