@@ -298,11 +298,10 @@ public class IndexWriter {
 		if ( null != uniqueTokens)  uniqueTokens.clear();
 	}
 	
-	public void commit(String mergeId, String indexName, boolean keepDuplicates) throws IOException {
+	public void commit(String tableName, String mergeId, String indexName, boolean keepDuplicates) throws IOException {
 		
-		HBaseTableSchemaDefn schema = HBaseTableSchemaDefn.getInstance();
+		HBaseTableSchemaDefn schema = HBaseTableSchemaDefn.getInstance(tableName);
 		
-		String tableName = schema.tableName;
 		if ( !schema.columnPartions.containsKey(indexName)) {
 			throw new IOException("Unable to find partion points for " + indexName + ". Please initialize schema");
 		}

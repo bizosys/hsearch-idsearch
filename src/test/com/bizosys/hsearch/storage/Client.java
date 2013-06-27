@@ -51,9 +51,9 @@ public class Client extends HSearchTableReader {
 
     }
 
-    public void execute(String query, Map<String, String> qPart) throws IOException, ParseException {
+    public void execute(String tableName, String query, Map<String, String> qPart) throws IOException, ParseException {
     	HSearchProcessingInstruction instruction = 
     		new HSearchProcessingInstruction(HSearchProcessingInstruction.PLUGIN_CALLBACK_COLS, HSearchProcessingInstruction.OUTPUT_COLS);
-        read(query, qPart, instruction , true, true);
+        read(tableName, query, qPart, instruction , true, true);
     }
 }

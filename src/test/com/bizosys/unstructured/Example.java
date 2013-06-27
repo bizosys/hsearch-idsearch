@@ -59,7 +59,7 @@ public class Example {
 		if ( null != qAnalyzer ) qAnalyzer.close();
 		
 	  	Client ht = new Client();
-        ht.execute(multiQuery, multiqueryParts);
+        ht.execute("demo-table", multiQuery, multiqueryParts);
         
 	}
 

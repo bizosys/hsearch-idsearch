@@ -19,11 +19,14 @@ public class HBaseTableSchema {
 		return singleton;
 	}
 	
+	String tableName = "hsearch-index";
+	HBaseTableSchemaDefn schema = null;
+	
 	private HBaseTableSchema() throws IOException {
 		
-		HBaseTableSchemaDefn.getInstance().tableName = "hsearch-index";
+		schema = HBaseTableSchemaDefn.getInstance(tableName); 
 		@SuppressWarnings("rawtypes")
-		Map<String, IPartition> columns = HBaseTableSchemaDefn.getInstance().columnPartions;
+		Map<String, IPartition> columns =schema.columnPartions;
 		columns.put("Documents",new PartitionByFirstLetter());
 		columns.get("Documents").setPartitionsAndRange(
 			"Documents",
@@ -34,11 +37,11 @@ public class HBaseTableSchema {
 	}
 
 	public HBaseTableSchemaDefn getSchema() {
-		return HBaseTableSchemaDefn.getInstance();
+		return this.schema;
 	}
 	
 	public void createSchema() {
-		new HBaseTableSchemaCreator().init();
+		new HBaseTableSchemaCreator().init(tableName);
 	}
 	
 	public static void main(String[] args) throws Exception {
