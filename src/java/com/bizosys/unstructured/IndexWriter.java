@@ -97,70 +97,139 @@ public class IndexWriter {
 	
 	public byte[] toBytes(List<IndexRow> rows, boolean isUnique) throws IOException {
 
-		Set<String> uniqueRows = null;
-		StringBuilder sb = null;
-		
 		switch (tableType) {
 		
 			case FREQUENCY_TABLE :
-				this.tableFrequency.clear();
-				
-				String uniqueId = null;
-				if (  isUnique ) {
-					sb = new StringBuilder(1024);
-					uniqueRows = new HashSet<String>();
-				}
-				
-				for (IndexRow row : rows) {
-
-					int wordHash = row.hashCode(); 
-					if ( isUnique ) {
-						sb.delete(0, sb.capacity());
-						sb.append(row.docType).append('\t').append(row.fieldType).append('\t').append(wordHash).append('\t').append(row.docId).append('\t').append(row.occurance);
-						uniqueId = sb.toString();
-						if ( uniqueRows.contains(uniqueId) ) continue;
-						else uniqueRows.add(uniqueId);
-					}
-					
-					this.tableFrequency.put( row.docType, row.fieldType,wordHash, row.docId,setPayloadWithOccurance( 
-						row.docType, row.fieldType, wordHash, row.docId,  row.occurance));
-				}
-				byte[] data = this.tableFrequency.toBytes();
-				if (  null != uniqueRows ) uniqueRows.clear(); 
-				this.tableFrequency.clear();
-				return data;
+			return toBytesFrequency(rows, isUnique);
 
 			case OFFSET_TABLE :
-				for (IndexRow row : this.cachedIndex) {
-					byte[] offsetB = SortedBytesInteger.getInstance().toBytes(row.offsetL);
-					this.tableOffset.put( row.docType, row.fieldType, 
-						row.hashCode(), row.docId, setPayloadWithOffsets(row.docId, offsetB));
-				}
-				return this.tableOffset.toBytes();
+				return toBytesOffset(rows, isUnique);
 		
 			case POSITION_TABLE :
-				for (IndexRow row : this.cachedIndex) {
-					byte[] positionsB = SortedBytesInteger.getInstance().toBytes(row.positionL);
-					this.tablePositions.put( row.docType, row.fieldType, 
-						row.hashCode(), row.docId, setPayloadWithPositions(row.docId, positionsB));
-				}
-				return this.tablePositions.toBytes();
+				return toBytesPositions(rows, isUnique);
 			
 			default:
 				throw new IOException("Unknown Index Type");
 		}
+	}
+
+	private byte[] toBytesFrequency(final List<IndexRow> rows, final boolean isUnique) throws IOException {
+		
+		this.tableFrequency.clear();
+		
+		StringBuilder sb = null;
+		String uniqueId = null;
+		Set<String> uniqueRows = null;
+		
+		if (  isUnique ) {
+			sb = new StringBuilder(1024);
+			uniqueRows = new HashSet<String>();
+		}
+		
+		for (IndexRow row : rows) {
+
+			int wordHash = row.hashCode(); 
+			if ( isUnique ) {
+				sb.delete(0, sb.capacity());
+				sb.append(row.docType).append('\t').append(row.fieldType).append('\t').append(wordHash).append('\t').append(row.docId).append('\t').append(row.occurance);
+				uniqueId = sb.toString();
+				if ( uniqueRows.contains(uniqueId) ) continue;
+				else uniqueRows.add(uniqueId);
+			}
+			
+			this.tableFrequency.put( row.docType, row.fieldType,wordHash, row.docId,setPayloadWithOccurance( 
+				row.docType, row.fieldType, wordHash, row.docId,  row.occurance));
+		}
+		byte[] data = this.tableFrequency.toBytes();
+		if (  null != uniqueRows ) uniqueRows.clear(); 
+		this.tableFrequency.clear();
+		return data;
 	}
 	
 	public int setPayloadWithOccurance(int docType, int fieldType, int wordHash, int docId, int occurance) {
 		return occurance;
 	}
 	
-	public byte[] setPayloadWithPositions(int docId, byte[] positionsB) {
-		return positionsB;
+	private byte[] toBytesOffset(final List<IndexRow> rows, final boolean isUnique) throws IOException {
+		this.tableOffset.clear();
+		
+		StringBuilder sb = null;
+		String uniqueId = null;
+		Set<String> uniqueRows = null;
+		
+		if (  isUnique ) {
+			sb = new StringBuilder(1024);
+			uniqueRows = new HashSet<String>();
+		}
+		
+		for (IndexRow row : rows) {
+
+			int wordHash = row.hashCode(); 
+
+			if ( isUnique ) {
+				sb.delete(0, sb.capacity());
+				sb.append(row.docType).append('\t').append(row.fieldType).append('\t').append(wordHash).append('\t').append(row.docId);
+				uniqueId = sb.toString();
+				if ( uniqueRows.contains(uniqueId) ) continue;
+				else uniqueRows.add(uniqueId);
+			}
+
+			byte[] offsetB = SortedBytesInteger.getInstance().toBytes(row.offsetL);
+			this.tableOffset.put( row.docType, row.fieldType, 
+				wordHash, row.docId, setPayloadWithOffsets(row.docType, row.fieldType, 
+						wordHash, row.docId, offsetB));
+			
+		}
+		byte[] data = this.tableOffset.toBytes();
+		if (  null != uniqueRows ) uniqueRows.clear(); 
+		this.tableOffset.clear();
+		return data;
+	}
+	
+	public byte[] setPayloadWithOffsets(int docType, int fieldType, int wordHash, int docId, byte[] offsetB) {
+		return offsetB;
 	}
 
-	public byte[] setPayloadWithOffsets(int docId, byte[] offsetB) {
-		return offsetB;
+
+	private byte[] toBytesPositions(final List<IndexRow> rows, final boolean isUnique) throws IOException {
+		
+		this.tablePositions.clear();
+		
+		StringBuilder sb = null;
+		String uniqueId = null;
+		Set<String> uniqueRows = null;
+		
+		if (  isUnique ) {
+			sb = new StringBuilder(1024);
+			uniqueRows = new HashSet<String>();
+		}
+		
+		for (IndexRow row : rows) {
+
+			int wordHash = row.hashCode(); 
+
+			if ( isUnique ) {
+				sb.delete(0, sb.capacity());
+				sb.append(row.docType).append('\t').append(row.fieldType).append('\t').append(wordHash).append('\t').append(row.docId);
+				uniqueId = sb.toString();
+				if ( uniqueRows.contains(uniqueId) ) continue;
+				else uniqueRows.add(uniqueId);
+			}
+
+			byte[] positionsB = SortedBytesInteger.getInstance().toBytes(row.positionL);
+			this.tablePositions.put( row.docType, row.fieldType, 
+				wordHash, row.docId, setPayloadWithPositions(row.docType, row.fieldType, 
+						wordHash, row.docId, positionsB));
+			
+		}
+		byte[] data = this.tablePositions.toBytes();
+		if (  null != uniqueRows ) uniqueRows.clear(); 
+		this.tablePositions.clear();
+		return data;
+	}	
+	
+	public byte[] setPayloadWithPositions(int docType, int fieldType, int wordHash, int docId, byte[] positionsB) {
+		return positionsB;
 	}
 
 	public void close() throws IOException {
