@@ -64,7 +64,6 @@ public class EmbeddedUtil {
 		StringBuilder allWords = null;
 		for (Term term : terms) {
 			String fieldText = term.text();
-			System.out.println(fieldText);
 			if ( null == allWords) {
 				allWords = new StringBuilder("{");
 				allWords.append(Hashing.hash(fieldText));
@@ -73,7 +72,6 @@ public class EmbeddedUtil {
 			}
 		}
 		allWords.append('}');
-		System.out.println(allWords.toString());
 		
     	HSearchQuery hq = new HSearchQuery(docTypeCode + "|" + fldTypeCode + "|" + allWords.toString() + "|*|*");
 		return search(data, hq);
@@ -102,25 +100,40 @@ public class EmbeddedUtil {
 
 		EmbeddedUtil indexer = new EmbeddedUtil();
     	
-    	Map<Integer, String> docIdWithFieldValue = new HashMap<Integer, String>();
-    	docIdWithFieldValue.put(1, "Abinash Karan");
-    	docIdWithFieldValue.put(2, "Subhendu Singh");
-    	docIdWithFieldValue.put(3, "Pramod Rao");
+    	Map<Integer, String> docIdWithFieldValue1 = new HashMap<Integer, String>();
+    	docIdWithFieldValue1.put(1, "Abinash");
+    	docIdWithFieldValue1.put(2, "Subhendu");
+    	docIdWithFieldValue1.put(3, "Pramod");
+    	
+    	Map<Integer, String> docIdWithFieldValue2 = new HashMap<Integer, String>();
+    	docIdWithFieldValue2.put(1, "Karan");
+    	docIdWithFieldValue2.put(2, "Singh");
+    	docIdWithFieldValue2.put(3, "Rao");
+    	
     	
 		Map<String, Integer> dtypes = new HashMap<String, Integer>();
 		dtypes.put("emp", 1);
 		indexer.addDoumentTypes(dtypes);
 		
 		Map<String, Integer> ftypes = new HashMap<String, Integer>();
-		ftypes.put("name", 1);
+		ftypes.put("fname", 1);
+		ftypes.put("lname", 2);
 		indexer.addFieldTypes(ftypes);
 
-    	indexer.addToIndex(new StandardAnalyzer(Version.LUCENE_36), "emp", "name", docIdWithFieldValue);
+    	indexer.addToIndex(new StandardAnalyzer(Version.LUCENE_36), "emp", "fname", docIdWithFieldValue1);
+    	indexer.addToIndex(new StandardAnalyzer(Version.LUCENE_36), "emp", "lname", docIdWithFieldValue2);
+    	
     	byte[] ser = indexer.toBytes();
-    	System.out.println(ser.length);
     	
-    	System.out.println( indexer.search(ser, new StandardAnalyzer(Version.LUCENE_36), "emp", "name", "Abinash Pramod").toString() );
+    	BitSetOrSet ids = indexer.search(ser, new StandardAnalyzer(Version.LUCENE_36), "emp", "lname", "singh");
+    	for (Object a : ids.getDocumentIds()) {
+			System.out.println(a.toString());
+		}
     	
+    	BitSetOrSet ids2 = indexer.search(ser, new StandardAnalyzer(Version.LUCENE_36), "emp", "fname", "Subhendu");
+    	for (Object a : ids2.getDocumentIds()) {
+			System.out.println(a.toString());
+		}    	
 	}
     
 }
