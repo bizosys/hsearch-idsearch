@@ -21,11 +21,8 @@ public final class HSearchTableCombinerImpl extends HSearchTableCombiner {
 		char thirdLetter = tableType.charAt(2);
 		switch ( thirdLetter) {
 			case 'I': //KVInteger
-				/**
 				if ( tableType.equals("KVInteger")) return new HSearchTableKVInteger();
 				return new HSearchTableKVIndex(); //HSearchTableKVIndex
-				*/
-				return new HSearchTableKVInteger();
 				
 			case 'S': //KVShort KVString
 				if ( tableType.equals("KVShort")) return new HSearchTableKVShort();

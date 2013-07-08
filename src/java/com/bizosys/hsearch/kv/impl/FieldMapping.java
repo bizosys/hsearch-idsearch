@@ -31,13 +31,14 @@ public class FieldMapping extends DefaultHandler {
 		public boolean skipNull;
 		public String defaultValue;
 		public  String fieldType;
+		public  String analyzer;
 
 		public Field() {
 		}
 
 		public Field(String name,String sourceName, int sourceSeq, boolean isIndexable,boolean isSave,
 				boolean isRepeatable, boolean isMergedKey, int mergePosition,
-				boolean isJoinKey, boolean skipNull, String defaultValue, String fieldType) {
+				boolean isJoinKey, boolean skipNull, String defaultValue, String fieldType, String analyzer) {
 			
 			this.name = name;
 			this.sourceName = sourceName;
@@ -51,6 +52,7 @@ public class FieldMapping extends DefaultHandler {
 			this.skipNull = skipNull;
 			this.defaultValue = defaultValue;
 			this.fieldType = fieldType;
+			this.analyzer = analyzer;
 		}
 
 		public String toString() {
@@ -60,7 +62,7 @@ public class FieldMapping extends DefaultHandler {
 					.append(isIndexable).append("\t").append(isRepeatable)
 					.append("\t").append(isMergedKey).append("\t")
 					.append(skipNull).append("\t").append(defaultValue)
-					.append(isJoinKey).append("\t").append(fieldType);
+					.append(isJoinKey).append("\t").append(fieldType).append("\t").append(analyzer);
 
 			return sb.toString();
 		}
@@ -72,18 +74,19 @@ public class FieldMapping extends DefaultHandler {
 	public Map<String, Field> nameSeqs = new HashMap<String, Field>();
 	public String schemaName = new String();
 	
-	String name;
-	String sourceName;
-	int sourceSeq;
-	boolean isIndexable;
-	boolean isSave;
-	boolean isRepeatable;
-	boolean isMergedKey;
-	int mergePosition;
-	boolean isJoinKey;
-	boolean skipNull;
-	String defaultValue;	
-	String fieldType;
+	String name = null;
+	String sourceName = null;
+	int sourceSeq = 0;
+	boolean isIndexable = false;
+	boolean isSave = false;
+	boolean isRepeatable = false;
+	boolean isMergedKey = false;
+	int mergePosition = 0;
+	boolean isJoinKey = false;
+	boolean skipNull = false;
+	String defaultValue = null;;	
+	String fieldType = null;;
+	String analyzer = null;
 
 	public static FieldMapping getInstance(){
 		return new FieldMapping();
@@ -168,8 +171,9 @@ public class FieldMapping extends DefaultHandler {
 
 			skipNull = attributes.getValue("skipNull").equalsIgnoreCase("true") ? true : false;
 			defaultValue = attributes.getValue("defaultValue");
+			analyzer = attributes.getValue("analyzer");
 			field = new Field(name, sourceName, sourceSeq, isIndexable, isSave, isRepeatable,
-					isMergedKey, mergePosition, isJoinKey, skipNull, defaultValue, fieldType);
+					isMergedKey, mergePosition, isJoinKey, skipNull, defaultValue, fieldType, analyzer);
 		}
 	}
 

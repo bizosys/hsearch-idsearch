@@ -9,6 +9,9 @@ import java.util.ListIterator;
 import java.util.Map;
 import java.util.Set;
 
+import org.apache.lucene.analysis.standard.StandardAnalyzer;
+import org.apache.lucene.util.Version;
+
 import com.bizosys.hsearch.byteutils.SortedBytesArray;
 import com.bizosys.hsearch.byteutils.SortedBytesInteger;
 import com.bizosys.hsearch.federate.BitSetOrSet;
@@ -21,19 +24,25 @@ import com.bizosys.hsearch.functions.GroupSorter.GroupSorterSequencer;
 import com.bizosys.hsearch.hbase.HReader;
 import com.bizosys.hsearch.kv.impl.ComputeKV;
 import com.bizosys.hsearch.kv.impl.FieldMapping;
+import com.bizosys.hsearch.kv.impl.FieldMapping.Field;
 import com.bizosys.hsearch.kv.impl.IEnricher;
 import com.bizosys.hsearch.kv.impl.KVDataSchemaRepository;
 import com.bizosys.hsearch.kv.impl.KVDataSchemaRepository.KVDataSchema;
+import com.bizosys.hsearch.kv.impl.KVDocIndexer;
 import com.bizosys.hsearch.kv.impl.KVRowI;
 import com.bizosys.hsearch.treetable.client.HSearchProcessingInstruction;
 import com.bizosys.hsearch.util.HSearchLog;
 
 public class Searcher {
 
+	private static final String DOCTYPE = "Doc";
 	public String dataRepository = "kv-store";
 	List<KVRowI> resultset = new ArrayList<KVRowI>();
 	String schemaRepositoryName = "xmlFields";
 	KVDataSchemaRepository repository = KVDataSchemaRepository.getInstance();
+	
+	KVDocIndexer indexer = new KVDocIndexer();
+	
 	
 	public static boolean DEBUG_ENABLED = HSearchLog.l.isDebugEnabled();
 	public static boolean INFO_ENABLED = HSearchLog.l.isInfoEnabled();
@@ -44,6 +53,12 @@ public class Searcher {
 	
 	public Searcher(final FieldMapping fm){
 		repository.add(schemaRepositoryName, fm);
+	}
+	
+	public void searchDocuments(final String dataRepository,
+			final String mergeIdPattern, String selectQuery, String whereQuery,
+			KVRowI blankRow, IEnricher... enrichers) throws IOException  {
+		
 	}
 	
 	public void searchRegex(final String dataRepository,
@@ -120,6 +135,7 @@ public class Searcher {
 			
 			if(null == mixedQueryMatchedIds) return;
 			if ( null == mixedQueryMatchedIds.getDocumentIds()) return;
+			if (mixedQueryMatchedIds.getDocumentIds().size() < 1) return;
 			if ( DEBUG_ENABLED ) {
 				HSearchLog.l.debug("Matching ids " + mixedQueryMatchedIds.getDocumentIds().toString());
 			}
@@ -134,8 +150,6 @@ public class Searcher {
 			}
 			if(null != foundIds)
 				foundIds.append('}');
-			else 
-				foundIds = new StringBuilder("*");
 		}
 		else{
 			foundIds = new StringBuilder("*");
@@ -254,15 +268,15 @@ public class Searcher {
 		return ff;
 	}
 	
-	public Object readStorage(final String tableName, final String rowId, final String filter, final int callBackType) {
+	public Object readStorage(final String tableName, final String rowId, String filter, final int callBackType) {
 		
 		byte[] data = null;
 		try {
 			
 			String fieldName = rowId.substring(rowId.lastIndexOf("_") + 1,rowId.length());
 			KVDataSchema dataScheme = repository.get(schemaRepositoryName);
+			Field fld = dataScheme.fm.nameSeqs.get(fieldName);
 			int outputType = dataScheme.dataTypeMapping.get(fieldName).ordinal();
-			
 			if(callBackType == HSearchProcessingInstruction.PLUGIN_CALLBACK_COLS){
 				ComputeKV compute = null;	
 				compute = new ComputeKV();
@@ -275,6 +289,22 @@ public class Searcher {
 				return compute.rowContainer;
 				
 			}else if(callBackType == HSearchProcessingInstruction.PLUGIN_CALLBACK_ID){
+				
+				//change filterQuery for documents search
+				String analyzerClass = fld.analyzer;
+				boolean isAnalyzerEmpty = ( null == analyzerClass) ? true : (analyzerClass.length() == 0);
+	    		if(!isAnalyzerEmpty){
+	    			String query = filter.substring(filter.lastIndexOf('|'));
+	    			Map<String, Integer> dtypes = new HashMap<String, Integer>();
+	    			dtypes.put("emp", 1);
+	    			indexer.addDoumentTypes(dtypes);
+	    			
+	    			Map<String, Integer> ftypes = new HashMap<String, Integer>();
+	    			ftypes.put("fname", 1);
+	    			indexer.addFieldTypes(ftypes);
+
+	    			filter = indexer.parseQuery(new StandardAnalyzer(Version.LUCENE_36), "emp", "fname", query);
+	    		}				
 				data = KVRowReader.getAllValues(tableName, rowId.getBytes(), filter, callBackType, outputType);
 				for (byte[] dataChunk : SortedBytesArray.getInstanceArr().parse(data).values()) {
 					Set<Integer> ids = new HashSet<Integer>();

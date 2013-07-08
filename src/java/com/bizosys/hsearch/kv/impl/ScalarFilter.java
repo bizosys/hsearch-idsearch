@@ -2,7 +2,6 @@ package com.bizosys.hsearch.kv.impl;
 
 import java.io.IOException;
 
-import com.bizosys.hsearch.embedded.donotmodify.HSearchTableDocuments;
 import com.bizosys.hsearch.kv.MapperKV;
 import com.bizosys.hsearch.kv.dao.donotmodify.HSearchTableKVBoolean;
 import com.bizosys.hsearch.kv.dao.donotmodify.HSearchTableKVByte;

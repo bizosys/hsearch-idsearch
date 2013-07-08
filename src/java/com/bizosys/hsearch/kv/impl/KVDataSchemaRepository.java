@@ -22,7 +22,7 @@ public class KVDataSchemaRepository {
 		public Map<String, Integer> nameToSeqMapping = new HashMap<String, Integer>(); 
 		public Map<Integer, String> seqToNameMapping = new HashMap<Integer, String>(); 
 		public Map<String, FieldType> dataTypeMapping = new HashMap<String, FieldType>(); 
-		
+		public FieldMapping fm = null;
     	static Map<String, Character> dataTypesPrimitives = new HashMap<String, Character>();    	
     	static {
     		dataTypesPrimitives.put("string", 't');
@@ -33,10 +33,11 @@ public class KVDataSchemaRepository {
     		dataTypesPrimitives.put("short", 's');
     		dataTypesPrimitives.put("boolean", 'b');
     		dataTypesPrimitives.put("byte", 'c');
-    		dataTypesPrimitives.put("kvindex", 'k');
+    		dataTypesPrimitives.put("text", 'k');
     	}
 
 		public KVDataSchema(final FieldMapping fm) {
+			this.fm = fm;
 			Map<Integer,Field> seqFields = fm.fieldSeqs;
 			String dataType = ""; 
 			for (Integer seq : seqFields.keySet()) {

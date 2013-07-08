@@ -22,6 +22,9 @@ import org.apache.hadoop.mapreduce.Job;
 import org.apache.hadoop.mapreduce.Mapper;
 import org.apache.hadoop.mapreduce.lib.input.FileInputFormat;
 import org.apache.hadoop.mapreduce.lib.input.TextInputFormat;
+import org.apache.lucene.analysis.Analyzer;
+import org.apache.lucene.analysis.standard.StandardAnalyzer;
+import org.apache.lucene.util.Version;
 
 import com.bizosys.hsearch.byteutils.SortedBytesBoolean;
 import com.bizosys.hsearch.byteutils.SortedBytesChar;
@@ -64,7 +67,6 @@ public class IndexerMapReduce{
 			
 			try {
 				Path hadoopPath = new Path(path);
-				System.out.println("path " + hadoopPath);
 				FileSystem fs = FileSystem.get(new Configuration());
 				BufferedReader br = new BufferedReader(new InputStreamReader(fs.open(hadoopPath)));
 				String line = null;
@@ -86,14 +88,15 @@ public class IndexerMapReduce{
         		result = value.toString().split("|");
         	}
         	Arrays.fill(result, null);
-        	
+
         	LineReaderUtil.fastSplit(result, value.toString(), FIELD_SEPARATOR);
         	int recordKeyPos = -1;
         	String fldValue = "";
         	String rowId = "";
         	rowIdMap.clear();
 	    	
-			for (int needIndex : neededPositions) {
+        	for (int needIndex : neededPositions) {
+				if(needIndex < 0)continue;
 	    		fldValue = result[needIndex];
 	    		FieldMapping.Field fld = fm.fieldSeqs.get(needIndex);
 	    		if ( fld.isMergedKey) {
@@ -108,13 +111,15 @@ public class IndexerMapReduce{
 			for (Integer mergePosition : rowIdMap.keySet()) {
 				megedKeyArr[mergePosition] = rowIdMap.get(mergePosition);
 			}
+			boolean isEmpty = false;
 			for (int j = 0; j < megedKeyArr.length; j++) {
-				if(megedKeyArr[j] == null || megedKeyArr[j].length() == 0)continue;
+				isEmpty = ( null == megedKeyArr[j]) ? true : (megedKeyArr[j].length() == 0);
+				if(isEmpty)continue;
 				rowId += megedKeyArr[j] + "_";
 			}
 
 			for ( int needIndex : neededPositions) {
-        		
+				if(needIndex < 0)continue;
         		fldValue = result[needIndex];
         		FieldMapping.Field fld = fm.fieldSeqs.get(needIndex);
         		
@@ -124,11 +129,13 @@ public class IndexerMapReduce{
         		
         		rowkKeybuilder.delete(0, rowkKeybuilder.capacity());
         		
-        		boolean isEmpty = ( null == rowId) ? true : (rowId.length() == 0);
+        		isEmpty = ( null == rowId) ? true : (rowId.length() == 0);
         		String rowKey = ( isEmpty) ? fld.name : rowId + fld.name;
+
         		rowKey = rowkKeybuilder.append(rowKey).append( FIELD_SEPARATOR ).append( fld.fieldType )
         							   .append( FIELD_SEPARATOR ).append( fld.skipNull ).append( FIELD_SEPARATOR)
-        							   .append(fld.defaultValue).toString();
+        							   .append(fld.defaultValue).append( FIELD_SEPARATOR)
+        							   .append(fld.analyzer).toString();
         		
           		context.write(new Text(rowKey), new Text(result[recordKeyPos] + FIELD_SEPARATOR + fldValue) );
         	}
@@ -138,9 +145,14 @@ public class IndexerMapReduce{
     public static class KVReducer extends TableReducer<Text, Text, ImmutableBytesWritable> {
     	
     	String line = "";
-    	String[] resultKey = new String[4];
+    	String[] resultKey = new String[5];
     	String[] resultValue = new String[2];
-    	
+    	KVDocIndexer indexer = new KVDocIndexer();
+		Map<String, Integer> docTypes = new HashMap<String, Integer>();
+		Map<String, Integer> fldTypes = new HashMap<String, Integer>();
+		Analyzer analyzer = null;
+		String docTypeName = "Doc";
+		String fieldTypeName = "";
     	static Map<String, Character> dataTypesPrimitives = new HashMap<String, Character>();
     	
     	static {
@@ -152,23 +164,39 @@ public class IndexerMapReduce{
     		dataTypesPrimitives.put("short", 's');
     		dataTypesPrimitives.put("boolean", 'b');
     		dataTypesPrimitives.put("byte", 'c');
+    		dataTypesPrimitives.put("text", 'k');
     	}
-		
+
     	@Override
         protected void reduce(Text key, Iterable<Text> values, Context context) throws IOException, InterruptedException {
 			
 	    	String keyData = key.toString();
 			
 	    	LineReaderUtil.fastSplit(resultKey, keyData, FIELD_SEPARATOR);
-			String rowKey = resultKey[0];
-			String dataType = resultKey[1].toLowerCase();
-			boolean skipNull = resultKey[2].equalsIgnoreCase("true") ? true : false;
-			String skipDefaultvalue = resultKey[3];
 			
-			char dataTypeChar = dataTypesPrimitives.get(dataType);
+	    	String rowKey = resultKey[0];
+			String dataType = resultKey[1].toLowerCase();
+			
+			boolean skipNull = resultKey[2].equalsIgnoreCase("true") ? true : false;
+			String defaultValue = (null == resultKey[3]) ? "":resultKey[3];
+			
+			String analyzerClass = resultKey[4];
+    		if(dataType.equals("text")){
+    			//boolean isAnalyzerEmpty = ( null == analyzerClass) ? true : (analyzerClass.length() == 0);
+
+    			if(null != docTypes)docTypes.clear();
+    			if(null != fldTypes)fldTypes.clear();
+ 
+    			fieldTypeName = rowKey.substring(rowKey.lastIndexOf('_'));
+    			docTypes.put(docTypeName, 1);
+    			fldTypes.put(fieldTypeName, 1);
+    			analyzer = new StandardAnalyzer(Version.LUCENE_36);
+    		}
+
 			byte[] finalData = null;
 			boolean hasValue = false;
 
+			char dataTypeChar = dataTypesPrimitives.get(dataType);
 			switch (dataTypeChar) {
 				case 't':
 				{
@@ -183,11 +211,13 @@ public class IndexerMapReduce{
 						
 						LineReaderUtil.fastSplit(resultValue, line, FIELD_SEPARATOR);
 						int containerKey = Integer.parseInt(resultValue[0]);
-						String containervalue = resultValue[1];
-						if ( null == containervalue){
+						String containervalue = "";
+						if ( null == resultValue[1]){
 							if(skipNull) continue;
-							else containervalue = skipDefaultvalue;
-						} 
+							else containervalue = defaultValue;
+						}else{
+							containervalue = resultValue[1];
+						}
 						
 						hasValue = true;
 						nonrepeatableCell.add(containerKey, containervalue);
@@ -217,7 +247,7 @@ public class IndexerMapReduce{
 						int containervalue = 0;
 						if ( null == resultValue[1]){
 							if(skipNull) continue;
-							else containervalue = Integer.parseInt(skipDefaultvalue);
+							else containervalue = Integer.parseInt(defaultValue);
 						} else{
 							containervalue = Integer.parseInt(resultValue[1]);	
 						}
@@ -250,7 +280,7 @@ public class IndexerMapReduce{
 						float containervalue = 0.0f;
 						if ( null == resultValue[1]){
 							if(skipNull) continue;
-							else containervalue = Float.parseFloat(skipDefaultvalue);
+							else containervalue = Float.parseFloat(defaultValue);
 						} else{
 							containervalue = Float.parseFloat(resultValue[1]);	
 						}
@@ -283,7 +313,7 @@ public class IndexerMapReduce{
 						double containervalue = 0.0;
 						if ( null == resultValue[1]){
 							if(skipNull) continue;
-							else containervalue = Double.parseDouble(skipDefaultvalue);
+							else containervalue = Double.parseDouble(defaultValue);
 						} else{
 							containervalue = Double.parseDouble(resultValue[1]);	
 						}
@@ -316,7 +346,7 @@ public class IndexerMapReduce{
 						long containervalue = 0;
 						if ( null == resultValue[1]){
 							if(skipNull) continue;
-							else containervalue = Long.parseLong(skipDefaultvalue);
+							else containervalue = Long.parseLong(defaultValue);
 						} else{
 							containervalue = Long.parseLong(resultValue[1]);	
 						}
@@ -347,7 +377,7 @@ public class IndexerMapReduce{
 						boolean containervalue = false;
 						if ( null == resultValue[1]){
 							if(skipNull) continue;
-							else containervalue = skipDefaultvalue.equalsIgnoreCase("true") ? true : false;
+							else containervalue = defaultValue.equalsIgnoreCase("true") ? true : false;
 						} else{
 							containervalue = resultValue[1].equalsIgnoreCase("true") ? true : false;	
 						}
@@ -378,7 +408,7 @@ public class IndexerMapReduce{
 						byte containervalue;
 						if ( null == resultValue[1]){
 							if(skipNull) continue;
-							else containervalue = skipDefaultvalue.getBytes()[0];
+							else containervalue = defaultValue.getBytes()[0];
 						} else{
 							containervalue = resultValue[1].getBytes()[0];	
 						}
@@ -393,6 +423,43 @@ public class IndexerMapReduce{
 					}
 				}
 				break;
+
+				case 'k':
+				{
+					Map<Integer, String> docIdWithFieldValue = new HashMap<Integer, String>();
+					for (Text text : values) {
+						
+						if ( null == text) continue;
+						Arrays.fill(resultValue, null);
+
+						line = text.toString();
+						
+						LineReaderUtil.fastSplit(resultValue, line, FIELD_SEPARATOR);
+						int containerKey = Integer.parseInt(resultValue[0]);
+						String containervalue = "";
+						if ( null == resultValue[1]){
+							if(skipNull) continue;
+							else containervalue = defaultValue;
+						}else{
+							containervalue = resultValue[1];
+						}
+						docIdWithFieldValue.put(containerKey, containervalue);
+						hasValue = true;
+					}
+					
+					if ( hasValue ) {
+				    	try {
+				    		indexer.addDoumentTypes(docTypes);
+							indexer.addFieldTypes(fldTypes);
+							indexer.addToIndex(analyzer, docTypeName, fieldTypeName, docIdWithFieldValue);
+					    	finalData = indexer.toBytes();
+				    	} catch (InstantiationException e) {
+							e.printStackTrace();
+						}
+					}
+				}
+				break;
+
 				default:
 					break;
 			}
