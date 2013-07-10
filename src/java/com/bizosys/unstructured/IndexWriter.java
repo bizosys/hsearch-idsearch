@@ -102,10 +102,13 @@ public class IndexWriter {
 
 	
 	public byte[] toBytes() throws IOException {
+		if ( this.cachedIndex.size() == 0 ) return null; 
 		return this.toBytes(this.cachedIndex, false);
 	}
 	
 	public byte[] toBytes(List<IndexRow> rows, boolean isUnique) throws IOException {
+
+		if ( this.cachedIndex.size() == 0 ) return null; 
 
 		switch (tableType) {
 		
@@ -392,6 +395,7 @@ public class IndexWriter {
 				byte[] data = null;
 				
 				data = getBytes(rows, data, keepDuplicates);
+				if ( null == data) continue;
 				
 				byte[] colNameBytes = new String( new char[] {column} ).getBytes();
 				

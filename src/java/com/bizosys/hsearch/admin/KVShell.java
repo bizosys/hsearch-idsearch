@@ -210,7 +210,7 @@ public class KVShell {
 
 			KVRowI blankRow = (KVRowI)column;
 			IEnricher enricher = null;
-			if(null == searcher)searcher = new Searcher(fm);
+			if(null == searcher)searcher = new Searcher("kv-store", fm);
 			
 			searcher.search(fm.schemaName, arguments[1], arguments[2], arguments[3], blankRow, enricher);
 			parseQuery(arguments[2], queryFields);

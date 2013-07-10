@@ -51,7 +51,8 @@ public class Searcher {
 	private Searcher(){
 	}
 	
-	public Searcher(final FieldMapping fm){
+	public Searcher(final String schemaName, final FieldMapping fm){
+		this.schemaRepositoryName = schemaName;
 		repository.add(schemaRepositoryName, fm);
 	}
 	
@@ -248,6 +249,12 @@ public class Searcher {
 		resultset.clear();
 	}
 	
+	private Searcher cloneShallow() {
+		Searcher searcher = new Searcher();
+		searcher.schemaRepositoryName = this.schemaRepositoryName;
+		return searcher;
+	}
+	
 	private FederatedSearch createFederatedSearch() {
 		
 		FederatedSearch ff = new FederatedSearch(2) {
@@ -257,13 +264,13 @@ public class Searcher {
 			public BitSetOrSet populate(String type, String queryId,
 					String rowId, Map<String, Object> filterValues) {
 				
+				Searcher s = cloneShallow();
 				String filterQuery = filterValues.values().iterator().next().toString();
-				Set<Integer> readingIds = (Set<Integer>) new Searcher().readStorage(dataRepository, rowId, filterQuery, HSearchProcessingInstruction.PLUGIN_CALLBACK_ID);
+				Set<Integer> readingIds = (Set<Integer>) s.readStorage(dataRepository, rowId, filterQuery, HSearchProcessingInstruction.PLUGIN_CALLBACK_ID);
 				BitSetOrSet rows = new BitSetOrSet();
 				rows.setDocumentIds(readingIds);
 				return rows;
 			}
-
 		};
 		return ff;
 	}
