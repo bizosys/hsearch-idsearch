@@ -42,8 +42,9 @@ import com.bizosys.hsearch.hbase.NV;
 import com.bizosys.hsearch.hbase.RecordScalar;
 import com.bizosys.hsearch.treetable.client.partition.IPartition;
 import com.bizosys.hsearch.treetable.storage.HBaseTableSchemaDefn;
-import com.bizosys.hsearch.treetable.unstructured.IIndexMetadataFrequencyTable;
 import com.bizosys.hsearch.treetable.unstructured.IIndexFrequencyTable;
+import com.bizosys.hsearch.treetable.unstructured.IIndexMetadataFlagTable;
+import com.bizosys.hsearch.treetable.unstructured.IIndexMetadataFrequencyTable;
 import com.bizosys.hsearch.treetable.unstructured.IIndexOffsetTable;
 import com.bizosys.hsearch.treetable.unstructured.IIndexPositionsTable;
 import com.bizosys.hsearch.util.HSearchLog;
@@ -59,6 +60,7 @@ public class IndexWriter {
 	private static final int OFFSET_TABLE = 1;
 	private static final int POSITION_TABLE = 2;
 	private static final int DOCMETA_FREQUENCY_TABLE = 4;
+	private static final int DOCMETA_FLAG_TABLE = 5;
 	private int tableType = -1;
 	
 	static boolean INFO_ENABLED = HSearchLog.l.isInfoEnabled();
@@ -69,6 +71,7 @@ public class IndexWriter {
 	private IIndexOffsetTable tableOffset = null;
 	private IIndexPositionsTable tablePositions = null;
 	private IIndexMetadataFrequencyTable tableDocMetaWithFrequency = null;
+	private IIndexMetadataFlagTable tableDocMetaWithFlag= null;
 	
 	SearchConfiguration sConf = null;	
 	
@@ -100,6 +103,11 @@ public class IndexWriter {
 		tableType = DOCMETA_FREQUENCY_TABLE;
 	}
 
+	public IndexWriter(IIndexMetadataFlagTable tableDocMetaWithFlag) throws InstantiationException {
+		this();
+		this.tableDocMetaWithFlag = tableDocMetaWithFlag;
+		tableType = DOCMETA_FLAG_TABLE;
+	}
 	
 	public byte[] toBytes() throws IOException {
 		if ( this.cachedIndex.size() == 0 ) return null; 
@@ -124,6 +132,9 @@ public class IndexWriter {
 			case DOCMETA_FREQUENCY_TABLE:
 				return toBytesDocMetaWithFrequency(rows, isUnique);
 				
+			case DOCMETA_FLAG_TABLE:
+				return toBytesDocMetaWithFlag(rows, isUnique);
+
 			default:
 				throw new IOException("Unknown Index Type");
 		}
@@ -287,6 +298,46 @@ public class IndexWriter {
 		return occurance;
 	}	
 
+	private byte[] toBytesDocMetaWithFlag(final List<IndexRow> rows, final boolean isUnique) throws IOException {
+		
+		this.tableDocMetaWithFlag.clear();
+		
+		StringBuilder sb = null;
+		String uniqueId = null;
+		Set<String> uniqueRows = null;
+		
+		if (  isUnique ) {
+			sb = new StringBuilder(1024);
+			uniqueRows = new HashSet<String>();
+		}
+		
+		for (IndexRow row : rows) {
+
+			int wordHash = row.hashCode();
+			String docMeta = ( null == row.docMeta) ? "-" : row.docMeta.getTexualFilterLine();
+			if ( isUnique ) {
+				
+				sb.delete(0, sb.capacity());
+				sb.append(row.docType).append('\t').append(row.fieldType).append('\t').append(docMeta).append('\t').append(wordHash).append('\t').append(row.docId).append('\t').append(row.flag);
+				uniqueId = sb.toString();
+				if ( uniqueRows.contains(uniqueId) ) continue;
+				else uniqueRows.add(uniqueId);
+			}
+			
+			String docMetaB = ( null == row.docMeta) ? "-" : row.docMeta.filter;
+			this.tableDocMetaWithFlag.put( row.docType, row.fieldType, docMetaB, wordHash, row.docId,setDocMetaWithFlag( 
+				row.docType, row.fieldType, docMetaB, wordHash, row.docId,  row.flag));
+		}
+		byte[] data = this.tableDocMetaWithFlag.toBytes();
+		if (  null != uniqueRows ) uniqueRows.clear(); 
+		this.tableDocMetaWithFlag.clear();
+		return data;
+	}
+	
+	public boolean setDocMetaWithFlag(int docType, int fieldType, String docMeta, int wordHash, int docId, boolean flag) {
+		return flag;
+	}	
+
 	public void close() throws IOException {
 		
 		if ( null != this.cachedIndex) this.cachedIndex.clear();
@@ -306,6 +357,10 @@ public class IndexWriter {
 			
 			case DOCMETA_FREQUENCY_TABLE :
 				this.tableDocMetaWithFrequency.clear();
+				break;
+
+			case DOCMETA_FLAG_TABLE:
+				this.tableDocMetaWithFlag.clear();
 				break;
 
 			default:
@@ -446,6 +501,11 @@ public class IndexWriter {
 				if ( INFO_ENABLED )  HSearchLog.l.info("Total rows in docmeta table:\t" + rows.size());
 				break;
 
+			case DOCMETA_FLAG_TABLE:
+				data = this.toBytes(rows, keepDuplicates);
+				if ( INFO_ENABLED )  HSearchLog.l.info("Total rows in docmeta flag table:\t" + rows.size());
+				break;
+
 			default:
 				throw new IOException("Unknown Index Type");		
 		}
@@ -523,7 +583,7 @@ public class IndexWriter {
 			if ( lastoffset != curoffset) position++;
 			lastoffset = curoffset;
 			
-			String key = IndexRow.generateKey(sb, docId, token, docType, fieldType);
+			String key = IndexRow.generateKey(sb, docId, token, docType, fieldType, filter);
 			sb.delete(0, sb.capacity());
 			
 			if (uniqueTokens.containsKey(key) ) {
@@ -552,6 +612,7 @@ public class IndexWriter {
 		public List<Integer> offsetL = new ArrayList<Integer>();
 		public List<Integer> positionL = new ArrayList<Integer>();
 		public int occurance = 1;
+		public boolean flag = true;
 
 		public IndexRow(int docId, String token, int docType, int fieldType, int offset, int position)  {
 			this(docId, token, docType, fieldType);
@@ -575,10 +636,10 @@ public class IndexWriter {
 			return Hashing.hash(token);
 		}
 		
-		public static String generateKey(StringBuilder sb, int docId, String token, int docType, int fieldType) {
+		public static String generateKey(StringBuilder sb, int docId, String token, int docType, int fieldType, DocumentMetadata meta) {
 			sb.append(docType).append('|').append(token).append('|').append(docId).append('|').append(fieldType);
+			if ( null != meta) sb.append('|').append(meta.getTexualFilterLine() ); 
 			return sb.toString();
-			
 		}
 	}
 }

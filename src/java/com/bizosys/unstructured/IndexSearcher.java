@@ -204,7 +204,7 @@ public class IndexSearcher {
 			return multiQuery;
 		}	
 	
-	public String searchQueryPartsFillWithPayload( Analyzer analyzer, boolean isAllWords, String multiQuery,
+	public String searchQueryPartsFillWithMetadata( Analyzer analyzer, boolean isAllWords, String multiQuery,
 			Map<String, String> multiQueryParts, String... partsToAnalyze) throws Exception {
 				
 				String defaultField = "BIZOSYSNONE";
