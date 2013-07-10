@@ -1,9 +1,9 @@
 package com.bizosys.unstructured;
 
 public abstract class DocumentMetadata {
-	public byte[] filter;
+	public String filter;
 	
-	public DocumentMetadata(byte[] filter) {
+	public DocumentMetadata(String filter) {
 		this.filter = filter;
 	}
 

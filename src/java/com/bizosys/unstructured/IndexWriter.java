@@ -273,7 +273,7 @@ public class IndexWriter {
 				else uniqueRows.add(uniqueId);
 			}
 			
-			byte[] docMetaB = ( null == row.docMeta) ? "-".getBytes() : row.docMeta.filter;
+			String docMetaB = ( null == row.docMeta) ? "-" : row.docMeta.filter;
 			this.tableDocMetaWithFrequency.put( row.docType, row.fieldType, docMetaB, wordHash, row.docId,setDocMetaWithOccurance( 
 				row.docType, row.fieldType, docMetaB, wordHash, row.docId,  row.occurance));
 		}
@@ -283,7 +283,7 @@ public class IndexWriter {
 		return data;
 	}
 	
-	public int setDocMetaWithOccurance(int docType, int fieldType, byte[] docMeta, int wordHash, int docId, int occurance) {
+	public int setDocMetaWithOccurance(int docType, int fieldType, String docMeta, int wordHash, int docId, int occurance) {
 		return occurance;
 	}	
 
