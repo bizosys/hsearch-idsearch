@@ -42,7 +42,7 @@ import com.bizosys.hsearch.hbase.NV;
 import com.bizosys.hsearch.hbase.RecordScalar;
 import com.bizosys.hsearch.treetable.client.partition.IPartition;
 import com.bizosys.hsearch.treetable.storage.HBaseTableSchemaDefn;
-import com.bizosys.hsearch.treetable.unstructured.IIndexFrequencyPayloadTable;
+import com.bizosys.hsearch.treetable.unstructured.IIndexMetadataFrequencyTable;
 import com.bizosys.hsearch.treetable.unstructured.IIndexFrequencyTable;
 import com.bizosys.hsearch.treetable.unstructured.IIndexOffsetTable;
 import com.bizosys.hsearch.treetable.unstructured.IIndexPositionsTable;
@@ -68,7 +68,7 @@ public class IndexWriter {
 	private IIndexFrequencyTable tableFrequency = null;
 	private IIndexOffsetTable tableOffset = null;
 	private IIndexPositionsTable tablePositions = null;
-	private IIndexFrequencyPayloadTable tableDocMetaWithFrequency = null;
+	private IIndexMetadataFrequencyTable tableDocMetaWithFrequency = null;
 	
 	SearchConfiguration sConf = null;	
 	
@@ -94,7 +94,7 @@ public class IndexWriter {
 		tableType = POSITION_TABLE;
 	}
 
-	public IndexWriter(IIndexFrequencyPayloadTable tableDocMetaWithFrequency) throws InstantiationException {
+	public IndexWriter(IIndexMetadataFrequencyTable tableDocMetaWithFrequency) throws InstantiationException {
 		this();
 		this.tableDocMetaWithFrequency = tableDocMetaWithFrequency;
 		tableType = DOCMETA_FREQUENCY_TABLE;
@@ -335,7 +335,14 @@ public class IndexWriter {
 		addDocument(docId, doc, documentType, null, analyzers, uniqueTokens ); 
 	}
 	
-	public void addDocument(int docId, Document doc, String documentType, DocumentFilter docFilter,  
+	public void addDocument(int docId, Document doc, String documentType, DocumentMetadata docFilter,  
+			AnalyzerFactory analyzers) throws CorruptIndexException, IOException, InstantiationException {
+		
+		Map<String, IndexRow> uniqueTokens = new HashMap<String, IndexWriter.IndexRow>();
+		addDocument(docId, doc, documentType, docFilter,  analyzers, uniqueTokens ); 
+	}	
+
+	public void addDocument(int docId, Document doc, String documentType, DocumentMetadata docFilter,  
 		AnalyzerFactory analyzers, Map<String, IndexRow> uniqueTokens ) throws CorruptIndexException, IOException, InstantiationException {
 
 		this.analyzers = analyzers;
@@ -491,7 +498,7 @@ public class IndexWriter {
 	 * @param uniqueTokens
 	 * @throws IOException
 	 */
-	private final void tokenize(TokenStream stream, int docId, int docType, DocumentFilter filter, 
+	private final void tokenize(TokenStream stream, int docId, int docType, DocumentMetadata filter, 
 			int fieldType, Map<String, IndexRow> uniqueTokens ) throws IOException {
 		
 		String token = null;
@@ -533,7 +540,7 @@ public class IndexWriter {
 	
 	private static class IndexRow {
 		
-		DocumentFilter docMeta = null;
+		DocumentMetadata docMeta = null;
 		public int docId;
 		public String token;
 		public int docType;
