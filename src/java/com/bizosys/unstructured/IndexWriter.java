@@ -42,6 +42,7 @@ import com.bizosys.hsearch.hbase.NV;
 import com.bizosys.hsearch.hbase.RecordScalar;
 import com.bizosys.hsearch.treetable.client.partition.IPartition;
 import com.bizosys.hsearch.treetable.storage.HBaseTableSchemaDefn;
+import com.bizosys.hsearch.treetable.unstructured.IIndexFrequencyPayloadTable;
 import com.bizosys.hsearch.treetable.unstructured.IIndexFrequencyTable;
 import com.bizosys.hsearch.treetable.unstructured.IIndexOffsetTable;
 import com.bizosys.hsearch.treetable.unstructured.IIndexPositionsTable;
@@ -57,6 +58,7 @@ public class IndexWriter {
 	private static final int FREQUENCY_TABLE = 0;
 	private static final int OFFSET_TABLE = 1;
 	private static final int POSITION_TABLE = 2;
+	private static final int DOCMETA_FREQUENCY_TABLE = 4;
 	private int tableType = -1;
 	
 	static boolean INFO_ENABLED = HSearchLog.l.isInfoEnabled();
@@ -66,6 +68,7 @@ public class IndexWriter {
 	private IIndexFrequencyTable tableFrequency = null;
 	private IIndexOffsetTable tableOffset = null;
 	private IIndexPositionsTable tablePositions = null;
+	private IIndexFrequencyPayloadTable tableDocMetaWithFrequency = null;
 	
 	SearchConfiguration sConf = null;	
 	
@@ -90,6 +93,13 @@ public class IndexWriter {
 		this.tablePositions = tablePosition;
 		tableType = POSITION_TABLE;
 	}
+
+	public IndexWriter(IIndexFrequencyPayloadTable tableDocMetaWithFrequency) throws InstantiationException {
+		this();
+		this.tableDocMetaWithFrequency = tableDocMetaWithFrequency;
+		tableType = DOCMETA_FREQUENCY_TABLE;
+	}
+
 	
 	public byte[] toBytes() throws IOException {
 		return this.toBytes(this.cachedIndex, false);
@@ -107,7 +117,10 @@ public class IndexWriter {
 		
 			case POSITION_TABLE :
 				return toBytesPositions(rows, isUnique);
-			
+
+			case DOCMETA_FREQUENCY_TABLE:
+				return toBytesDocMetaWithFrequency(rows, isUnique);
+				
 			default:
 				throw new IOException("Unknown Index Type");
 		}
@@ -190,7 +203,6 @@ public class IndexWriter {
 		return offsetB;
 	}
 
-
 	private byte[] toBytesPositions(final List<IndexRow> rows, final boolean isUnique) throws IOException {
 		
 		this.tablePositions.clear();
@@ -231,6 +243,46 @@ public class IndexWriter {
 	public byte[] setPayloadWithPositions(int docType, int fieldType, int wordHash, int docId, byte[] positionsB) {
 		return positionsB;
 	}
+	
+	private byte[] toBytesDocMetaWithFrequency(final List<IndexRow> rows, final boolean isUnique) throws IOException {
+		
+		this.tableDocMetaWithFrequency.clear();
+		
+		StringBuilder sb = null;
+		String uniqueId = null;
+		Set<String> uniqueRows = null;
+		
+		if (  isUnique ) {
+			sb = new StringBuilder(1024);
+			uniqueRows = new HashSet<String>();
+		}
+		
+		for (IndexRow row : rows) {
+
+			int wordHash = row.hashCode();
+			String docMeta = ( null == row.docMeta) ? "-" : row.docMeta.getTexualFilterLine();
+			if ( isUnique ) {
+				
+				sb.delete(0, sb.capacity());
+				sb.append(row.docType).append('\t').append(row.fieldType).append('\t').append(docMeta).append('\t').append(wordHash).append('\t').append(row.docId).append('\t').append(row.occurance);
+				uniqueId = sb.toString();
+				if ( uniqueRows.contains(uniqueId) ) continue;
+				else uniqueRows.add(uniqueId);
+			}
+			
+			byte[] docMetaB = ( null == row.docMeta) ? "-".getBytes() : row.docMeta.filter;
+			this.tableDocMetaWithFrequency.put( row.docType, row.fieldType, docMetaB, wordHash, row.docId,setDocMetaWithOccurance( 
+				row.docType, row.fieldType, docMetaB, wordHash, row.docId,  row.occurance));
+		}
+		byte[] data = this.tableDocMetaWithFrequency.toBytes();
+		if (  null != uniqueRows ) uniqueRows.clear(); 
+		this.tableDocMetaWithFrequency.clear();
+		return data;
+	}
+	
+	public int setDocMetaWithOccurance(int docType, int fieldType, byte[] docMeta, int wordHash, int docId, int occurance) {
+		return occurance;
+	}	
 
 	public void close() throws IOException {
 		
@@ -249,6 +301,10 @@ public class IndexWriter {
 				this.tablePositions.clear();
 				break;
 			
+			case DOCMETA_FREQUENCY_TABLE :
+				this.tableDocMetaWithFrequency.clear();
+				break;
+
 			default:
 				throw new IOException("Unknown Index Type");
 		}
@@ -273,7 +329,13 @@ public class IndexWriter {
 		addDocument(docId, doc, documentType, analyzer, uniqueRows ); 
 	}	
 
-	public void addDocument(int docId, Document doc, String documentType, 
+	
+	public void addDocument(int docId, Document doc, String documentType,   
+			AnalyzerFactory analyzers, Map<String, IndexRow> uniqueTokens ) throws CorruptIndexException, IOException, InstantiationException {
+		addDocument(docId, doc, documentType, null, analyzers, uniqueTokens ); 
+	}
+	
+	public void addDocument(int docId, Document doc, String documentType, DocumentFilter docFilter,  
 		AnalyzerFactory analyzers, Map<String, IndexRow> uniqueTokens ) throws CorruptIndexException, IOException, InstantiationException {
 
 		this.analyzers = analyzers;
@@ -287,10 +349,12 @@ public class IndexWriter {
     		if ( field.isTokenized()) {
         		StringReader sr = new StringReader(field.stringValue());
         		TokenStream stream = analyzers.getAnalyzer(documentType, field.name()).tokenStream(field.name(), sr);
-        		tokenize(stream, docId, docType , fieldType, uniqueTokens);
+        		tokenize(stream, docId, docType , docFilter, fieldType, uniqueTokens);
         		sr.close();
     		} else {
-    			cachedIndex.add(new IndexRow(docId, field.stringValue(), docType, fieldType, 0, 0));
+    			IndexRow row = new IndexRow(docId, field.stringValue(), docType, fieldType, 0, 0);
+    			if ( null != docFilter) row.docMeta = docFilter;
+    			cachedIndex.add(row);
     		}
     		
 		}
@@ -366,6 +430,11 @@ public class IndexWriter {
 				this.tableOffset.clear();
 				break;
 		
+			case DOCMETA_FREQUENCY_TABLE:
+				data = this.toBytes(rows, keepDuplicates);
+				if ( INFO_ENABLED )  HSearchLog.l.info("Total rows in docmeta table:\t" + rows.size());
+				break;
+
 			default:
 				throw new IOException("Unknown Index Type");		
 		}
@@ -422,7 +491,7 @@ public class IndexWriter {
 	 * @param uniqueTokens
 	 * @throws IOException
 	 */
-	private final void tokenize(TokenStream stream, int docId, int docType, 
+	private final void tokenize(TokenStream stream, int docId, int docType, DocumentFilter filter, 
 			int fieldType, Map<String, IndexRow> uniqueTokens ) throws IOException {
 		
 		String token = null;
@@ -452,6 +521,7 @@ public class IndexWriter {
 				existingRow.occurance++;
 			} else {
 				IndexRow row = new IndexRow(docId, token,docType, fieldType, curoffset, position);
+				if ( null != filter) row.docMeta = filter;
 				uniqueTokens.put(key, row);
 			}
 		}
@@ -463,6 +533,7 @@ public class IndexWriter {
 	
 	private static class IndexRow {
 		
+		DocumentFilter docMeta = null;
 		public int docId;
 		public String token;
 		public int docType;

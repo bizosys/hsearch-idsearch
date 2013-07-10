@@ -40,6 +40,7 @@ public class IndexSearcher {
 		this.sConf = SearchConfiguration.getInstance();
 	}
 	
+	@Deprecated
 	public String searchQueryPartsFill( String indexName, String docType, 
 		String query, Analyzer analyzer, Map<String, String> multiQueryParts) throws Exception {
 		
@@ -126,6 +127,7 @@ public class IndexSearcher {
 		return query;
 	}
 	
+	@Deprecated
 	public String searchQueryPartsFill(String indexName, String docType, 
 		String query, Map<String, String> multiQueryParts) throws Exception {
 		
@@ -201,4 +203,80 @@ public class IndexSearcher {
 			
 			return multiQuery;
 		}	
+	
+	public String searchQueryPartsFillWithPayload( Analyzer analyzer, boolean isAllWords, String multiQuery,
+			Map<String, String> multiQueryParts, String... partsToAnalyze) throws Exception {
+				
+				String defaultField = "BIZOSYSNONE";
+				Map<Integer, String> explodedParts = new HashMap<Integer, String>();
+				
+				for (String qKey : partsToAnalyze) {
+					QueryParser qp = new QueryParser(Version.LUCENE_36, defaultField, analyzer); 
+					Set<Term> terms = new HashSet<Term>();
+					Query q = qp.parse(multiQueryParts.get(qKey));
+					q.extractTerms(terms);
+
+					int index = 1;
+					explodedParts.clear();
+					
+					for (Term term : terms) {
+						String fieldName = term.field();
+						String searchword = term.text();
+						String docType = "*";
+						String fieldType = "*";
+						String payload = "*";
+						
+						int docAndFieldBreakPointIndex = fieldName.indexOf('/');
+						
+						if ( -1 == docAndFieldBreakPointIndex) {
+							docType = fieldName;
+						} else {
+							docType = fieldName.substring(0, docAndFieldBreakPointIndex);
+							fieldType = fieldName.substring(docAndFieldBreakPointIndex + 1);
+							
+							int fieldAndPayloadBreakPointIndex = fieldType.indexOf('/');
+							if ( fieldAndPayloadBreakPointIndex > 0) {
+								fieldType = fieldType.substring(0, fieldAndPayloadBreakPointIndex);
+								payload = fieldType.substring(fieldAndPayloadBreakPointIndex + 1);
+							}
+						}
+
+						if ( docType.equals(defaultField) ) docType = "*";
+						else if ( ! ( "*".equals(docType) || "".equals(docType) ) ) {
+							docType = sConf.getDocumentTypeCodes().getCode(docType).toString();
+						}
+						
+						if ( fieldType.equals(defaultField) ) fieldType = "*";
+						else if ( ! ( "*".equals(fieldType) || "".equals(fieldType) ) ) {
+							fieldType = sConf.getFieldTypeCodes().getCode(fieldType).toString();
+						} 
+
+						String expandedTerm = docType + "|" + fieldType + "|" + payload + "|" + Hashing.hash(searchword) + "|*|*";
+						explodedParts.put(index, expandedTerm);
+						index++;
+					}
+					
+					if ( explodedParts.size() > 1) {
+						multiQueryParts.remove(qKey);
+						
+						StringBuilder sb = new StringBuilder();
+						boolean isFirst = true;
+						for (Integer seq : explodedParts.keySet()) {
+							String explodedKey = qKey + seq.toString(); 
+							multiQueryParts.put(explodedKey, explodedParts.get(seq));
+							if ( isFirst ) isFirst = false;
+							else {
+								if ( isAllWords ) sb.append(" AND ");
+								else sb.append(" OR ");
+							}
+							sb.append(explodedKey);
+						}
+						multiQuery = multiQuery.replace(qKey, " ( " + sb.toString() + " ) ");
+					} else {
+						multiQueryParts.put(qKey, explodedParts.get(index - 1));
+					}
+				}
+				
+				return multiQuery;
+			}		
 }
