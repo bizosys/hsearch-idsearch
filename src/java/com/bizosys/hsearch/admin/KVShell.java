@@ -39,10 +39,12 @@ public class KVShell {
 	public static final String SRC_TEMP = "/tmp/src/";
 	public static final String BUILD_TEMP = "/tmp/build/";
 	public static final String JAR_TEMP = "/tmp/jar/";
+	
 
 	public List<String> queryFields = null;
 	public Searcher searcher = null;
 	public PrintStream writer = null;
+	public String customClasspath = null;
 	
 	public KVShell(PrintStream writer) throws IOException {
 		queryFields = new ArrayList<String>();
@@ -156,7 +158,10 @@ public class KVShell {
 			String[] compileArgs = new String[sources.size() + 4];
 			int index = 0;
 			compileArgs[index++] = "-cp";
-			compileArgs[index++] = System.getProperty("java.class.path");
+			compileArgs[index++] = ( null != customClasspath) ? 
+					customClasspath + ":" +  System.getProperty("java.class.path") :
+					System.getProperty("java.class.path");
+			 
 			compileArgs[index++] = "-d";
 			compileArgs[index++] = BUILD_TEMP;
 			for (String source : sources) {
