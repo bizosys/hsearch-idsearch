@@ -187,18 +187,18 @@ public class KVShell {
 	}
 
 	public void search(String[] arguments){
+		URL jarUrl = null;
 		try {
 			
-			URL jarUrl = new File("/tmp/jar/column.jar").toURI().toURL();
-			writer.println("url " + jarUrl.toString());
-
-			URLClassLoader cl = URLClassLoader.newInstance(new URL[] { jarUrl });
+			jarUrl = new File("/tmp/jar/column.jar").toURI().toURL();
+			URLClassLoader cl = URLClassLoader.newInstance(new URL[] { jarUrl },  this.getClass().getClassLoader());
 
 			Class<?> Column = cl.loadClass("Column");
 			Object column = Column.newInstance();
 			KVRowI blankRow = (KVRowI)column;
 			searchOnObject(arguments, blankRow);
 		} catch (Exception ex) {
+			if ( null != jarUrl ) writer.println("url " + jarUrl.toString());
 			ex.printStackTrace(System.err);
 		}
 	}

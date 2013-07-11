@@ -170,8 +170,10 @@ public class Searcher {
 		}
 		
 		Map<Integer,KVRowI> mergedResult = new HashMap<Integer, KVRowI>();
+		System.out.println( mergedResult.keySet().toString());
 		for (String field : individualResults.keySet()) {
 			Map<Integer, Object> res = (Map<Integer, Object>) individualResults.get(field);
+			if ( null == res) continue;
 			for (Integer id : res.keySet()) {
 				if (mergedResult.containsKey(id)){
 					KVRowI aRow = mergedResult.get(id);
