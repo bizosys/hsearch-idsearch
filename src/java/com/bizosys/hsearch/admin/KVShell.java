@@ -222,8 +222,10 @@ public class KVShell {
 			if(null == searcher)searcher = new Searcher("kv-store", fm);
 			
 			searcher.search(fm.schemaName, arguments[1], arguments[2], arguments[3], blankRow, enricher);
-			parseQuery(arguments[2], queryFields);
 			List<KVRowI> data = searcher.getResult();
+			if ( null != data ) System.out.println(data.toString());
+			else System.out.println ("Null Data");
+			parseQuery(arguments[2], queryFields);
 			int index = 0;
 			for (KVRowI aRow : data) {
 				writer.println(aRow.getValue(queryFields.get(index++)) + "\t" + aRow.getValue(queryFields.get(index++)) + "\t" + aRow.getValue(queryFields.get(index++))+ "\t" + aRow.getValue(queryFields.get(index++)));
@@ -268,16 +270,10 @@ public class KVShell {
 
 	public void parseQuery(String query, List<String> queryFields) {
 		
-		String skeletonQuery = query.replaceAll("\\s+", " ").replaceAll("\\(", "").replaceAll("\\)", "");
-		String[] splittedQueries = skeletonQuery.split("( AND | OR | NOT )");
-		int colonIndex = -1;
-		String fieldName = "";
+		String[] splittedQueries = query.split(",");
 		
 		for (String splittedQuery : splittedQueries) {
-			splittedQuery = splittedQuery.trim();
-			colonIndex = splittedQuery.indexOf(':');
-			fieldName = splittedQuery.substring(0,colonIndex);
-			queryFields.add(fieldName);
+			queryFields.add(splittedQuery.trim());
 		}
 	}
 
