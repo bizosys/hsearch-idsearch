@@ -185,7 +185,7 @@ public class KVShell {
 			e.printStackTrace();
 		}
 	}
-	
+
 	public void search(String[] arguments){
 		try {
 			
@@ -196,11 +196,16 @@ public class KVShell {
 
 			Class<?> Column = cl.loadClass("Column");
 			Object column = Column.newInstance();
-
-			//if reading from local file system
-			//FieldMapping fm = FieldMapping.getXMLFieldMappings(arguments[0]);
-
-			//read schema file from hadoop
+			KVRowI blankRow = (KVRowI)column;
+			searchOnObject(arguments, blankRow);
+		} catch (Exception ex) {
+			ex.printStackTrace(System.err);
+		}
+	}
+	
+	public void searchOnObject(String[] arguments, KVRowI blankRow){
+		try {
+			
 			StringBuilder sb = new StringBuilder();
 			Path hadoopPath = new Path(arguments[0]);
 			FileSystem fs = FileSystem.get(new Configuration());
@@ -213,7 +218,6 @@ public class KVShell {
 			String schemaStr = sb.toString();
 			FieldMapping fm = FieldMapping.getXMLStringFieldMappings(schemaStr);
 
-			KVRowI blankRow = (KVRowI)column;
 			IEnricher enricher = null;
 			if(null == searcher)searcher = new Searcher("kv-store", fm);
 			
@@ -227,7 +231,7 @@ public class KVShell {
 			}
 
 		} catch (Exception e) {
-			e.printStackTrace();
+			e.printStackTrace(System.err);
 		}
 	}
 
