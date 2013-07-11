@@ -120,8 +120,8 @@ public class Column extends GroupSortedObject implements KVRowI{
 	}
 
 	@Override
-	public Integer getId() {
-		return --SET_ID--
+	public int getId() {
+		return --SET_ID--;
 	}
 
 }
