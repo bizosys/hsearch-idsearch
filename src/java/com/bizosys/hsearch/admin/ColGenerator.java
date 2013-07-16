@@ -134,6 +134,8 @@ public class ColGenerator {
 		template = template.replace("--SET_ID--", setId);
 		
 		//System.out.println(template);
+		if(path.charAt(path.length()-1) != '/')
+			path = path + '/';
 		FileWriterUtil.downloadToFile(template.getBytes(),new File(path + "Column.java") );
 	}
 
@@ -168,6 +170,8 @@ public class ColGenerator {
 	}
 
 	public static void main(String[] args) throws IOException {
+		FieldMapping fm = FieldMapping.getXMLFieldMappings("G:/work/hsearch-idsearch/src/java/com/bizosys/hsearch/admin/schema.xml");
+		ColGenerator.generate(fm, "/tmp");
 	}
 
 }

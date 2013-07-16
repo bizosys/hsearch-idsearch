@@ -16,15 +16,16 @@ import com.bizosys.hsearch.byteutils.SortedBytesArray;
 import com.bizosys.hsearch.byteutils.SortedBytesInteger;
 import com.bizosys.hsearch.federate.BitSetOrSet;
 import com.bizosys.hsearch.federate.FederatedSearch;
+import com.bizosys.hsearch.federate.FederatedSearchException;
 import com.bizosys.hsearch.federate.QueryPart;
 import com.bizosys.hsearch.functions.GroupSortedObject;
 import com.bizosys.hsearch.functions.GroupSortedObject.FieldType;
 import com.bizosys.hsearch.functions.GroupSorter;
 import com.bizosys.hsearch.functions.GroupSorter.GroupSorterSequencer;
 import com.bizosys.hsearch.hbase.HReader;
-import com.bizosys.hsearch.kv.impl.ComputeKV;
 import com.bizosys.hsearch.kv.impl.FieldMapping;
 import com.bizosys.hsearch.kv.impl.FieldMapping.Field;
+import com.bizosys.hsearch.kv.impl.ComputeKV;
 import com.bizosys.hsearch.kv.impl.IEnricher;
 import com.bizosys.hsearch.kv.impl.KVDataSchemaRepository;
 import com.bizosys.hsearch.kv.impl.KVDataSchemaRepository.KVDataSchema;
@@ -35,7 +36,6 @@ import com.bizosys.hsearch.util.HSearchLog;
 
 public class Searcher {
 
-	private static final String DOCTYPE = "Doc";
 	public String dataRepository = "kv-store";
 	List<KVRowI> resultset = new ArrayList<KVRowI>();
 	String schemaRepositoryName = "xmlFields";
@@ -55,13 +55,7 @@ public class Searcher {
 		this.schemaRepositoryName = schemaName;
 		repository.add(schemaRepositoryName, fm);
 	}
-	
-	public void searchDocuments(final String dataRepository,
-			final String mergeIdPattern, String selectQuery, String whereQuery,
-			KVRowI blankRow, IEnricher... enrichers) throws IOException  {
-		
-	}
-	
+
 	public void searchRegex(final String dataRepository,
 			final String mergeIdPattern, String selectQuery, String whereQuery,
 			KVRowI blankRow, IEnricher... enrichers) throws IOException  {
@@ -82,15 +76,6 @@ public class Searcher {
 		
 	}
 	
-	/**
-	 * Select : mergeid/field,mergeid/field,mergeid/field
-	 * Where  : (mergeid/field = 34 AND mergeid/field = 39) OR (mergeid/field = [2-34])
-	 * 
-	 * @param compositeQuery
-	 */
-	public void searchAcross() {
-	}
-		
 	@SuppressWarnings("unchecked")
 	public void search(final String dataRepository, 
 			final String mergeId, String selectQuery, String whereQuery, 
@@ -161,20 +146,45 @@ public class Searcher {
 		String filterQuery = null;
 		String rowId = null;
 		Map<String, Object> individualResults = new HashMap<String, Object>();
-		
-		for (String field : selectFields) {
-			filterQuery = foundIds.toString() + "|*";
-			rowId = mergeId + "_" + field;
-			Map<Integer, Object> readingIdWithValue = (Map<Integer, Object>) readStorage(dataRepository, rowId, filterQuery, HSearchProcessingInstruction.PLUGIN_CALLBACK_COLS);
-			individualResults.put(field, readingIdWithValue);
+		BitSetOrSet destination = new BitSetOrSet();
+
+		try {
+			boolean isFirst = true;
+			for (String field : selectFields) {
+				filterQuery = foundIds.toString() + "|*";
+				rowId = mergeId + "_" + field;
+				Map<Integer, Object> readingIdWithValue = (Map<Integer, Object>) readStorage(dataRepository, rowId, filterQuery, HSearchProcessingInstruction.PLUGIN_CALLBACK_COLS);
+				if ( DEBUG_ENABLED ) {
+					if(0 == readingIdWithValue.size())
+						HSearchLog.l.debug("No data fetched for " + field);
+				}
+
+				individualResults.put(field, readingIdWithValue);
+				Set<Integer> readingId = new HashSet<Integer>(readingIdWithValue.keySet());
+				if(isFirst){
+					isFirst = false;
+					destination.setDocumentIds(readingId);
+					continue;
+				}
+				BitSetOrSet source = new BitSetOrSet();
+				source.setDocumentIds(readingId);
+				destination.and(source);
+			}
+			} catch (FederatedSearchException e) {
+				HSearchLog.l.fatal("Federated Search Exception", e);
+				e.printStackTrace(System.err);
+			}	
+		if ( null == destination.getDocumentIds()) return;
+		if (destination.getDocumentIds().size() < 1) return;
+		if ( DEBUG_ENABLED ) {
+			HSearchLog.l.debug("Final matching ids" + destination.getDocumentIds().toString());
 		}
-		
 		Map<Integer,KVRowI> mergedResult = new HashMap<Integer, KVRowI>();
-		System.out.println( mergedResult.keySet().toString());
+
 		for (String field : individualResults.keySet()) {
 			Map<Integer, Object> res = (Map<Integer, Object>) individualResults.get(field);
-			if ( null == res) continue;
-			for (Integer id : res.keySet()) {
+			for (Object key : destination.getDocumentIds()) {
+				Integer id = (Integer)key;
 				if (mergedResult.containsKey(id)){
 					KVRowI aRow = mergedResult.get(id);
 					aRow.setValue(field, res.get(id));
@@ -187,7 +197,7 @@ public class Searcher {
 				}
 			}
 		}
-
+		
 		resultset.addAll(mergedResult.values());
 		
 		if ( null != enrichers) {
@@ -286,6 +296,7 @@ public class Searcher {
 			KVDataSchema dataScheme = repository.get(schemaRepositoryName);
 			Field fld = dataScheme.fm.nameSeqs.get(fieldName);
 			int outputType = dataScheme.dataTypeMapping.get(fieldName).ordinal();
+
 			if(callBackType == HSearchProcessingInstruction.PLUGIN_CALLBACK_COLS){
 				ComputeKV compute = null;	
 				compute = new ComputeKV();
@@ -293,6 +304,9 @@ public class Searcher {
 				compute.rowContainer = new HashMap<Integer, Object>();
 
 				data = KVRowReader.getAllValues(tableName, rowId.getBytes(), filter, callBackType, outputType);
+
+				boolean isEmpty = ( null == data) ? true : (data.length == 0);  
+				if(isEmpty)return new HashMap<Integer,Object>();
 				compute.put(data);
 				
 				return compute.rowContainer;
@@ -301,8 +315,9 @@ public class Searcher {
 				
 				//change filterQuery for documents search
 				String analyzerClass = fld.analyzer;
+				String dataType = fld.fieldType.toLowerCase();
 				boolean isAnalyzerEmpty = ( null == analyzerClass) ? true : (analyzerClass.length() == 0);
-	    		if(!isAnalyzerEmpty){
+	    		if(!isAnalyzerEmpty && dataType.equals("text")){
 	    			String query = filter.substring(filter.lastIndexOf('|'));
 	    			Map<String, Integer> dtypes = new HashMap<String, Integer>();
 	    			dtypes.put("emp", 1);
@@ -315,6 +330,10 @@ public class Searcher {
 	    			filter = indexer.parseQuery(new StandardAnalyzer(Version.LUCENE_36), "emp", "fname", query);
 	    		}				
 				data = KVRowReader.getAllValues(tableName, rowId.getBytes(), filter, callBackType, outputType);
+				
+				boolean isEmpty = ( null == data) ? true : (data.length == 0);  
+				if(isEmpty)return new HashSet<Integer>();
+				
 				for (byte[] dataChunk : SortedBytesArray.getInstanceArr().parse(data).values()) {
 					Set<Integer> ids = new HashSet<Integer>();
 					SortedBytesInteger.getInstance().parse(dataChunk).values(ids);
@@ -323,7 +342,7 @@ public class Searcher {
 			}
 			
 		} catch (Exception e) {
-			System.err.println("Exception " + e.getMessage());
+			System.err.println("ReadStorage Exception " + e.getMessage());
 		}
 		
 		return null;

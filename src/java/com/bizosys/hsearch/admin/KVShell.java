@@ -42,17 +42,20 @@ public class KVShell {
 	
 
 	public List<String> queryFields = null;
+	public List<KVRowI> resultStore = null; 
 	public Searcher searcher = null;
 	public PrintStream writer = null;
 	public String customClasspath = null;
 	
 	public KVShell(PrintStream writer) throws IOException {
 		queryFields = new ArrayList<String>();
+		resultStore = new ArrayList<KVRowI>();
 		this.writer = writer;
 	}
 	
 	public KVShell() throws IOException {
 		queryFields = new ArrayList<String>();
+		resultStore = new ArrayList<KVRowI>();
 		this.writer = System.out;
 	}
 
@@ -270,10 +273,16 @@ public class KVShell {
 
 	public void parseQuery(String query, List<String> queryFields) {
 		
-		String[] splittedQueries = query.split(",");
+		String skeletonQuery = query.replaceAll("\\s+", " ").replaceAll("\\(", "").replaceAll("\\)", "");
+		String[] splittedQueries = skeletonQuery.split("( AND | OR | NOT )");
+		int colonIndex = -1;
+		String fieldName = "";
 		
 		for (String splittedQuery : splittedQueries) {
-			queryFields.add(splittedQuery.trim());
+			splittedQuery = splittedQuery.trim();
+			colonIndex = splittedQuery.indexOf(':');
+			fieldName = splittedQuery.substring(0,colonIndex);
+			queryFields.add(fieldName);
 		}
 	}
 
