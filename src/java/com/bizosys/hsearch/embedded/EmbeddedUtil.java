@@ -30,6 +30,7 @@ public class EmbeddedUtil {
 	IndexWriter writer = null;
 
 	public void addToIndex(Analyzer analyzer, String docType, String fieldType, Map<Integer, String> docIdWithFieldValue) throws IOException, InstantiationException {
+		
 		if ( null == writer) writer = new IndexWriter(new HSearchTableDocuments());
     	AnalyzerFactory analyzers = new AnalyzerFactory(analyzer);
     	
@@ -48,8 +49,12 @@ public class EmbeddedUtil {
     
     public BitSetOrSet search(byte[] data, Analyzer analyzer, String  docType, String fieldType, String query) throws IOException, ParseException, InstantiationException {
     	
-    	int docTypeCode = DocumentTypeCodes.getInstance().getCode(docType);
-    	int fldTypeCode = FieldTypeCodes.getInstance().getCode(fieldType);
+    	
+    	String docTypeCode = "*".equals(docType) ? "*" :
+    		new Integer(DocumentTypeCodes.getInstance().getCode(docType)).toString();
+    	
+    	String fldTypeCode = "*".equals(fieldType) ? "*" :
+    		new Integer(FieldTypeCodes.getInstance().getCode(fieldType)).toString();
 
 		QueryParser qp = new QueryParser(Version.LUCENE_36, "K", analyzer);
 		Query q = null;
@@ -72,8 +77,16 @@ public class EmbeddedUtil {
 			}
 		}
 		allWords.append('}');
+
+		StringBuilder queryBuilder = new StringBuilder(1024);
+		queryBuilder.append(docTypeCode);
+		queryBuilder.append('|');
+		queryBuilder.append(fldTypeCode);
+		queryBuilder.append('|');
+		queryBuilder.append(allWords.toString());
+		queryBuilder.append("|*|*");
 		
-    	HSearchQuery hq = new HSearchQuery(docTypeCode + "|" + fldTypeCode + "|" + allWords.toString() + "|*|*");
+    	HSearchQuery hq = new HSearchQuery(queryBuilder.toString());
 		return search(data, hq);
     }
     

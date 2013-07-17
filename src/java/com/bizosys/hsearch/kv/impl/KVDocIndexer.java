@@ -71,9 +71,13 @@ public class KVDocIndexer {
     }
 
     public String parseQuery(Analyzer analyzer, String  docType, String fieldType, String query) throws IOException, ParseException, InstantiationException{
-    	int docTypeCode = DocumentTypeCodes.getInstance().getCode(docType);
-    	int fldTypeCode = FieldTypeCodes.getInstance().getCode(fieldType);
+
+    	String docTypeCode = "*".equals(docType) ? "*" :
+    		new Integer(DocumentTypeCodes.getInstance().getCode(docType)).toString();
     	
+    	String fldTypeCode = "*".equals(fieldType) ? "*" :
+    		new Integer(FieldTypeCodes.getInstance().getCode(fieldType)).toString();
+
 		QueryParser qp = new QueryParser(Version.LUCENE_36, "K", analyzer);
 		Query q = null;
 		try {
@@ -96,8 +100,15 @@ public class KVDocIndexer {
 		}
 		allWords.append('}');
 		
-		String combinedQuery = docTypeCode + "|" + fldTypeCode + "|" + allWords.toString() + "|*|*";
-		return combinedQuery;
+		StringBuilder queryBuilder = new StringBuilder(1024);
+		queryBuilder.append(docTypeCode);
+		queryBuilder.append('|');
+		queryBuilder.append(fldTypeCode);
+		queryBuilder.append('|');
+		queryBuilder.append(allWords.toString());
+		queryBuilder.append("|*|*");
+
+		return queryBuilder.toString();
     }
     
     public void addDoumentTypes(Map<String, Integer> dtypes) throws IOException{

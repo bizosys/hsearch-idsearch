@@ -84,13 +84,13 @@ public class Searcher {
 		repository.add(schemaRepositoryName, fm);
 	}
 
-	public void searchRegex(final String dataRepository,
+	public Set<String> searchRegex(final String dataRepository,
 			final String mergeIdPattern, String selectQuery, String whereQuery,
 			KVRowI blankRow, IEnricher... enrichers) throws IOException  {
 
 		List<String> rowIds = HReader.getMatchingRowIds(dataRepository, mergeIdPattern);
-		if ( null == rowIds) return;
-		if ( rowIds.size() == 0 ) return;
+		if ( null == rowIds) return null;
+		if ( rowIds.size() == 0 ) return null;
 		
 		Set<String> mergeIds = new HashSet<String>();
 		for (String mergeIdWithFieldId : rowIds) {
@@ -104,6 +104,7 @@ public class Searcher {
 			search(dataRepository, mergeId, selectQuery, whereQuery, blankRow, enrichers);
 		}
 		
+		return mergeIds;
 	}
 	
 	@SuppressWarnings("unchecked")
@@ -377,16 +378,19 @@ public class Searcher {
 				if(!isAnalyzerEmpty && dataType.equals("text")){
 					int queryPartLoc = filter.lastIndexOf('|');
 					String query = ( queryPartLoc < 0 ) ? filter : filter.substring(queryPartLoc+1);
-					int fieldTypeLoc = query.indexOf('/');
-					String fieldType = "*";
+
+					String docType = "*";
+					String fieldType = fieldName;
+					
+					int fieldTypeLoc = fieldName.indexOf('/');
 					if ( fieldTypeLoc > 0 ) {
-						fieldType = query.substring(0, fieldTypeLoc);
-						query = query.substring(fieldTypeLoc+1);
+						docType = fieldName.substring(0, fieldTypeLoc);
+						fieldType = fieldName.substring(fieldTypeLoc+1);
 					}
-	    			if ( DEBUG_ENABLED ) HSearchLog.l.debug("Query :" + query + "\nField Type:" + fieldType);
+	    			if ( DEBUG_ENABLED ) HSearchLog.l.debug("Query :[" + query + "] : DocType :[" + docType + "]  : Field Type:[" + fieldType + "]");
 
 	    			filter = indexer.parseQuery(
-	    				new StandardAnalyzer(Version.LUCENE_36), "*", fieldType, filter);
+	    				new StandardAnalyzer(Version.LUCENE_36), docType, fieldType, filter);
 	    		}				
 				data = KVRowReader.getAllValues(tableName, rowId.getBytes(), filter, callBackType, outputType);
 				
