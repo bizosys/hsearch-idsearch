@@ -1,8 +1,29 @@
+/*
+* Copyright 2013 Bizosys Technologies Limited
+*
+* Licensed to the Bizosys Technologies Limited (Bizosys) under one
+* or more contributor license agreements.  See the NOTICE file
+* distributed with this work for additional information
+* regarding copyright ownership.  The Bizosys licenses this file
+* to you under the Apache License, Version 2.0 (the
+* "License"); you may not use this file except in compliance
+* with the License.  You may obtain a copy of the License at
+*
+*     http://www.apache.org/licenses/LICENSE-2.0
+*
+* Unless required by applicable law or agreed to in writing, software
+* distributed under the License is distributed on an "AS IS" BASIS,
+* WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+* See the License for the specific language governing permissions and
+* limitations under the License.
+*/
+
 package com.bizosys.hsearch.kv.impl;
 
 import java.io.File;
 import java.io.IOException;
 import java.io.StringReader;
+import java.text.ParseException;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -15,7 +36,11 @@ import org.xml.sax.InputSource;
 import org.xml.sax.SAXException;
 import org.xml.sax.helpers.DefaultHandler;
 
+import com.bizosys.hsearch.util.HSearchLog;
+
 public class FieldMapping extends DefaultHandler {
+
+	private static final boolean DEBUG_ENABLED = HSearchLog.l.isDebugEnabled();
 
 	public static class Field {
 
@@ -58,11 +83,11 @@ public class FieldMapping extends DefaultHandler {
 		public String toString() {
 
 			StringBuilder sb = new StringBuilder();
-			sb.append(sourceName).append("\t").append(name).append("\t").append(sourceSeq).append("\t")
-					.append(isIndexable).append("\t").append(isRepeatable)
-					.append("\t").append(isMergedKey).append("\t")
-					.append(skipNull).append("\t").append(defaultValue)
-					.append(isJoinKey).append("\t").append(fieldType).append("\t").append(analyzer);
+			sb.append(sourceName).append('\t').append(name).append('\t').append(sourceSeq).append('\t')
+					.append(isIndexable).append('\t').append(isRepeatable)
+					.append('\t').append(isMergedKey).append('\t')
+					.append(skipNull).append('\t').append(defaultValue)
+					.append(isJoinKey).append('\t').append(fieldType).append('\t').append(analyzer);
 
 			return sb.toString();
 		}
@@ -125,7 +150,9 @@ public class FieldMapping extends DefaultHandler {
 		
 		return fieldMapping;
 	}
-	public static final FieldMapping getXMLFieldMappings(final String filePath){
+	
+	public static final FieldMapping getXMLFieldMappings(final String filePath) throws ParseException {
+
 		SAXParserFactory saxFactory = SAXParserFactory.newInstance();
 		SAXParser saxParser;
 		FieldMapping fieldMapping = null;
@@ -135,16 +162,21 @@ public class FieldMapping extends DefaultHandler {
 			fieldMapping = new FieldMapping();
 			File file = new File(filePath);
 			saxParser.parse(file, fieldMapping);
+			return fieldMapping;
 			
 		} catch (ParserConfigurationException e) {
-			e.printStackTrace();
+			HSearchLog.l.fatal("File Path:" + filePath , e);
+			e.printStackTrace(System.err);
+			throw new ParseException(e.getMessage(), 0);
 		} catch (SAXException e) {
-			e.printStackTrace();
+			HSearchLog.l.fatal("File Path:" + filePath , e);
+			e.printStackTrace(System.err);
+			throw new ParseException(e.getMessage(), 0);
 		}catch (IOException e) {
-			e.printStackTrace();
+			HSearchLog.l.fatal("File Path:" + filePath , e);
+			e.printStackTrace(System.err);
+			throw new ParseException(e.getMessage(), 0);
 		}
-		
-		return fieldMapping;
 	}
 
 	public void startElement(String uri, String localName, String qName,
@@ -189,6 +221,6 @@ public class FieldMapping extends DefaultHandler {
 		for (Map.Entry<Integer, Field> entry : fieldSeqs.entrySet()) {
 			System.out.println(entry.getKey() + " - "+ entry.getValue().toString());
 		}
-		System.out.println("sahema name is " + schemaName);
+		if ( DEBUG_ENABLED )  HSearchLog.l.debug("sahema name is " + schemaName);
 	}
 }

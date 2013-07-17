@@ -27,6 +27,7 @@ public class ScalarFilter extends HSearchScalarFilter {
 	public ScalarFilter(HSearchProcessingInstruction outputType, String query) {
 		super(outputType, query);
 	}
+	
 
 	@Override
 	public IHSearchPlugin createPlugIn() throws IOException {

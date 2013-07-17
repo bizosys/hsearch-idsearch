@@ -13,7 +13,7 @@ public class Column extends GroupSortedObject implements KVRowI{
 		this.dataSchema = dataScheme;
 	}
 
-	public void setValue(String key, Object value){
+	public final void setValue(final String key, final Object value){
 		int keySeq = this.dataSchema.nameToSeqMapping.get(key);
 		switch ( keySeq ) {
 --SETTERS--
@@ -21,7 +21,7 @@ public class Column extends GroupSortedObject implements KVRowI{
 	}
 	
 		@Override
-	public Object getValue(String key){
+	public final Object getValue(final String key){
 		int keySeq = this.dataSchema.nameToSeqMapping.get(key);
 		switch ( keySeq ) {
 --GETTERS--
@@ -30,7 +30,7 @@ public class Column extends GroupSortedObject implements KVRowI{
 	}
 		
 	@Override
-	public boolean getBooleanField(int fldSequence) {
+	public final boolean getBooleanField(final int fldSequence) {
 		switch ( fldSequence ) {
 --BOOLEAN_SEQUENCER--
 		}
@@ -38,7 +38,7 @@ public class Column extends GroupSortedObject implements KVRowI{
 	}
 
 	@Override
-	public byte getByteField(int fldSequence) {
+	public final byte getByteField(final int fldSequence) {
 		switch ( fldSequence ) {
 --BYTE_SEQUENCER--
 		}
@@ -46,7 +46,7 @@ public class Column extends GroupSortedObject implements KVRowI{
 	}
 
 	@Override
-	public short getShortField(int fldSequence) {
+	public final short getShortField(final int fldSequence) {
 		switch ( fldSequence ) {
 --SHORT_SEQUENCER--
 		}
@@ -54,7 +54,7 @@ public class Column extends GroupSortedObject implements KVRowI{
 	}
 
 	@Override
-	public int getIntegerField(int fldSequence) {
+	public final int getIntegerField(final int fldSequence) {
 		switch ( fldSequence ) {
 --INTEGER_SEQUENCER--
 		}
@@ -62,7 +62,7 @@ public class Column extends GroupSortedObject implements KVRowI{
 	}
 
 	@Override
-	public float getFloatField(int fldSequence) {
+	public final float getFloatField(final int fldSequence) {
 		switch ( fldSequence ) {
 --FLOAT_SEQUENCER--
 		}
@@ -70,7 +70,7 @@ public class Column extends GroupSortedObject implements KVRowI{
 	}
 
 	@Override
-	public double getDoubleField(int fldSequence) {
+	public final double getDoubleField(final int fldSequence) {
 		switch ( fldSequence ) {
 --DOUBLE_SEQUENCER--
 		}
@@ -78,7 +78,7 @@ public class Column extends GroupSortedObject implements KVRowI{
 	}
 
 	@Override
-	public long getLongField(int fldSequence) {
+	public final long getLongField(final int fldSequence) {
 		switch ( fldSequence ) {
 --LONG_SEQUENCER--
 		}
@@ -86,7 +86,7 @@ public class Column extends GroupSortedObject implements KVRowI{
 	}
 
 	@Override
-	public String getStringField(int fldSequence) {
+	public final String getStringField(final int fldSequence) {
 		switch ( fldSequence ) {
 --STRING_SEQUENCER--
 		}
@@ -94,33 +94,33 @@ public class Column extends GroupSortedObject implements KVRowI{
 	}
 
 	@Override
-	public Object getObjectField(int fldSequence) {
+	public final Object getObjectField(final int fldSequence) {
 		return null;
 	}
 	
 	@Override
-	public KVRowI create() {
+	public final KVRowI create() {
 		return new Column();
 	}
 
 	@Override
-	public KVRowI create(KVDataSchema dataSchema) {
+	public final KVRowI create(final KVDataSchema dataSchema) {
 		return new Column(dataSchema);
 	}
 
 
 	@Override
-	public int getDataType(String name) {
+	public final int getDataType(final String name) {
 		return 0;
 	}
 	
 	@Override
-	public void setId(Integer id) {
+	public final void setId(final Integer id) {
 		--SET_ID-- = id;
 	}
 
 	@Override
-	public int getId() {
+	public final int getId() {
 		return --SET_ID--;
 	}
 

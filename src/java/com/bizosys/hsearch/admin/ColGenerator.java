@@ -6,6 +6,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.io.Reader;
+import java.text.ParseException;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -169,8 +170,8 @@ public class ColGenerator {
 		}
 	}
 
-	public static void main(String[] args) throws IOException {
-		FieldMapping fm = FieldMapping.getXMLFieldMappings("G:/work/hsearch-idsearch/src/java/com/bizosys/hsearch/admin/schema.xml");
+	public static void main(String[] args) throws IOException, ParseException {
+		FieldMapping fm = FieldMapping.getXMLFieldMappings("/work/hsearch-idsearch/src/java/com/bizosys/hsearch/admin/schema.xml");
 		ColGenerator.generate(fm, "/tmp");
 	}
 

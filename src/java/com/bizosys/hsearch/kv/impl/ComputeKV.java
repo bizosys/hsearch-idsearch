@@ -1,3 +1,22 @@
+/*
+* Copyright 2013 Bizosys Technologies Limited
+*
+* Licensed to the Bizosys Technologies Limited (Bizosys) under one
+* or more contributor license agreements.  See the NOTICE file
+* distributed with this work for additional information
+* regarding copyright ownership.  The Bizosys licenses this file
+* to you under the Apache License, Version 2.0 (the
+* "License"); you may not use this file except in compliance
+* with the License.  You may obtain a copy of the License at
+*
+*     http://www.apache.org/licenses/LICENSE-2.0
+*
+* Unless required by applicable law or agreed to in writing, software
+* distributed under the License is distributed on an "AS IS" BASIS,
+* WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+* See the License for the specific language governing permissions and
+* limitations under the License.
+*/
 package com.bizosys.hsearch.kv.impl;
 
 import java.io.IOException;
@@ -119,118 +138,6 @@ public class ComputeKV implements ICompute {
 				break;
 		}
 	}
-	
-	/**
-	public void merge(final ICompute part)  {
-		ComputeKV partCasted = (ComputeKV) part;
-		
-		try {
-			switch (this.kvType) {
-			case 0:
-			{
-				if ( null == kv_boolean) kv_boolean = new Cell2<Integer, Boolean>(
-						SortedBytesInteger.getInstance(), SortedBytesBoolean.getInstance());
-				
-				MergeVisitor<Integer, Boolean> visitor = new MergeVisitor<Integer, Boolean>();
-				visitor.mergeCell = kv_boolean;
-				partCasted.kv_boolean.data = new BytesSection(partCasted.kv_boolean.toBytesOnSortedData()); 
-				partCasted.kv_boolean.process(visitor);
-				break;
-			}
-			case 1:
-			{	if ( null == kv_byte) kv_byte = new Cell2<Integer, Byte>(
-						SortedBytesInteger.getInstance(), SortedBytesChar.getInstance());
-				
-				MergeVisitor<Integer, Byte> visitor = new MergeVisitor<Integer, Byte>();
-				visitor.mergeCell = kv_byte;
-				partCasted.kv_byte.data = new BytesSection(partCasted.kv_byte.toBytesOnSortedData()); 
-				partCasted.kv_byte.process(visitor);
-				break;
-			}
-			case 2:
-			{
-				if ( null == kv_short) kv_short = new Cell2<Integer, Short>(
-						SortedBytesInteger.getInstance(), SortedBytesShort.getInstance());
-				
-				MergeVisitor<Integer, Short> visitor = new MergeVisitor<Integer, Short>();
-				visitor.mergeCell = kv_short;
-				partCasted.kv_short.data = new BytesSection(partCasted.kv_short.toBytesOnSortedData()); 
-				partCasted.kv_short.process(visitor);
-				break;
-			}
-			case 3:
-			{
-				if ( null == kv_integer) kv_integer = new Cell2<Integer, Integer>(
-						SortedBytesInteger.getInstance(), SortedBytesInteger.getInstance());
-				
-				MergeVisitor<Integer, Integer> visitor = new MergeVisitor<Integer, Integer>();
-				visitor.mergeCell = kv_integer;
-				partCasted.kv_integer.data = new BytesSection(partCasted.kv_integer.toBytesOnSortedData()); 
-				partCasted.kv_integer.process(visitor);
-				break;
-			}
-			case 4:
-			{
-				if ( null == kv_float) kv_float = new Cell2<Integer, Float>(
-						SortedBytesInteger.getInstance(), SortedBytesFloat.getInstance());
-				
-				MergeVisitor<Integer, Float> visitor = new MergeVisitor<Integer, Float>();
-				visitor.mergeCell = kv_float;
-				partCasted.kv_float.data = new BytesSection(partCasted.kv_float.toBytesOnSortedData()); 
-				partCasted.kv_float.process(visitor);
-				break;
-			}
-			case 5:
-			{
-				if ( null == kv_long) kv_long = new Cell2<Integer, Long>(
-						SortedBytesInteger.getInstance(), SortedBytesLong.getInstance());
-				
-				MergeVisitor<Integer, Long> visitor = new MergeVisitor<Integer, Long>();
-				visitor.mergeCell = kv_long;
-				partCasted.kv_long.data = new BytesSection(partCasted.kv_long.toBytesOnSortedData()); 
-				partCasted.kv_long.process(visitor);
-				break;
-			}
-			case 6:
-			{
-				if ( null == kv_double) kv_double = new Cell2<Integer, Double>(
-						SortedBytesInteger.getInstance(), SortedBytesDouble.getInstance());
-				
-				MergeVisitor<Integer, Double> visitor = new MergeVisitor<Integer, Double>();
-				visitor.mergeCell = kv_double;
-				partCasted.kv_double.data = new BytesSection(partCasted.kv_double.toBytesOnSortedData()); 
-				partCasted.kv_double.process(visitor);
-				break;
-			}
-			case 7:
-			{
-				if ( null == kv_string) kv_string = new Cell2<Integer, String>(
-						SortedBytesInteger.getInstance(), SortedBytesString.getInstance());
-				
-				MergeVisitor<Integer, String> visitor = new MergeVisitor<Integer, String>();
-				visitor.mergeCell = kv_string;
-				partCasted.kv_string.data = new BytesSection(partCasted.kv_string.toBytesOnSortedData()); 
-				partCasted.kv_string.process(visitor);
-				break;
-			}
-			
-			case 8:
-			{
-				if ( null == kv_IndexIds) kv_IndexIds = new HashSet<Integer>();
-				
-				MergeVisitor<Integer, String> visitor = new MergeVisitor<Integer, String>();
-				visitor.mergeCell = kv_string;
-				partCasted.kv_string.data = new BytesSection(partCasted.kv_string.toBytesOnSortedData()); 
-				partCasted.kv_string.process(visitor);
-				break;
-			}
-			
-		}
-	} catch (IOException ex) {
-			throw new NullPointerException(ex.getMessage());
-	 }
-	}
-	*/
 	
 	public ComputeKV createNew() {
 		ComputeKV kv = new ComputeKV();

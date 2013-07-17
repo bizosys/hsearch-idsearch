@@ -1,6 +1,27 @@
+/*
+* Copyright 2013 Bizosys Technologies Limited
+*
+* Licensed to the Bizosys Technologies Limited (Bizosys) under one
+* or more contributor license agreements.  See the NOTICE file
+* distributed with this work for additional information
+* regarding copyright ownership.  The Bizosys licenses this file
+* to you under the Apache License, Version 2.0 (the
+* "License"); you may not use this file except in compliance
+* with the License.  You may obtain a copy of the License at
+*
+*     http://www.apache.org/licenses/LICENSE-2.0
+*
+* Unless required by applicable law or agreed to in writing, software
+* distributed under the License is distributed on an "AS IS" BASIS,
+* WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+* See the License for the specific language governing permissions and
+* limitations under the License.
+*/
+
 package com.bizosys.hsearch.kv;
 
 import java.io.IOException;
+import java.text.ParseException;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -8,6 +29,7 @@ import java.util.List;
 import java.util.ListIterator;
 import java.util.Map;
 import java.util.Set;
+import java.util.regex.Pattern;
 
 import org.apache.lucene.analysis.standard.StandardAnalyzer;
 import org.apache.lucene.util.Version;
@@ -36,13 +58,19 @@ import com.bizosys.hsearch.util.HSearchLog;
 
 public class Searcher {
 
-	public String dataRepository = "kv-store";
+	public String dataRepository = "";
+	String schemaRepositoryName = "";
+	
+	public static final Pattern patternWhitespaceStart = Pattern.compile("\\s+");
+	public static final Pattern patternBracketsStart = Pattern.compile("\\(");
+	public static final Pattern patternBracketsEnd = Pattern.compile("\\)");
+	public static final Pattern patternBooleans = Pattern.compile("( AND | OR | NOT )");
+	public static final Pattern patternComma = Pattern.compile(",");
+	
 	List<KVRowI> resultset = new ArrayList<KVRowI>();
-	String schemaRepositoryName = "xmlFields";
 	KVDataSchemaRepository repository = KVDataSchemaRepository.getInstance();
 	
 	KVDocIndexer indexer = new KVDocIndexer();
-	
 	
 	public static boolean DEBUG_ENABLED = HSearchLog.l.isDebugEnabled();
 	public static boolean INFO_ENABLED = HSearchLog.l.isInfoEnabled();
@@ -61,8 +89,10 @@ public class Searcher {
 			KVRowI blankRow, IEnricher... enrichers) throws IOException  {
 
 		List<String> rowIds = HReader.getMatchingRowIds(dataRepository, mergeIdPattern);
-		Set<String> mergeIds = new HashSet<String>();
+		if ( null == rowIds) return;
+		if ( rowIds.size() == 0 ) return;
 		
+		Set<String> mergeIds = new HashSet<String>();
 		for (String mergeIdWithFieldId : rowIds) {
 			if ( DEBUG_ENABLED ) HSearchLog.l.debug("Analyzing rowId :" + mergeIdWithFieldId);
 			int lastIndex = mergeIdWithFieldId.lastIndexOf('_');
@@ -79,15 +109,23 @@ public class Searcher {
 	@SuppressWarnings("unchecked")
 	public void search(final String dataRepository, 
 			final String mergeId, String selectQuery, String whereQuery, 
-			KVRowI blankRow, IEnricher... enrichers){
+			KVRowI blankRow, IEnricher... enrichers) throws IOException {
 
 		StringBuilder foundIds = null;
 
 		boolean isEmpty = ( null == whereQuery) ? true : (whereQuery.length() == 0);
-		if(!isEmpty){
-			String skeletonQuery = whereQuery.replaceAll("\\s+", " ").replaceAll("\\(", "").replaceAll("\\)", "");
+		
+		if(isEmpty) {
+		
+			foundIds = new StringBuilder("*");
+		
+		} else {
 			
-			String[] splittedQueries = skeletonQuery.split("( AND | OR | NOT )");
+			String skeletonQuery = patternWhitespaceStart.matcher(whereQuery).replaceAll(" ");
+			skeletonQuery = patternBracketsStart.matcher(skeletonQuery).replaceAll("");
+			skeletonQuery = patternBracketsEnd.matcher(skeletonQuery).replaceAll("");
+			String[] splittedQueries = patternBooleans.split(skeletonQuery);
+			
 			int index = -1;
 			int colonIndex = -1;
 			int totalQueries = 0;
@@ -116,74 +154,88 @@ public class Searcher {
 			try {
 				mixedQueryMatchedIds = ff.execute(whereQuery, queryDetails);
 			} catch (Exception e) {
-				System.err.println("Error in Searcher: could not execute " + e.getMessage());
+				HSearchLog.l.fatal("Error in Searcher: could not execute " + e.getMessage(), e);
+				throw new IOException("Federated Query Failure: " + whereQuery + "\n" + e.getMessage());
 			}
 			
 			if(null == mixedQueryMatchedIds) return;
-			if ( null == mixedQueryMatchedIds.getDocumentIds()) return;
-			if (mixedQueryMatchedIds.getDocumentIds().size() < 1) return;
+			Set<Object> documentIds = mixedQueryMatchedIds.getDocumentIds();
+			if ( null == documentIds) return;
+			if (documentIds.size() == 0 ) return;
+
 			if ( DEBUG_ENABLED ) {
-				HSearchLog.l.debug("Matching ids " + mixedQueryMatchedIds.getDocumentIds().toString());
+				if ( null != documentIds) 
+					HSearchLog.l.debug("Matching ids " + documentIds.toString());
 			}
 			
-			for (Object matchedId : mixedQueryMatchedIds.getDocumentIds()) {
-				if ( null == foundIds) {
+			boolean firstTime = true;
+			for (Object matchedId : documentIds) {
+				if ( firstTime ) {
+					firstTime = false;
 					foundIds = new StringBuilder("{");
 					foundIds.append(matchedId.toString());
 				} else {
 					foundIds.append(',').append(matchedId.toString());
 				}
 			}
-			if(null != foundIds)
-				foundIds.append('}');
-		}
-		else{
-			foundIds = new StringBuilder("*");
+			
+			if(null != foundIds) foundIds.append('}');
 		}
 		
 		//get all the values based on ids
-		String[] selectFields = selectQuery.split(",");
 		String filterQuery = null;
 		String rowId = null;
 		Map<String, Object> individualResults = new HashMap<String, Object>();
 		BitSetOrSet destination = new BitSetOrSet();
 
+		String[] selectFields = patternComma.split(selectQuery);
+		boolean isFirst = true;
+
+
 		try {
-			boolean isFirst = true;
 			for (String field : selectFields) {
+				
 				filterQuery = foundIds.toString() + "|*";
 				rowId = mergeId + "_" + field;
+				
 				Map<Integer, Object> readingIdWithValue = (Map<Integer, Object>) readStorage(dataRepository, rowId, filterQuery, HSearchProcessingInstruction.PLUGIN_CALLBACK_COLS);
 				if ( DEBUG_ENABLED ) {
-					if(0 == readingIdWithValue.size())
-						HSearchLog.l.debug("No data fetched for " + field);
+					int readingIdWithValueLen = ( null == readingIdWithValue) ? 0 : readingIdWithValue.size();
+					if(0 == readingIdWithValueLen) HSearchLog.l.debug("No data fetched for " + field);
 				}
 
 				individualResults.put(field, readingIdWithValue);
 				Set<Integer> readingId = new HashSet<Integer>(readingIdWithValue.keySet());
-				if(isFirst){
+
+				if(isFirst) {
 					isFirst = false;
 					destination.setDocumentIds(readingId);
 					continue;
 				}
+				
 				BitSetOrSet source = new BitSetOrSet();
 				source.setDocumentIds(readingId);
 				destination.and(source);
 			}
-			} catch (FederatedSearchException e) {
-				HSearchLog.l.fatal("Federated Search Exception", e);
-				e.printStackTrace(System.err);
-			}	
-		if ( null == destination.getDocumentIds()) return;
-		if (destination.getDocumentIds().size() < 1) return;
+
+		} catch (FederatedSearchException e) {
+			HSearchLog.l.fatal("Federated Search Exception", e);
+			e.printStackTrace(System.err);
+		}	
+		
+		Set<Object> documentIds = destination.getDocumentIds();
+		if ( null == documentIds) return;
+		if (documentIds.size() == 0 ) return;
+		
 		if ( DEBUG_ENABLED ) {
-			HSearchLog.l.debug("Final matching ids" + destination.getDocumentIds().toString());
+			HSearchLog.l.debug("Final matching ids" + documentIds.toString());
 		}
 		Map<Integer,KVRowI> mergedResult = new HashMap<Integer, KVRowI>();
 
 		for (String field : individualResults.keySet()) {
 			Map<Integer, Object> res = (Map<Integer, Object>) individualResults.get(field);
-			for (Object key : destination.getDocumentIds()) {
+			
+			for (Object key : documentIds) {
 				Integer id = (Integer)key;
 				if (mergedResult.containsKey(id)){
 					KVRowI aRow = mergedResult.get(id);
@@ -207,7 +259,7 @@ public class Searcher {
 		}
 	}
 
-	public List<KVRowI> sort (String... sorters) {
+	public List<KVRowI> sort (String... sorters) throws ParseException {
 	
 		GroupSorterSequencer[] sortSequencer = new GroupSorterSequencer[sorters.length];
 
@@ -219,6 +271,10 @@ public class Searcher {
 		KVDataSchema dataSchema = repository.get(schemaRepositoryName); 
 		
 		for (String sorterName : sorters) {
+			
+			int sorterLen = ( null == sorterName ) ? 0 : sorterName.length();
+			if ( sorterLen == 0 ) throw new ParseException("Invalid blank sorter", 0);
+			
 			char firstChar = sorterName.charAt(0);
 			if('^' == firstChar){
 				sortType = true;
@@ -274,7 +330,7 @@ public class Searcher {
 			@SuppressWarnings("unchecked")
 			@Override
 			public BitSetOrSet populate(String type, String queryId,
-					String rowId, Map<String, Object> filterValues) {
+					String rowId, Map<String, Object> filterValues) throws IOException {
 				
 				Searcher s = cloneShallow();
 				String filterQuery = filterValues.values().iterator().next().toString();
@@ -287,7 +343,7 @@ public class Searcher {
 		return ff;
 	}
 	
-	public Object readStorage(final String tableName, final String rowId, String filter, final int callBackType) {
+	public final Object readStorage(final String tableName, final String rowId, String filter, final int callBackType) throws IOException {
 		
 		byte[] data = null;
 		try {
@@ -306,33 +362,36 @@ public class Searcher {
 				data = KVRowReader.getAllValues(tableName, rowId.getBytes(), filter, callBackType, outputType);
 
 				boolean isEmpty = ( null == data) ? true : (data.length == 0);  
-				if(isEmpty)return new HashMap<Integer,Object>();
+				if(isEmpty) return new HashMap<Integer,Object>(0);
 				compute.put(data);
 				
 				return compute.rowContainer;
 				
-			}else if(callBackType == HSearchProcessingInstruction.PLUGIN_CALLBACK_ID){
+			} else if(callBackType == HSearchProcessingInstruction.PLUGIN_CALLBACK_ID){
 				
 				//change filterQuery for documents search
 				String analyzerClass = fld.analyzer;
 				String dataType = fld.fieldType.toLowerCase();
 				boolean isAnalyzerEmpty = ( null == analyzerClass) ? true : (analyzerClass.length() == 0);
-	    		if(!isAnalyzerEmpty && dataType.equals("text")){
-	    			String query = filter.substring(filter.lastIndexOf('|'));
-	    			Map<String, Integer> dtypes = new HashMap<String, Integer>();
-	    			dtypes.put("emp", 1);
-	    			indexer.addDoumentTypes(dtypes);
-	    			
-	    			Map<String, Integer> ftypes = new HashMap<String, Integer>();
-	    			ftypes.put("fname", 1);
-	    			indexer.addFieldTypes(ftypes);
+	    		
+				if(!isAnalyzerEmpty && dataType.equals("text")){
+					int queryPartLoc = filter.lastIndexOf('|');
+					String query = ( queryPartLoc < 0 ) ? filter : filter.substring(queryPartLoc+1);
+					int fieldTypeLoc = query.indexOf('/');
+					String fieldType = "*";
+					if ( fieldTypeLoc > 0 ) {
+						fieldType = query.substring(0, fieldTypeLoc);
+						query = query.substring(fieldTypeLoc+1);
+					}
+	    			if ( DEBUG_ENABLED ) HSearchLog.l.debug("Query :" + query + "\nField Type:" + fieldType);
 
-	    			filter = indexer.parseQuery(new StandardAnalyzer(Version.LUCENE_36), "emp", "fname", query);
+	    			filter = indexer.parseQuery(
+	    				new StandardAnalyzer(Version.LUCENE_36), "*", fieldType, filter);
 	    		}				
 				data = KVRowReader.getAllValues(tableName, rowId.getBytes(), filter, callBackType, outputType);
 				
 				boolean isEmpty = ( null == data) ? true : (data.length == 0);  
-				if(isEmpty)return new HashSet<Integer>();
+				if(isEmpty) return new HashSet<Integer>(0);
 				
 				for (byte[] dataChunk : SortedBytesArray.getInstanceArr().parse(data).values()) {
 					Set<Integer> ids = new HashSet<Integer>();
@@ -340,11 +399,18 @@ public class Searcher {
 					return ids;
 				}
 			}
-			
+			return null;
 		} catch (Exception e) {
-			System.err.println("ReadStorage Exception " + e.getMessage());
+			HSearchLog.l.fatal("ReadStorage Exception " + e.getMessage(), e );
+			throw new IOException("ReadStorage Exception " + e.getMessage(), e);
 		}
-		
-		return null;
+	}
+
+	public void setFieldTypeCodes(Map<String, Integer> ftypes) throws IOException {
+		this.indexer.addFieldTypes(ftypes);
+	}
+
+	public void setDocumentTypeCodes(Map<String, Integer> dtypes) throws IOException {
+		indexer.addDoumentTypes(dtypes);
 	}
 }
