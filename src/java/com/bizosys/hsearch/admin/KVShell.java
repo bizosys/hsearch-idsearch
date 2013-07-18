@@ -1,3 +1,22 @@
+/*
+* Copyright 2013 Bizosys Technologies Limited
+*
+* Licensed to the Bizosys Technologies Limited (Bizosys) under one
+* or more contributor license agreements.  See the NOTICE file
+* distributed with this work for additional information
+* regarding copyright ownership.  The Bizosys licenses this file
+* to you under the Apache License, Version 2.0 (the
+* "License"); you may not use this file except in compliance
+* with the License.  You may obtain a copy of the License at
+*
+*     http://www.apache.org/licenses/LICENSE-2.0
+*
+* Unless required by applicable law or agreed to in writing, software
+* distributed under the License is distributed on an "AS IS" BASIS,
+* WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+* See the License for the specific language governing permissions and
+* limitations under the License.
+*/
 package com.bizosys.hsearch.admin;
 
 import java.io.BufferedReader;
@@ -25,7 +44,9 @@ import org.apache.commons.cli.ParseException;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
+import org.apache.hadoop.hbase.HColumnDescriptor;
 
+import com.bizosys.hsearch.hbase.HDML;
 import com.bizosys.hsearch.kv.Searcher;
 import com.bizosys.hsearch.kv.impl.FieldMapping;
 import com.bizosys.hsearch.kv.impl.IEnricher;
@@ -75,18 +96,20 @@ public class KVShell {
 				tmpDir.mkdir();
 			} else {
 				if (!tmpDir.isDirectory()) {
-					System.err
-							.println("found " + folder + " file , expecting " + folder + " directory");
+					writer.println("Found [" + folder + "] file , Expecting [" + folder + "] directory.");
 					return;
 				}
 			}
 			
 		}
 
-		@SuppressWarnings("static-access")
+		Option create = OptionBuilder.withArgName("schemaFile").hasArgs(1)
+									.withDescription("Specify Schema file.")
+									.create("create");
+
 		Option load = OptionBuilder.withArgName("paths").hasArgs(2)
-			.withDescription("Specify data path and schema file.")
-			.create("load");
+									.withDescription("Specify data path and schema file.")
+									.create("load");
 		
 		Option search = OptionBuilder.withArgName("queries").hasArgs(4)
 									.withDescription("Specify schema file path and queries.")
@@ -97,6 +120,7 @@ public class KVShell {
 									.create("sort");
 
 		Options options = new Options();
+		options.addOption(create);
 		options.addOption(load);
 		options.addOption(search);
 		options.addOption(sort);
@@ -105,6 +129,12 @@ public class KVShell {
 		CommandLineParser parser = new GnuParser();
 		try {
 			CommandLine commandLine = parser.parse(options, args);
+			if (commandLine.hasOption("create")) {
+				String[] arguments = commandLine.getOptionValues("create");
+				shell.createTable(arguments);
+				return;
+			}
+
 			if (commandLine.hasOption("load")) {
 				String[] arguments = commandLine.getOptionValues("load");
 				shell.loadTable(arguments);
@@ -125,11 +155,44 @@ public class KVShell {
 			formatter.printHelp( "hsearch", options, true);
 
 		} catch (ParseException exp) {
-			System.err.println("Parsing failed.  Reason: " + exp.getMessage());
+			throw new IOException("Parsing failed.  Reason: ", exp);
 		}
 	}
 
-	public void loadTable(String[] arguments){
+	public void createTable(String[] arguments) throws IOException {
+		
+		FieldMapping fm = null;
+		try {
+			//read schema file from hadoop
+			StringBuilder sb = new StringBuilder();
+			try {
+				Path hadoopPath = new Path(arguments[0]);
+				FileSystem fs = FileSystem.get(new Configuration());
+				BufferedReader br = new BufferedReader(new InputStreamReader(fs.open(hadoopPath)));
+				String line = null;
+				while ((line = br.readLine()) != null) {
+					sb.append(line);
+				}
+			} catch (Exception e) {
+				e.printStackTrace(System.err);
+				throw new IOException("Cannot read from path " + arguments[0], e);
+			}
+
+			String schemaStr = sb.toString();
+			fm = FieldMapping.getXMLStringFieldMappings(schemaStr);
+			
+			List<HColumnDescriptor> colFamilies = new ArrayList<HColumnDescriptor>();
+			HColumnDescriptor cols = new HColumnDescriptor(fm.familyName.getBytes());
+			colFamilies.add(cols);
+			HDML.create(fm.tableName, colFamilies);
+
+		}catch (Exception e) {
+			e.printStackTrace(System.err);
+			throw new IOException("Error creating table [" + fm.tableName + "]", e);
+		}
+	}
+		
+	public void loadTable(String[] arguments) throws IOException {
 		try {
 			//read schema file from hadoop
 			StringBuilder sb = new StringBuilder();
@@ -142,13 +205,14 @@ public class KVShell {
 					sb.append(line);
 				}
 			} catch (Exception e) {
-				System.err.println("Cannot read from path " + arguments[1]);
+				writer.println("Cannot read from path " + arguments[1]);
+				throw new IOException(e);
 			}
 
 			String schemaStr = sb.toString();
 			FieldMapping fm = FieldMapping.getXMLStringFieldMappings(schemaStr);
 			
-			String[] indexerDetail = new String[]{arguments[0],arguments[1],fm.schemaName};
+			String[] indexerDetail = new String[]{arguments[0],arguments[1],fm.tableName};
 			IndexerMapReduce.main(indexerDetail);
 
 			ColGenerator.generate(fm, SRC_TEMP);
@@ -185,11 +249,12 @@ public class KVShell {
 			target.close();
 			
 		} catch (Exception e) {
-			e.printStackTrace();
+			e.printStackTrace(System.err);
+			throw new IOException("Loading to table Failure", e);
 		}
 	}
 
-	public void search(String[] arguments){
+	public void search(String[] arguments) throws IOException {
 		URL jarUrl = null;
 		try {
 			
@@ -201,12 +266,12 @@ public class KVShell {
 			KVRowI blankRow = (KVRowI)column;
 			searchOnObject(arguments, blankRow);
 		} catch (Exception ex) {
-			if ( null != jarUrl ) writer.println("url " + jarUrl.toString());
 			ex.printStackTrace(System.err);
+			throw new IOException("Url " + jarUrl.toString(), ex);
 		}
 	}
 	
-	public void searchOnObject(String[] arguments, KVRowI blankRow){
+	public void searchOnObject(String[] arguments, KVRowI blankRow) throws IOException {
 		try {
 			
 			StringBuilder sb = new StringBuilder();
@@ -224,23 +289,22 @@ public class KVShell {
 			IEnricher enricher = null;
 			if(null == searcher)searcher = new Searcher("kv-store", fm);
 			
-			searcher.search(fm.schemaName, arguments[1], arguments[2], arguments[3], blankRow, enricher);
-			List<KVRowI> data = searcher.getResult();
-			if ( null != data ) System.out.println(data.toString());
-			else System.out.println ("Null Data");
-			parseQuery(arguments[2], queryFields);
-			int index = 0;
-			for (KVRowI aRow : data) {
-				writer.println(aRow.getValue(queryFields.get(index++)) + "\t" + aRow.getValue(queryFields.get(index++)) + "\t" + aRow.getValue(queryFields.get(index++))+ "\t" + aRow.getValue(queryFields.get(index++)));
-				index = 0;
+			searcher.search(fm.tableName, arguments[1], arguments[2], arguments[3], blankRow, enricher);
+			String[] selectFields = arguments[2].split(",");
+			resultStore = searcher.getResult();
+			for (KVRowI aRow : resultStore) {
+				for (String selectField : selectFields) {
+					writer.print(aRow.getValue(selectField) + "\t");
+				}
+				writer.println();
 			}
-
 		} catch (Exception e) {
 			e.printStackTrace(System.err);
+			throw new IOException("Search Failure", e);
 		}
 	}
 
-	public void sort(String sorters){
+	public void sort(String sorters) throws IOException {
 		try {
 			String[] sorterA = sorters.split(",");
 			List<KVRowI> data = searcher.sort(sorterA);
@@ -251,7 +315,8 @@ public class KVShell {
 			}
 
 		} catch (Exception e) {
-			e.printStackTrace();
+			e.printStackTrace(System.err);
+			throw new IOException("Sort Failure", e);
 		}
 	}
 

@@ -142,8 +142,6 @@ public class EmbeddedHSearch {
 	
 	public void close() throws IOException {
 		if ( null != this.writer ) this.writer.close();
-	}
-	
-   		
+	} 		
 }
 

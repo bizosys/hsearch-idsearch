@@ -50,7 +50,6 @@ import com.bizosys.hsearch.treetable.unstructured.IIndexPositionsTable;
 import com.bizosys.hsearch.util.HSearchLog;
 import com.bizosys.hsearch.util.Hashing;
 
-
 public class IndexWriter {
 
 	private AnalyzerFactory analyzers = null;

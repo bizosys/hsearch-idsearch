@@ -1,3 +1,22 @@
+/*
+* Copyright 2013 Bizosys Technologies Limited
+*
+* Licensed to the Bizosys Technologies Limited (Bizosys) under one
+* or more contributor license agreements.  See the NOTICE file
+* distributed with this work for additional information
+* regarding copyright ownership.  The Bizosys licenses this file
+* to you under the Apache License, Version 2.0 (the
+* "License"); you may not use this file except in compliance
+* with the License.  You may obtain a copy of the License at
+*
+*     http://www.apache.org/licenses/LICENSE-2.0
+*
+* Unless required by applicable law or agreed to in writing, software
+* distributed under the License is distributed on an "AS IS" BASIS,
+* WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+* See the License for the specific language governing permissions and
+* limitations under the License.
+*/
 package com.bizosys.hsearch.kv.impl;
 
 import java.io.BufferedReader;
@@ -41,10 +60,10 @@ public class IndexerMapReduce{
 
 
 	private static final String XML_FILE_PATH = "CONFIG_XMLFILE_LOCATION";
-	public static final char FIELD_SEPARATOR = '|';
+	public static char FIELD_SEPARATOR = '|';
 	public static final char RECORD_SEPARATOR = '\n';
 	public static final byte[] COL_NAME = new byte[]{0};
-	public static final byte[] FAM_NAME = "1".getBytes();
+	public static byte[] FAM_NAME = "1".getBytes();
 
     public static class KVMapper extends Mapper<LongWritable, Text, Text, Text> {
   	  
@@ -79,6 +98,8 @@ public class IndexerMapReduce{
 			
 			fm = FieldMapping.getXMLStringFieldMappings(sb.toString());
 			neededPositions = fm.fieldSeqs.keySet();
+			FIELD_SEPARATOR = fm.fieldSeparator;
+			FAM_NAME = fm.familyName.getBytes();
 		}
     	
         @Override
@@ -125,18 +146,25 @@ public class IndexerMapReduce{
         		
         		if ( fld.isMergedKey) continue;
         		if ( fld.isJoinKey ) continue;
-        		if ( !fld.isIndexable) continue;
         		
+        		boolean saveOrIndex = ( fld.isSave || fld.isIndexable) ; 
+        		if ( ! saveOrIndex ) continue;
+        		
+        		boolean isFieldNull =  (fldValue == null) ? true : (fldValue.length() == 0 );
+        		if ( fld.skipNull ) {
+        			if ( isFieldNull ) continue;
+        		} else {
+        			if (isFieldNull) fldValue = fld.defaultValue;
+        		}
+
         		rowkKeybuilder.delete(0, rowkKeybuilder.capacity());
-        		
         		isEmpty = ( null == rowId) ? true : (rowId.length() == 0);
         		String rowKey = ( isEmpty) ? fld.name : rowId + fld.name;
 
         		rowKey = rowkKeybuilder.append(rowKey).append( FIELD_SEPARATOR ).append( fld.fieldType )
-        							   .append( FIELD_SEPARATOR ).append( fld.skipNull ).append( FIELD_SEPARATOR)
-        							   .append(fld.defaultValue).append( FIELD_SEPARATOR)
-        							   .append(fld.analyzer).toString();
-        		
+        							   .append( FIELD_SEPARATOR).append(fld.analyzer).append(FIELD_SEPARATOR)
+        							   .append(fld.isSave).append(FIELD_SEPARATOR).append(fld.isDocIndex).toString();
+          			
           		context.write(new Text(rowKey), new Text(result[recordKeyPos] + FIELD_SEPARATOR + fldValue) );
         	}
         }
@@ -147,7 +175,6 @@ public class IndexerMapReduce{
     	String line = "";
     	String[] resultKey = new String[5];
     	String[] resultValue = new String[2];
-    	KVDocIndexer indexer = new KVDocIndexer();
 		Map<String, Integer> docTypes = new HashMap<String, Integer>();
 		Map<String, Integer> fldTypes = new HashMap<String, Integer>();
 		Analyzer analyzer = null;
@@ -164,7 +191,6 @@ public class IndexerMapReduce{
     		dataTypesPrimitives.put("short", 's');
     		dataTypesPrimitives.put("boolean", 'b');
     		dataTypesPrimitives.put("byte", 'c');
-    		dataTypesPrimitives.put("text", 'k');
     	}
 
     	@Override
@@ -176,297 +202,289 @@ public class IndexerMapReduce{
 			
 	    	String rowKey = resultKey[0];
 			String dataType = resultKey[1].toLowerCase();
+			String analyzerClass = resultKey[2];
+			boolean isSave = resultKey[3].equalsIgnoreCase("true") ? true : false;
+			boolean isDocIndex = resultKey[4].equalsIgnoreCase("true") ? true : false;
 			
-			boolean skipNull = resultKey[2].equalsIgnoreCase("true") ? true : false;
-			String defaultValue = (null == resultKey[3]) ? "":resultKey[3];
-			
-			String analyzerClass = resultKey[4];
-    		if(dataType.equals("text")){
-    			//boolean isAnalyzerEmpty = ( null == analyzerClass) ? true : (analyzerClass.length() == 0);
-
-    			if(null != docTypes)docTypes.clear();
-    			if(null != fldTypes)fldTypes.clear();
- 
-    			fieldTypeName = rowKey.substring(rowKey.lastIndexOf('_'));
-    			docTypes.put(docTypeName, 1);
-    			fldTypes.put(fieldTypeName, 1);
-    			analyzer = new StandardAnalyzer(Version.LUCENE_36);
-    		}
-
 			byte[] finalData = null;
 			boolean hasValue = false;
 
 			char dataTypeChar = dataTypesPrimitives.get(dataType);
+			Map<Integer, String> docIdWithFieldValue = null;
 			switch (dataTypeChar) {
-				case 't':
-				{
-					Cell2<Integer,String> nonrepeatableCell = new Cell2<Integer, String>
-						(SortedBytesInteger.getInstance(), SortedBytesString.getInstance());
-					for (Text text : values) {
-						
-						if ( null == text) continue;
-						Arrays.fill(resultValue, null);
 
-						line = text.toString();
-						
-						LineReaderUtil.fastSplit(resultValue, line, FIELD_SEPARATOR);
-						int containerKey = Integer.parseInt(resultValue[0]);
-						String containervalue = "";
-						if ( null == resultValue[1]){
-							if(skipNull) continue;
-							else containervalue = defaultValue;
-						}else{
-							containervalue = resultValue[1];
-						}
-						
-						hasValue = true;
-						nonrepeatableCell.add(containerKey, containervalue);
-					}
-					
-					if ( hasValue ) {
-						nonrepeatableCell.sort(new CellComparator.StringComparator<Integer>());
-						finalData = nonrepeatableCell.toBytesOnSortedData();
-					}
-				}
-				break;
+				case 't':
+					docIdWithFieldValue = new HashMap<Integer, String>();
+					finalData = indexText(values, docIdWithFieldValue);
+					break;
 
 				case 'i':
-				{
-					Cell2<Integer,Integer> nonrepeatableCell = new Cell2<Integer, Integer>
-							(SortedBytesInteger.getInstance(), SortedBytesInteger.getInstance());
-					
-					for (Text text : values) {
-						
-						if ( null == text) continue;
-						Arrays.fill(resultValue, null);
-
-						line = text.toString();
-						
-						LineReaderUtil.fastSplit(resultValue, line, FIELD_SEPARATOR);
-						int containerKey = Integer.parseInt(resultValue[0]);
-						int containervalue = 0;
-						if ( null == resultValue[1]){
-							if(skipNull) continue;
-							else containervalue = Integer.parseInt(defaultValue);
-						} else{
-							containervalue = Integer.parseInt(resultValue[1]);	
-						}
-
-						hasValue = true;
-						nonrepeatableCell.add(containerKey, containervalue);
-					}
-					
-					if ( hasValue ) {
-						nonrepeatableCell.sort(new CellComparator.IntegerComparator<Integer>());
-						finalData = nonrepeatableCell.toBytesOnSortedData();
-					}
-				}
-				break;
+					finalData = indexInteger(values);
+					break;
 
 				case 'f':
-				{
-						
-					Cell2<Integer,Float> nonrepeatableCell = new Cell2<Integer, Float>
-						(SortedBytesInteger.getInstance(), SortedBytesFloat.getInstance());
-					
-					for (Text text : values) {
-						if ( null == text) continue;
-						Arrays.fill(resultValue, null);
-
-						line = text.toString();
-						
-						LineReaderUtil.fastSplit(resultValue, line, FIELD_SEPARATOR);
-						int containerKey = Integer.parseInt(resultValue[0]);
-						float containervalue = 0.0f;
-						if ( null == resultValue[1]){
-							if(skipNull) continue;
-							else containervalue = Float.parseFloat(defaultValue);
-						} else{
-							containervalue = Float.parseFloat(resultValue[1]);	
-						}
-						
-						hasValue = true;
-						nonrepeatableCell.add(containerKey, containervalue);
-					}
-					
-					if ( hasValue ) {
-						nonrepeatableCell.sort(new CellComparator.FloatComparator<Integer>());
-						finalData = nonrepeatableCell.toBytesOnSortedData();
-					}
+					finalData = indexFloat(values);
 					break;
-				}
 
 				case 'd':
-				{
-						
-					Cell2<Integer,Double> nonrepeatableCell = new Cell2<Integer, Double>
-						(SortedBytesInteger.getInstance(),SortedBytesDouble.getInstance());
-					
-					for (Text text : values) {
-						if ( null == text) continue;
-						Arrays.fill(resultValue, null);
-
-						line = text.toString();
-						
-						LineReaderUtil.fastSplit(resultValue, line, FIELD_SEPARATOR);
-						int containerKey = Integer.parseInt(resultValue[0]);
-						double containervalue = 0.0;
-						if ( null == resultValue[1]){
-							if(skipNull) continue;
-							else containervalue = Double.parseDouble(defaultValue);
-						} else{
-							containervalue = Double.parseDouble(resultValue[1]);	
-						}
-						
-						hasValue = true;
-						nonrepeatableCell.add(containerKey, containervalue);
-					}
-					
-					if ( hasValue ) {
-						nonrepeatableCell.sort(new CellComparator.DoubleComparator<Integer>());
-						finalData = nonrepeatableCell.toBytesOnSortedData();
-					}
-					
-				break;
-				}
+					finalData = indexDouble(values);
+					break;
 
 				case 'l':
-				{
-					Cell2<Integer,Long> nonrepeatableCell = new Cell2<Integer, Long>
-							(SortedBytesInteger.getInstance(),SortedBytesLong.getInstance());
-					
-					for (Text text : values) {
-						if ( null == text) continue;
-						Arrays.fill(resultValue, null);
-
-						line = text.toString();
-						
-						LineReaderUtil.fastSplit(resultValue, line, FIELD_SEPARATOR);
-						int containerKey = Integer.parseInt(resultValue[0]);
-						long containervalue = 0;
-						if ( null == resultValue[1]){
-							if(skipNull) continue;
-							else containervalue = Long.parseLong(defaultValue);
-						} else{
-							containervalue = Long.parseLong(resultValue[1]);	
-						}
-						
-						hasValue = true;
-						nonrepeatableCell.add(containerKey, containervalue);
-					}
-					
-					if ( hasValue ) {
-						nonrepeatableCell.sort(new CellComparator.LongComparator<Integer>());
-						finalData = nonrepeatableCell.toBytesOnSortedData();
-					}
-				}
-				break;
+					finalData = indexLong(values);
+					break;
+				
 				case 'b':
-				{
-					Cell2<Integer,Boolean> nonrepeatableCell = new Cell2<Integer, Boolean>
-							(SortedBytesInteger.getInstance(),SortedBytesBoolean.getInstance());
-					
-					for (Text text : values) {
-						if ( null == text) continue;
-						Arrays.fill(resultValue, null);
+					finalData = indexBoolean(values);
+					break;
 
-						line = text.toString();
-						
-						LineReaderUtil.fastSplit(resultValue, line, FIELD_SEPARATOR);
-						int containerKey = Integer.parseInt(resultValue[0]);
-						boolean containervalue = false;
-						if ( null == resultValue[1]){
-							if(skipNull) continue;
-							else containervalue = defaultValue.equalsIgnoreCase("true") ? true : false;
-						} else{
-							containervalue = resultValue[1].equalsIgnoreCase("true") ? true : false;	
-						}
-						
-						hasValue = true;
-						nonrepeatableCell.add(containerKey, containervalue);
-					}
-					
-					if ( hasValue ) {
-						nonrepeatableCell.sort(new CellComparator.BooleanComparator<Integer>());
-						finalData = nonrepeatableCell.toBytesOnSortedData();
-					}
-				}
-				break;
 				case 'c':
-				{
-					Cell2<Integer,Byte> nonrepeatableCell = new Cell2<Integer, Byte>
-							(SortedBytesInteger.getInstance(),SortedBytesChar.getInstance());
-					
-					for (Text text : values) {
-						if ( null == text) continue;
-						Arrays.fill(resultValue, null);
-
-						line = text.toString();
-						
-						LineReaderUtil.fastSplit(resultValue, line, FIELD_SEPARATOR);
-						int containerKey = Integer.parseInt(resultValue[0]);
-						byte containervalue;
-						if ( null == resultValue[1]){
-							if(skipNull) continue;
-							else containervalue = defaultValue.getBytes()[0];
-						} else{
-							containervalue = resultValue[1].getBytes()[0];	
-						}
-						
-						hasValue = true;
-						nonrepeatableCell.add(containerKey, containervalue);
-					}
-					
-					if ( hasValue ) {
-						nonrepeatableCell.sort(new CellComparator.ByteComparator<Integer>());
-						finalData = nonrepeatableCell.toBytesOnSortedData();
-					}
-				}
-				break;
-
-				case 'k':
-				{
-					Map<Integer, String> docIdWithFieldValue = new HashMap<Integer, String>();
-					for (Text text : values) {
-						
-						if ( null == text) continue;
-						Arrays.fill(resultValue, null);
-
-						line = text.toString();
-						
-						LineReaderUtil.fastSplit(resultValue, line, FIELD_SEPARATOR);
-						int containerKey = Integer.parseInt(resultValue[0]);
-						String containervalue = "";
-						if ( null == resultValue[1]){
-							if(skipNull) continue;
-							else containervalue = defaultValue;
-						}else{
-							containervalue = resultValue[1];
-						}
-						docIdWithFieldValue.put(containerKey, containervalue);
-						hasValue = true;
-					}
-					
-					if ( hasValue ) {
-				    	try {
-				    		indexer.addDoumentTypes(docTypes);
-							indexer.addFieldTypes(fldTypes);
-							indexer.addToIndex(analyzer, docTypeName, fieldTypeName, docIdWithFieldValue);
-					    	finalData = indexer.toBytes();
-				    	} catch (InstantiationException e) {
-							e.printStackTrace();
-						}
-					}
-				}
-				break;
+					finalData = indexByte(values);
+					break;
 
 				default:
 					break;
 			}
+			
+			if(isSave){
+				Put put = new Put(rowKey.getBytes());
+	            put.add(FAM_NAME,COL_NAME, finalData);
+	            context.write(null, put);
+			}
+
+            
+			
+			if(!isDocIndex) return;
+    		
+    		/**
+    		 * =================== TEXT INDEXING ==============================
+    		 */
+			
+	    	KVDocIndexer indexer = new KVDocIndexer();
+			if(null != docTypes)docTypes.clear();
+			if(null != fldTypes)fldTypes.clear();
+			fieldTypeName = rowKey.substring(rowKey.lastIndexOf('_'));
+			docTypes.put(docTypeName, 1);
+			fldTypes.put(fieldTypeName, 1);
+			//TODO: Change the analyzer to that of schema file
+			analyzer = new StandardAnalyzer(Version.LUCENE_36);
+			
+			hasValue = null == docIdWithFieldValue ? false : docIdWithFieldValue.size() > 0;
+			if ( hasValue ) {
+		    	try {
+		    		indexer.addDoumentTypes(docTypes);
+					indexer.addFieldTypes(fldTypes);
+					indexer.addToIndex(analyzer, docTypeName, fieldTypeName, docIdWithFieldValue);
+
+					Put put = new Put((rowKey + "_I").getBytes());
+		            put.add(FAM_NAME,COL_NAME, indexer.toBytes());
+		            context.write(null, put);
+
+		    	} catch (InstantiationException e) {
+					e.printStackTrace(System.err);
+					throw new IOException(e);
+				}
+			}
+			
+			
+		}
+
+		public byte[] indexByte(Iterable<Text> values) throws IOException {
+			
+			byte[] finalData = null;
+			boolean hasValue = false;
+			Cell2<Integer,Byte> nonrepeatableCell = new Cell2<Integer, Byte>
+					(SortedBytesInteger.getInstance(),SortedBytesChar.getInstance());
+			
+			for (Text text : values) {
+				if ( null == text) continue;
+				Arrays.fill(resultValue, null);
+
+				line = text.toString();
 				
-            Put put = new Put(rowKey.getBytes());
-            put.add(FAM_NAME,COL_NAME, finalData);
-            context.write(null, put);
+				LineReaderUtil.fastSplit(resultValue, line, FIELD_SEPARATOR);
+				int containerKey = Integer.parseInt(resultValue[0]);
+				byte containervalue = resultValue[1].getBytes()[0];	
+				
+				hasValue = true;
+				nonrepeatableCell.add(containerKey, containervalue);
+			}
+			
+			if ( hasValue ) {
+				nonrepeatableCell.sort(new CellComparator.ByteComparator<Integer>());
+				finalData = nonrepeatableCell.toBytesOnSortedData();
+			}
+			return finalData;
+		}
+
+		public byte[] indexBoolean(Iterable<Text> values) throws IOException {
+			
+			byte[] finalData = null;
+			boolean hasValue = false;
+			Cell2<Integer,Boolean> nonrepeatableCell = new Cell2<Integer, Boolean>
+					(SortedBytesInteger.getInstance(),SortedBytesBoolean.getInstance());
+			
+			for (Text text : values) {
+				if ( null == text) continue;
+				Arrays.fill(resultValue, null);
+
+				line = text.toString();
+				
+				LineReaderUtil.fastSplit(resultValue, line, FIELD_SEPARATOR);
+				int containerKey = Integer.parseInt(resultValue[0]);
+				boolean containervalue = resultValue[1].equalsIgnoreCase("true") ? true : false;	
+				
+				hasValue = true;
+				nonrepeatableCell.add(containerKey, containervalue);
+			}
+			
+			if ( hasValue ) {
+				nonrepeatableCell.sort(new CellComparator.BooleanComparator<Integer>());
+				finalData = nonrepeatableCell.toBytesOnSortedData();
+			}
+			return finalData;
+		}
+
+		public byte[] indexLong(Iterable<Text> values) throws IOException {
+			
+			byte[] finalData = null;
+			boolean hasValue = false;
+			Cell2<Integer,Long> nonrepeatableCell = new Cell2<Integer, Long>
+					(SortedBytesInteger.getInstance(),SortedBytesLong.getInstance());
+			
+			for (Text text : values) {
+				if ( null == text) continue;
+				Arrays.fill(resultValue, null);
+
+				line = text.toString();
+				
+				LineReaderUtil.fastSplit(resultValue, line, FIELD_SEPARATOR);
+				int containerKey = Integer.parseInt(resultValue[0]);
+				long containervalue = Long.parseLong(resultValue[1]);	
+				hasValue = true;
+				nonrepeatableCell.add(containerKey, containervalue);
+			}
+			
+			if ( hasValue ) {
+				nonrepeatableCell.sort(new CellComparator.LongComparator<Integer>());
+				finalData = nonrepeatableCell.toBytesOnSortedData();
+			}
+			return finalData;
+		}
+
+		public byte[] indexDouble(Iterable<Text> values)
+				throws IOException {
+			
+			byte[] finalData = null;
+			boolean hasValue = false;
+			Cell2<Integer,Double> nonrepeatableCell = new Cell2<Integer, Double>
+				(SortedBytesInteger.getInstance(),SortedBytesDouble.getInstance());
+			
+			for (Text text : values) {
+				if ( null == text) continue;
+				Arrays.fill(resultValue, null);
+
+				line = text.toString();
+				
+				LineReaderUtil.fastSplit(resultValue, line, FIELD_SEPARATOR);
+				int containerKey = Integer.parseInt(resultValue[0]);
+				double containervalue = Double.parseDouble(resultValue[1]);
+				hasValue = true;
+				nonrepeatableCell.add(containerKey, containervalue);
+			}
+			
+			if ( hasValue ) {
+				nonrepeatableCell.sort(new CellComparator.DoubleComparator<Integer>());
+				finalData = nonrepeatableCell.toBytesOnSortedData();
+			}
+			
+			return finalData;
+		}
+
+		public byte[] indexFloat(Iterable<Text> values) throws IOException {
+			
+			byte[] finalData = null;
+			boolean hasValue = false;
+			Cell2<Integer,Float> nonrepeatableCell = new Cell2<Integer, Float>
+				(SortedBytesInteger.getInstance(), SortedBytesFloat.getInstance());
+			
+			for (Text text : values) {
+				if ( null == text) continue;
+				Arrays.fill(resultValue, null);
+
+				line = text.toString();
+				
+				LineReaderUtil.fastSplit(resultValue, line, FIELD_SEPARATOR);
+				int containerKey = Integer.parseInt(resultValue[0]);
+				float containervalue = 0.0f;
+				containervalue = Float.parseFloat(resultValue[1]);
+				
+				hasValue = true;
+				nonrepeatableCell.add(containerKey, containervalue);
+			}
+			
+			if ( hasValue ) {
+				nonrepeatableCell.sort(new CellComparator.FloatComparator<Integer>());
+				finalData = nonrepeatableCell.toBytesOnSortedData();
+			}
+			return finalData;
+		}
+
+		public byte[] indexInteger(Iterable<Text> values) throws IOException {
+			
+			byte[] finalData = null;
+			boolean hasValue = false;
+			Cell2<Integer,Integer> nonrepeatableCell = new Cell2<Integer, Integer>
+					(SortedBytesInteger.getInstance(), SortedBytesInteger.getInstance());
+			
+			for (Text text : values) {
+				
+				if ( null == text) continue;
+				Arrays.fill(resultValue, null);
+
+				line = text.toString();
+				
+				LineReaderUtil.fastSplit(resultValue, line, FIELD_SEPARATOR);
+				int containerKey = Integer.parseInt(resultValue[0]);
+				int containervalue = 0;
+				containervalue = Integer.parseInt(resultValue[1]);
+
+				hasValue = true;
+				nonrepeatableCell.add(containerKey, containervalue);
+			}
+			
+			if ( hasValue ) {
+				nonrepeatableCell.sort(new CellComparator.IntegerComparator<Integer>());
+				finalData = nonrepeatableCell.toBytesOnSortedData();
+			}
+			return finalData;
+		}
+
+		public byte[] indexText(Iterable<Text> values, Map<Integer, String> docIdWithFieldValue) throws IOException {
+			byte[] finalData = null;
+			boolean hasValue = false;
+			Cell2<Integer,String> nonrepeatableCell = new Cell2<Integer, String>
+				(SortedBytesInteger.getInstance(), SortedBytesString.getInstance());
+			for (Text text : values) {
+				
+				if ( null == text) continue;
+				Arrays.fill(resultValue, null);
+
+				line = text.toString();
+				
+				LineReaderUtil.fastSplit(resultValue, line, FIELD_SEPARATOR);
+				int containerKey = Integer.parseInt(resultValue[0]);
+				String containervalue = resultValue[1];
+				hasValue = true;
+				nonrepeatableCell.add(containerKey, containervalue);
+				docIdWithFieldValue.put(containerKey, containervalue);
+			}
+			
+			if ( hasValue ) {
+				nonrepeatableCell.sort(new CellComparator.StringComparator<Integer>());
+				finalData = nonrepeatableCell.toBytesOnSortedData();
+			}
+			return finalData;
 		}
     }
     

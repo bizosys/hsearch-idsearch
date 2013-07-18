@@ -1,3 +1,22 @@
+/*
+* Copyright 2013 Bizosys Technologies Limited
+*
+* Licensed to the Bizosys Technologies Limited (Bizosys) under one
+* or more contributor license agreements.  See the NOTICE file
+* distributed with this work for additional information
+* regarding copyright ownership.  The Bizosys licenses this file
+* to you under the Apache License, Version 2.0 (the
+* "License"); you may not use this file except in compliance
+* with the License.  You may obtain a copy of the License at
+*
+*     http://www.apache.org/licenses/LICENSE-2.0
+*
+* Unless required by applicable law or agreed to in writing, software
+* distributed under the License is distributed on an "AS IS" BASIS,
+* WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+* See the License for the specific language governing permissions and
+* limitations under the License.
+*/
 package com.bizosys.hsearch.kv.impl;
 
 import java.util.HashMap;
@@ -33,7 +52,6 @@ public class KVDataSchemaRepository {
     		dataTypesPrimitives.put("short", 's');
     		dataTypesPrimitives.put("boolean", 'b');
     		dataTypesPrimitives.put("byte", 'c');
-    		dataTypesPrimitives.put("text", 'k');
     	}
 
 		public KVDataSchema(final FieldMapping fm) {
@@ -50,7 +68,10 @@ public class KVDataSchemaRepository {
 				FieldType dataTypeField = GroupSortedObject.FieldType.STRING;
 				switch (dataTypeChar) {
 				case 't':
-					dataTypeField = GroupSortedObject.FieldType.STRING;
+					
+					if(fld.isDocIndex)dataTypeField = GroupSortedObject.FieldType.FREQUENCY_INDEX;
+					else dataTypeField = GroupSortedObject.FieldType.STRING;
+					
 					break;
 				case 'i':
 					dataTypeField = GroupSortedObject.FieldType.INTEGER;
@@ -73,10 +94,6 @@ public class KVDataSchemaRepository {
 				case 'c':
 					dataTypeField = GroupSortedObject.FieldType.BYTE;
 					break;
-				case 'k':
-					dataTypeField = GroupSortedObject.FieldType.FREQUENCY_INDEX;
-					break;
-
 				default:
 					break;
 				}

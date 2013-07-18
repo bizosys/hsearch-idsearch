@@ -45,9 +45,9 @@ import com.bizosys.hsearch.functions.GroupSortedObject.FieldType;
 import com.bizosys.hsearch.functions.GroupSorter;
 import com.bizosys.hsearch.functions.GroupSorter.GroupSorterSequencer;
 import com.bizosys.hsearch.hbase.HReader;
+import com.bizosys.hsearch.kv.impl.ComputeKV;
 import com.bizosys.hsearch.kv.impl.FieldMapping;
 import com.bizosys.hsearch.kv.impl.FieldMapping.Field;
-import com.bizosys.hsearch.kv.impl.ComputeKV;
 import com.bizosys.hsearch.kv.impl.IEnricher;
 import com.bizosys.hsearch.kv.impl.KVDataSchemaRepository;
 import com.bizosys.hsearch.kv.impl.KVDataSchemaRepository.KVDataSchema;
@@ -344,7 +344,7 @@ public class Searcher {
 		return ff;
 	}
 	
-	public final Object readStorage(final String tableName, final String rowId, String filter, final int callBackType) throws IOException {
+	public final Object readStorage(final String tableName, String rowId, String filter, final int callBackType) throws IOException {
 		
 		byte[] data = null;
 		try {
@@ -353,14 +353,25 @@ public class Searcher {
 			KVDataSchema dataScheme = repository.get(schemaRepositoryName);
 			Field fld = dataScheme.fm.nameSeqs.get(fieldName);
 			int outputType = dataScheme.dataTypeMapping.get(fieldName).ordinal();
-
 			if(callBackType == HSearchProcessingInstruction.PLUGIN_CALLBACK_COLS){
+				//if the field is not saved it canot be fetched 
+				if ( !fld.isSave ) {
+					HSearchLog.l.fatal("Field: " + fieldName + " is not saved cannot be selected ");
+					throw new IOException("Field: " + fieldName + " is not saved cannot be selected ");
+				}
+
 				ComputeKV compute = null;	
 				compute = new ComputeKV();
-				compute.kvType = outputType; 
+				
+				//if docIndex is searched for value then set output type to string
+				if(fld.isDocIndex)
+					compute.kvType = GroupSortedObject.FieldType.STRING.ordinal();
+				else
+					compute.kvType = outputType;
+				
 				compute.rowContainer = new HashMap<Integer, Object>();
 
-				data = KVRowReader.getAllValues(tableName, rowId.getBytes(), filter, callBackType, outputType);
+				data = KVRowReader.getAllValues(tableName, rowId.getBytes(), filter, callBackType, compute.kvType);
 
 				boolean isEmpty = ( null == data) ? true : (data.length == 0);  
 				if(isEmpty) return new HashMap<Integer,Object>(0);
@@ -371,15 +382,11 @@ public class Searcher {
 			} else if(callBackType == HSearchProcessingInstruction.PLUGIN_CALLBACK_ID){
 				
 				//change filterQuery for documents search
-				String analyzerClass = fld.analyzer;
-				String dataType = fld.fieldType.toLowerCase();
-				boolean isAnalyzerEmpty = ( null == analyzerClass) ? true : (analyzerClass.length() == 0);
-	    		
-				if(!isAnalyzerEmpty && dataType.equals("text")){
+				if(fld.isDocIndex){
 					int queryPartLoc = filter.lastIndexOf('|');
 					String query = ( queryPartLoc < 0 ) ? filter : filter.substring(queryPartLoc+1);
 
-					String docType = "*";
+					String docType = "DOC";
 					String fieldType = fieldName;
 					
 					int fieldTypeLoc = fieldName.indexOf('/');
@@ -387,15 +394,30 @@ public class Searcher {
 						docType = fieldName.substring(0, fieldTypeLoc);
 						fieldType = fieldName.substring(fieldTypeLoc+1);
 					}
+					
 	    			if ( DEBUG_ENABLED ) HSearchLog.l.debug("Query :[" + query + "] : DocType :[" + docType + "]  : Field Type:[" + fieldType + "]");
 
-	    			filter = indexer.parseQuery(
-	    				new StandardAnalyzer(Version.LUCENE_36), docType, fieldType, filter);
+	    			Map<String, Integer> dTypes = new HashMap<String, Integer>(1);
+	    			dTypes.put(docType, 1);
+	    	    	setDocumentTypeCodes(dTypes);
+	    			
+	    			Map<String, Integer> fTypes= new HashMap<String, Integer>(1);
+	    			fTypes.put(fieldType, 1);
+	    	    	setFieldTypeCodes(fTypes);
+	    	    	
+	    			filter = indexer.parseQuery(new StandardAnalyzer(Version.LUCENE_36), docType, fieldType, query);
+	    			rowId = rowId + "_I";
+	    			
+	    			if ( DEBUG_ENABLED ) HSearchLog.l.debug("Document Search => rowId:[" + rowId + "] : Query :[" + filter + "]");
 	    		}				
 				data = KVRowReader.getAllValues(tableName, rowId.getBytes(), filter, callBackType, outputType);
-				
 				boolean isEmpty = ( null == data) ? true : (data.length == 0);  
 				if(isEmpty) return new HashSet<Integer>(0);
+
+				if ( DEBUG_ENABLED ){
+					if(isEmpty)
+					HSearchLog.l.debug("Empty data returned for rowid: " + rowId + " query: " + filter);				
+				}
 				
 				for (byte[] dataChunk : SortedBytesArray.getInstanceArr().parse(data).values()) {
 					Set<Integer> ids = new HashSet<Integer>();

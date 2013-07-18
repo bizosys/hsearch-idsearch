@@ -58,12 +58,14 @@ public class FieldMapping extends DefaultHandler {
 		public  String fieldType;
 		public  String analyzer;
 
+		public boolean isDocIndex;
+		
 		public Field() {
 		}
 
 		public Field(String name,String sourceName, int sourceSeq, boolean isIndexable,boolean isSave,
 				boolean isRepeatable, boolean isMergedKey, int mergePosition,
-				boolean isJoinKey, boolean skipNull, String defaultValue, String fieldType, String analyzer) {
+				boolean isJoinKey, boolean skipNull, String defaultValue, String fieldType, String analyzer, boolean isDocIndex) {
 			
 			this.name = name;
 			this.sourceName = sourceName;
@@ -78,6 +80,7 @@ public class FieldMapping extends DefaultHandler {
 			this.defaultValue = defaultValue;
 			this.fieldType = fieldType;
 			this.analyzer = analyzer;
+			this.isDocIndex = isDocIndex;
 		}
 
 		public String toString() {
@@ -97,7 +100,9 @@ public class FieldMapping extends DefaultHandler {
 	
 	public Map<Integer, Field> fieldSeqs = new HashMap<Integer, Field>();
 	public Map<String, Field> nameSeqs = new HashMap<String, Field>();
-	public String schemaName = new String();
+	public String tableName = null;
+	public String familyName = null;
+	public char fieldSeparator = '|';
 	
 	String name = null;
 	String sourceName = null;
@@ -112,7 +117,8 @@ public class FieldMapping extends DefaultHandler {
 	String defaultValue = null;;	
 	String fieldType = null;;
 	String analyzer = null;
-
+	boolean isDocIndex = false;
+	
 	public static FieldMapping getInstance(){
 		return new FieldMapping();
 	}
@@ -183,7 +189,13 @@ public class FieldMapping extends DefaultHandler {
 			Attributes attributes) throws SAXException {
 
 		if(qName.equalsIgnoreCase("schema")){
-			schemaName = attributes.getValue("name");
+			tableName = attributes.getValue("tableName");
+			tableName = null == tableName ? "kv-store" : (tableName.length() == 0 ? "kv-store" : tableName);		
+			familyName = attributes.getValue("familyName");
+			familyName = null == familyName ? "1" : (familyName.length() == 0 ? "1" : familyName);
+			String separator = attributes.getValue("fieldSeparator");
+			separator = null == separator ? "|" : (separator.length() == 0 ? "|" : separator);
+			fieldSeparator = separator.charAt(0);
 		}
 		if (qName.equalsIgnoreCase("field")) {
 
@@ -204,8 +216,10 @@ public class FieldMapping extends DefaultHandler {
 			skipNull = attributes.getValue("skipNull").equalsIgnoreCase("true") ? true : false;
 			defaultValue = attributes.getValue("defaultValue");
 			analyzer = attributes.getValue("analyzer");
+			isDocIndex = (null == analyzer) ? false : analyzer.length() > 0;
+			
 			field = new Field(name, sourceName, sourceSeq, isIndexable, isSave, isRepeatable,
-					isMergedKey, mergePosition, isJoinKey, skipNull, defaultValue, fieldType, analyzer);
+					isMergedKey, mergePosition, isJoinKey, skipNull, defaultValue, fieldType, analyzer, isDocIndex);
 		}
 	}
 
@@ -221,6 +235,6 @@ public class FieldMapping extends DefaultHandler {
 		for (Map.Entry<Integer, Field> entry : fieldSeqs.entrySet()) {
 			System.out.println(entry.getKey() + " - "+ entry.getValue().toString());
 		}
-		if ( DEBUG_ENABLED )  HSearchLog.l.debug("sahema name is " + schemaName);
+		if ( DEBUG_ENABLED )  HSearchLog.l.debug("sahema name is " + tableName);
 	}
 }
