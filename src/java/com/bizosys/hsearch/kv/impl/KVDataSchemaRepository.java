@@ -22,8 +22,6 @@ package com.bizosys.hsearch.kv.impl;
 import java.util.HashMap;
 import java.util.Map;
 
-import com.bizosys.hsearch.functions.GroupSortedObject;
-import com.bizosys.hsearch.functions.GroupSortedObject.FieldType;
 import com.bizosys.hsearch.kv.impl.FieldMapping.Field;
 
 public class KVDataSchemaRepository {
@@ -40,7 +38,7 @@ public class KVDataSchemaRepository {
 		
 		public Map<String, Integer> nameToSeqMapping = new HashMap<String, Integer>(); 
 		public Map<Integer, String> seqToNameMapping = new HashMap<Integer, String>(); 
-		public Map<String, FieldType> dataTypeMapping = new HashMap<String, FieldType>(); 
+		public Map<String, Integer> dataTypeMapping = new HashMap<String, Integer>(); 
 		public FieldMapping fm = null;
     	static Map<String, Character> dataTypesPrimitives = new HashMap<String, Character>();    	
     	static {
@@ -65,34 +63,34 @@ public class KVDataSchemaRepository {
 				
 				dataType = fld.fieldType.toLowerCase();
 				char dataTypeChar = dataTypesPrimitives.get(dataType);
-				FieldType dataTypeField = GroupSortedObject.FieldType.STRING;
+				int dataTypeField = -1;
 				switch (dataTypeChar) {
 				case 't':
 					
-					if(fld.isDocIndex)dataTypeField = GroupSortedObject.FieldType.FREQUENCY_INDEX;
-					else dataTypeField = GroupSortedObject.FieldType.STRING;
+					if(fld.isDocIndex)dataTypeField = Datatype.FREQUENCY_INDEX;
+					else dataTypeField = Datatype.STRING;
 					
 					break;
 				case 'i':
-					dataTypeField = GroupSortedObject.FieldType.INTEGER;
+					dataTypeField = Datatype.INTEGER;
 					break;
 				case 'f':
-					dataTypeField = GroupSortedObject.FieldType.FLOAT;
+					dataTypeField = Datatype.FLOAT;
 					break;
 				case 'd':
-					dataTypeField = GroupSortedObject.FieldType.DOUBLE;
+					dataTypeField = Datatype.DOUBLE;
 					break;
 				case 'l':
-					dataTypeField = GroupSortedObject.FieldType.LONG;
+					dataTypeField = Datatype.LONG;
 					break;
 				case 's':
-					dataTypeField = GroupSortedObject.FieldType.SHORT;
+					dataTypeField = Datatype.SHORT;
 					break;
 				case 'b':
-					dataTypeField = GroupSortedObject.FieldType.BOOLEAN;
+					dataTypeField = Datatype.BOOLEAN;
 					break;
 				case 'c':
-					dataTypeField = GroupSortedObject.FieldType.BYTE;
+					dataTypeField = Datatype.BYTE;
 					break;
 				default:
 					break;

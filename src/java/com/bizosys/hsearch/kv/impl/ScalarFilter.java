@@ -58,23 +58,23 @@ public class ScalarFilter extends HSearchScalarFilter {
 		int type = inputMapperInstructions.getOutputType();
 
 		switch ( type) {
-			case 0:
+			case Datatype.BOOLEAN:
 				return new HSearchTableKVBoolean();
-			case 1:
+			case Datatype.BYTE:
 				return new HSearchTableKVByte();
-			case 2:
+			case Datatype.SHORT:
 				return new HSearchTableKVShort();
-			case 3:
+			case Datatype.INTEGER:
 				return new HSearchTableKVInteger();
-			case 4:
+			case Datatype.FLOAT:
 				return new HSearchTableKVFloat();
-			case 5:
+			case Datatype.LONG:
 				return new HSearchTableKVLong();				
-			case 6:
+			case Datatype.DOUBLE:
 				return new HSearchTableKVDouble();
-			case 7:
+			case Datatype.STRING:
 				return new HSearchTableKVString();
-			case 8:
+			case Datatype.FREQUENCY_INDEX:
 				return new HSearchTableKVIndex();
 			default:
 				return null;

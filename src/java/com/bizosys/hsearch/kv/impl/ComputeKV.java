@@ -21,9 +21,7 @@ package com.bizosys.hsearch.kv.impl;
 
 import java.io.IOException;
 import java.io.OutputStream;
-import java.util.HashSet;
 import java.util.Map;
-import java.util.Set;
 
 import com.bizosys.hsearch.byteutils.SortedBytesArray;
 import com.bizosys.hsearch.byteutils.SortedBytesBoolean;
@@ -71,9 +69,7 @@ public class ComputeKV implements ICompute {
 	Cell2<Integer, Long> kv_long = null;
 	Cell2<Integer, Double> kv_double = null;
 	Cell2<Integer, String> kv_string = null;
-	
-	Set<Integer> kv_IndexIds = null;
-	
+		
 	public Map<Integer, Object> rowContainer = null;
 	
 	public ComputeKV() {
@@ -91,51 +87,54 @@ public class ComputeKV implements ICompute {
 	public void put(final int key, final Object value) {
 		
 		switch (this.kvType) {
-			case 0:
+			case Datatype.BOOLEAN:
 				if ( null == kv_boolean) kv_boolean = new Cell2<Integer, Boolean>(
 					SortedBytesInteger.getInstance(), SortedBytesBoolean.getInstance());
 				kv_boolean.add( key, (Boolean) value);
 				break;
-			case 1:
+				
+			case Datatype.BYTE:
 				if ( null == kv_byte) kv_byte = new Cell2<Integer, Byte>(
 					SortedBytesInteger.getInstance(), SortedBytesChar.getInstance());
 				kv_byte.add( key, (Byte) value);
 				break;
-			case 2:
+				
+			case Datatype.SHORT:
 				if ( null == kv_short) kv_short = new Cell2<Integer, Short>(
 					SortedBytesInteger.getInstance(), SortedBytesShort.getInstance());
 				kv_short.add( key, (Short) value);
 				break;
-			case 3:
+				
+			case Datatype.INTEGER:
 				if ( null == kv_integer) kv_integer = new Cell2<Integer, Integer>(
 					SortedBytesInteger.getInstance(), SortedBytesInteger.getInstance());
 				kv_integer.add( key, (Integer) value);
 				break;
-			case 4:
+				
+			case Datatype.FLOAT:
 				if ( null == kv_float) kv_float = new Cell2<Integer, Float>(
 					SortedBytesInteger.getInstance(), SortedBytesFloat.getInstance());
 				kv_float.add( key, (Float) value);
 				break;
-			case 5:
+				
+			case Datatype.LONG:
 				if ( null == kv_long) kv_long = new Cell2<Integer, Long>(
 					SortedBytesInteger.getInstance(), SortedBytesLong.getInstance());
 				kv_long.add( key, (Long) value);
 				break;
-			case 6:
+				
+			case Datatype.DOUBLE:
 				if ( null == kv_double) kv_double = new Cell2<Integer, Double>(
 					SortedBytesInteger.getInstance(), SortedBytesDouble.getInstance());
 				kv_double.add( key, (Double) value);
 				break;
-			case 7:
+				
+			case Datatype.STRING:
 				if ( null == kv_string) kv_string = new Cell2<Integer, String>(
 					SortedBytesInteger.getInstance(), SortedBytesString.getInstance());
 				kv_string.add( key, (String) value);
 				break;
 				
-			case 8:
-				if ( null == kv_IndexIds) kv_IndexIds = new HashSet<Integer>();
-				kv_IndexIds.add(key);
-				break;
 		}
 	}
 	
@@ -150,69 +149,62 @@ public class ComputeKV implements ICompute {
 		
 		switch (this.kvType) {
 		
-			case 0:
+			case Datatype.BOOLEAN:
 				if ( null != kv_boolean) {
 					kv_boolean.sortedList.clear();
 					kv_boolean.data = null;
 				}
 				break;
 				
-			case 1:
+			case Datatype.BYTE:
 				if ( null != kv_byte) {
 					kv_byte.sortedList.clear();
 					kv_byte.data = null;
 				}
 				break;
 				
-			case 2:
+			case Datatype.SHORT:
 				if ( null != kv_short) {
 					kv_short.sortedList.clear();
 					kv_short.data = null;
 				}
 				break;
 				
-			case 3:
+			case Datatype.INTEGER:
 				if ( null != kv_integer) {
 					kv_integer.sortedList.clear();
 					kv_integer.data = null;
 				}
 				break;
 				
-			case 4:
+			case Datatype.FLOAT:
 				if ( null != kv_float) {
 					kv_float.sortedList.clear();
 					kv_float.data = null;
 				}
 				break;
 				
-			case 5:
+			case Datatype.LONG:
 				if ( null != kv_long) {
 					kv_long.sortedList.clear();
 					kv_long.data = null;
 				}
 				break;
 				
-			case 6:
+			case Datatype.DOUBLE:
 				if ( null != kv_double) {
 					kv_double.sortedList.clear();
 					kv_double.data = null;
 				}
 				break;
 				
-			case 7:
+			case Datatype.STRING:
 				if ( null != kv_string) {
 					kv_string.sortedList.clear();
 					kv_string.data = null;
 				}
 				break;
-			
-			case 8:
-				if (  null != kv_IndexIds ) {
-					kv_IndexIds.clear();
-					kv_string.data = null;
-				}
-				break;
-				
+							
 			default:
 				HSearchLog.l.error( "Unable to find the datatype" + this.kvType);
 				break;
@@ -225,43 +217,40 @@ public class ComputeKV implements ICompute {
 		byte[] data = null; 
 		switch (this.kvType) {
 		
-			case 0:
+			case Datatype.BOOLEAN:
 				data = kv_boolean.toBytesOnSortedData();
 				break;
 			
-			case 1:
+			case Datatype.BYTE:
 				data = kv_byte.toBytesOnSortedData();
 				break;
 			
-			case 2:
+			case Datatype.SHORT:
 				data = kv_short.toBytesOnSortedData();
 				break;
 			
-			case 3:
+			case Datatype.INTEGER:
 				data = kv_integer.toBytesOnSortedData();
 				break;
 			
-			case 4:
+			case Datatype.FLOAT:
 				data = kv_float.toBytesOnSortedData();
 				break;
 			
-			case 5:
+			case Datatype.LONG:
 				data = kv_long.toBytesOnSortedData();
 				break;
 			
-			case 6:
+			case Datatype.DOUBLE:
 				data = kv_double.toBytesOnSortedData();
 				break;
 			
-			case 7:
+			case Datatype.STRING:
 				data = kv_string.toBytesOnSortedData();
 				break;
-
-			case 8:
-				data = kv_string.toBytesOnSortedData();
-				break;
-
-			default: break;
+				
+			default:
+				return null;
 		}
 		return data;
 	}
@@ -271,7 +260,7 @@ public class ComputeKV implements ICompute {
 
 		for (byte[] dataChunk : SortedBytesArray.getInstanceArr().parse(data).values()) {
 			switch (this.kvType) {
-				case 0:
+				case Datatype.BOOLEAN:
 				{
 					kv_boolean = new Cell2<Integer, Boolean>(
 							SortedBytesInteger.getInstance(), SortedBytesBoolean.getInstance(), dataChunk);
@@ -283,7 +272,7 @@ public class ComputeKV implements ICompute {
 					kv_boolean.process(visitor);
 					break;
 				}
-				case 1:
+				case Datatype.BYTE:
 				{
 					kv_byte = new Cell2<Integer, Byte>(
 							SortedBytesInteger.getInstance(), SortedBytesChar.getInstance(), dataChunk);
@@ -295,7 +284,7 @@ public class ComputeKV implements ICompute {
 					kv_byte.process(visitor);
 					break;
 				}
-				case 2:
+				case Datatype.SHORT:
 				{
 					kv_short = new Cell2<Integer, Short>(
 							SortedBytesInteger.getInstance(), SortedBytesShort.getInstance(), dataChunk);
@@ -307,7 +296,7 @@ public class ComputeKV implements ICompute {
 					kv_short.process(visitor);
 					break;
 				}
-				case 3:
+				case Datatype.INTEGER:
 				{
 					kv_integer = new Cell2<Integer, Integer>(
 							SortedBytesInteger.getInstance(), SortedBytesInteger.getInstance(), dataChunk);
@@ -319,7 +308,7 @@ public class ComputeKV implements ICompute {
 					kv_integer.process(visitor);
 					break;
 				}
-				case 4:
+				case Datatype.FLOAT:
 				{
 					kv_float = new Cell2<Integer, Float>(
 							SortedBytesInteger.getInstance(), SortedBytesFloat.getInstance(), dataChunk);
@@ -331,7 +320,7 @@ public class ComputeKV implements ICompute {
 					kv_float.process(visitor);
 					break;
 				}
-				case 5:
+				case Datatype.LONG:
 				{
 					kv_long = new Cell2<Integer, Long>(
 							SortedBytesInteger.getInstance(), SortedBytesLong.getInstance(), dataChunk);
@@ -343,7 +332,7 @@ public class ComputeKV implements ICompute {
 					kv_long.process(visitor);
 					break;
 				}
-				case 6:
+				case Datatype.DOUBLE:
 				{
 					kv_double = new Cell2<Integer, Double>(
 							SortedBytesInteger.getInstance(), SortedBytesDouble.getInstance(), dataChunk);
@@ -355,7 +344,7 @@ public class ComputeKV implements ICompute {
 					kv_double.process(visitor);
 					break;
 				}
-				case 7:
+				case Datatype.STRING:
 				{
 					kv_string = new Cell2<Integer, String>(
 							SortedBytesInteger.getInstance(), SortedBytesString.getInstance(), dataChunk);

@@ -21,10 +21,14 @@
 package com.bizosys.hsearch.kv;
 
 import java.io.IOException;
+import java.util.ArrayList;
+import java.util.List;
 
 import org.apache.hadoop.hbase.client.Result;
 import org.apache.hadoop.hbase.client.ResultScanner;
 import org.apache.hadoop.hbase.client.Scan;
+import org.apache.hadoop.hbase.filter.Filter;
+import org.apache.hadoop.hbase.filter.PrefixFilter;
 
 import com.bizosys.hsearch.hbase.HBaseFacade;
 import com.bizosys.hsearch.hbase.HTableWrapper;
@@ -76,8 +80,4 @@ public class KVRowReader {
 			if ( null != table ) try { facade.putTable(table); } catch (Exception ex) {};
 		}
 	}
-
-	public static void main(String[] args) throws Exception {
-	}
-
 }
