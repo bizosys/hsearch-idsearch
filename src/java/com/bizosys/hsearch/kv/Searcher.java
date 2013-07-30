@@ -412,10 +412,11 @@ public class Searcher {
 		
 		byte[] data = null;
 		String fieldName = null;
+		KVDataSchema dataScheme = null;
 		try {
 			
 			fieldName = rowId.substring(rowId.lastIndexOf("_") + 1,rowId.length());
-			KVDataSchema dataScheme = repository.get(schemaRepositoryName);
+			dataScheme = repository.get(schemaRepositoryName);
 			Field fld = dataScheme.fm.nameSeqs.get(fieldName);
 			int outputType = dataScheme.dataTypeMapping.get(fieldName);
 			if(callBackType == HSearchProcessingInstruction.PLUGIN_CALLBACK_COLS){
@@ -492,8 +493,15 @@ public class Searcher {
 			}
 			return null;
 		} catch (Exception e) {
-			HSearchLog.l.fatal("ReadStorage Exception for field " + fieldName + " " + e.getMessage(), e );
-			throw new IOException("ReadStorage Exception for field " + fieldName + " " + e.getMessage(), e);
+			String msg = e.getMessage() + "\nField :" + fieldName;
+			if ( null != dataScheme ) {
+				if ( null != dataScheme.dataTypeMapping ) {
+					msg = msg + "\tdataScheme>" + dataScheme.dataTypeMapping.toString();
+				}
+			}
+			
+			HSearchLog.l.fatal("ReadStorage Exception " + msg , e );
+			throw new IOException("ReadStorage Exception " + msg, e);
 		}
 	}
 

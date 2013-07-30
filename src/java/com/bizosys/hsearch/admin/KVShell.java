@@ -215,7 +215,7 @@ public class KVShell {
 			String[] indexerDetail = new String[]{arguments[0],arguments[1],fm.tableName};
 			IndexerMapReduce.main(indexerDetail);
 
-			ColGenerator.generate(fm, SRC_TEMP);
+			ColGenerator.generate(fm, SRC_TEMP, "Column");
 
 			HSearchShell hShell = new HSearchShell();
 			File javaSourceDirectory = new File(SRC_TEMP);
@@ -258,7 +258,7 @@ public class KVShell {
 		URL jarUrl = null;
 		try {
 			
-			jarUrl = new File("/tmp/jar/column.jar").toURI().toURL();
+			jarUrl = new File(JAR_TEMP + "/column.jar").toURI().toURL();
 			URLClassLoader cl = URLClassLoader.newInstance(new URL[] { jarUrl },  this.getClass().getClassLoader());
 
 			Class<?> Column = cl.loadClass("Column");

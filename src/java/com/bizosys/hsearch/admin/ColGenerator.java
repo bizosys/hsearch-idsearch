@@ -48,13 +48,14 @@ public class ColGenerator {
 		dataTypesPrimitives.put("byte", 'c');
 	}
 
-	public static void generate(FieldMapping fm , String path) throws IOException {
+	public static void generate(FieldMapping fm , String path, String className) throws IOException {
 
 		String template = getTextFileContent("Column.tmp");
 				
 		String params = "";
 		String setters = "";
 		String getters = "";
+		String gettersNative = "";
 		String stringSequencer = "";
 		String intSequencer = "";
 		String floatSequencer = "";
@@ -134,15 +135,18 @@ public class ColGenerator {
 			params += "\tpublic " + fld.fieldType + " " + fld.sourceName.toLowerCase() + fieldValue +";\n";
 			setters += "\t\tcase "+ fld.sourceSeq + ":\n\t\t\t this."+fld.sourceName.toLowerCase()+" = " + casted + ";\n\t\t break;\n";
 			getters += "\t\tcase "+ fld.sourceSeq + ":\n\t\t\t return this."+fld.sourceName.toLowerCase()+";\n";
+			gettersNative += "\t\tcase "+ fld.sourceSeq + ":\n\t\t\t return new TypedObject(this."+fld.sourceName.toLowerCase()+");\n";
 			
 			if(fld.isJoinKey){
-				setId = "this." + fld.sourceName;
+				setId = "this."+fld.sourceName.toLowerCase();
 			}
 		}
 
+		template = template.replace("--COLUMN-NAME--", className);
 		template = template.replace("--PARAMS--", params);
 		template = template.replace("--SETTERS--", setters);
 		template = template.replace("--GETTERS--", getters);
+		template = template.replace("--GETTERS_NATIVE--", gettersNative);
 		template = template.replace("--INTEGER_SEQUENCER--", intSequencer);
 		template = template.replace("--FLOAT_SEQUENCER--", floatSequencer);
 		template = template.replace("--STRING_SEQUENCER--", stringSequencer);
@@ -154,9 +158,7 @@ public class ColGenerator {
 		template = template.replace("--SET_ID--", setId);
 		
 		//System.out.println(template);
-		if(path.charAt(path.length()-1) != '/')
-			path = path + '/';
-		FileWriterUtil.downloadToFile(template.getBytes(),new File(path + "Column.java") );
+		FileWriterUtil.downloadToFile(template.getBytes(),new File(path + className + ".java") );
 	}
 
 	public static String getTextFileContent(String fileName) throws IOException {
@@ -191,7 +193,7 @@ public class ColGenerator {
 
 	public static void main(String[] args) throws IOException, ParseException {
 		FieldMapping fm = FieldMapping.getXMLFieldMappings("/work/hsearch-idsearch/src/java/com/bizosys/hsearch/admin/schema.xml");
-		ColGenerator.generate(fm, "/tmp");
+		ColGenerator.generate(fm, "/tmp", "Column");
 	}
 
 }

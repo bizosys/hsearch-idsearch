@@ -1,15 +1,17 @@
 import com.bizosys.hsearch.functions.GroupSortedObject;
 import com.bizosys.hsearch.kv.impl.KVDataSchemaRepository.KVDataSchema;
 import com.bizosys.hsearch.kv.impl.KVRowI;
+import com.bizosys.hsearch.kv.TypedObject;
 
-public class Column extends GroupSortedObject implements KVRowI{
+public class --COLUMN-NAME-- extends GroupSortedObject implements KVRowI{
 	
+	public String mergeId = null;
 --PARAMS--
 		
 	KVDataSchema dataSchema = null;
 	
-	public Column() {}
-	public Column(KVDataSchema dataScheme) {
+	public --COLUMN-NAME--() {}
+	public --COLUMN-NAME--(KVDataSchema dataScheme) {
 		this.dataSchema = dataScheme;
 	}
 
@@ -28,7 +30,16 @@ public class Column extends GroupSortedObject implements KVRowI{
 		}
 		return null;
 	}
-		
+
+	@Override
+	public TypedObject getValueNative(String name) {
+		int keySeq = this.dataSchema.nameToSeqMapping.get(name);
+		switch ( keySeq ) {
+--GETTERS_NATIVE--
+		}
+		return null;
+	}		
+	
 	@Override
 	public final boolean getBooleanField(final int fldSequence) {
 		switch ( fldSequence ) {
@@ -100,12 +111,12 @@ public class Column extends GroupSortedObject implements KVRowI{
 	
 	@Override
 	public final KVRowI create() {
-		return new Column();
+		return new --COLUMN-NAME--();
 	}
 
 	@Override
 	public final KVRowI create(final KVDataSchema dataSchema) {
-		return new Column(dataSchema);
+		return new --COLUMN-NAME--(dataSchema);
 	}
 
 
@@ -122,6 +133,16 @@ public class Column extends GroupSortedObject implements KVRowI{
 	@Override
 	public final int getId() {
 		return --SET_ID--;
+	}
+
+	@Override
+	public void setmergeId(String mergeId) {
+		this.mergeId = mergeId;
+	}
+
+	@Override
+	public String getmergeId() {
+		return this.mergeId;
 	}
 
 }
