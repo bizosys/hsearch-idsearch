@@ -58,11 +58,10 @@ public class Client extends HSearchTableReader {
             for (byte[] data : results) {
                 appendValueB.clear();
                 SortedBytesArray.getInstance().parse(data).values(appendValueB);
-                this.filter.getReducer().appendRows(merged, blankkey, appendValueB);
+                this.filter.getReducer().appendRows(blankkey, merged, appendValueB);
             }
 
             if (merged.iterator().hasNext()) {
-                //Deserialize and read the output
             }
         } catch (IOException ex) {
             ex.printStackTrace(System.out);
