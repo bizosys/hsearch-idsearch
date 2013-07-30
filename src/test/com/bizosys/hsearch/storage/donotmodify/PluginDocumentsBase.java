@@ -19,12 +19,18 @@
 */
 package com.bizosys.hsearch.storage.donotmodify;
 
+import java.io.IOException;
+
 import com.bizosys.hsearch.treetable.client.IHSearchPlugin;
 
 public abstract class PluginDocumentsBase implements IHSearchPlugin {
     
     public abstract TablePartsCallback getPart();
     
+	@Override
+	public final void setMergeId(final byte[] mergeId) throws IOException {
+	}
+	
     public interface TablePartsCallback {
 
         boolean onRowKey(int id);

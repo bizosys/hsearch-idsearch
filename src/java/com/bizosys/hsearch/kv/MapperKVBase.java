@@ -20,12 +20,18 @@
 
 package com.bizosys.hsearch.kv;
 
+import java.io.IOException;
+
 import com.bizosys.hsearch.treetable.client.IHSearchPlugin;
 
 public abstract class MapperKVBase implements IHSearchPlugin {
     
     public abstract TablePartsCallback getPart();
     
+	@Override
+	public final void setMergeId(final byte[] mergeId) throws IOException {
+	}
+	
     public interface TablePartsCallback {
 
         public boolean onRowCols( final int key,  final Object value);
