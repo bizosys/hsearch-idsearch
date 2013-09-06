@@ -1,6 +1,8 @@
 package com.bizosys.hsearch.kv.dao.donotmodify;
 
 import java.io.IOException;
+import java.util.HashSet;
+import java.util.Set;
 
 import com.bizosys.hsearch.byteutils.SortedBytesInteger;
 import com.bizosys.hsearch.byteutils.SortedBytesString;
@@ -53,7 +55,19 @@ public class HSearchTableKVString implements IHSearchTable {
             this.cellMax0 = cellMax2;
             this.inValues0 = inValues2;
         }
-
+        
+        Set<Object> inValuesL = null;
+        public Set<Object> getInvaluesL(){
+        	if(null != inValuesL)return inValuesL;
+        	synchronized ("inValuesLSet") {
+            	if(null != inValuesL)return inValuesL;
+            	inValuesL = new HashSet<Object>();
+            	for (Object value : query.inValuesAO[0]) {
+    				inValuesL.add(value);
+    			}
+            	return inValuesL;
+			}
+        }
         @Override
         public final void visit(Integer cell1Key, String cell1Val) {
             			//Is it all or not.
@@ -74,17 +88,8 @@ public class HSearchTableKVString implements IHSearchTable {
 						//IN
 						boolean isMatched = false;
 						//LOOKING FOR ONE MATCHING
-						for ( Object obj : query.inValuesAO[0]) {
-							Integer objI = (Integer) obj;
-							isMatched = cell1Key.intValue() == objI.intValue();
-							
-							//ONE MATCHED, NO NEED TO PROCESS
-							if ( query.notValCells[0] ) { 
-								if (!isMatched ) break; 
-							} else {
-								if (isMatched ) break;
-							}
-						}
+						isMatched = true;//getInvaluesL().contains(cell1Key);
+						isMatched = ( query.notValCells[0] ) ? !isMatched : isMatched;
 						if ( !isMatched ) return; //NONE MATCHED
 						
 					} else {

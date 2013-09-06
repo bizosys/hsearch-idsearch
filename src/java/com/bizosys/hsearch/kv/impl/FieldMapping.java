@@ -171,7 +171,7 @@ public class FieldMapping extends DefaultHandler {
 			return fieldMapping;
 			
 		} catch (ParserConfigurationException e) {
-			HSearchLog.l.fatal("File Path:" + filePath , e);
+			HSearchLog.l.fatal("File Path:" , e);
 			e.printStackTrace(System.err);
 			throw new ParseException(e.getMessage(), 0);
 		} catch (SAXException e) {

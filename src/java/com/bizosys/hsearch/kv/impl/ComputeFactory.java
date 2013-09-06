@@ -27,7 +27,7 @@ public class ComputeFactory {
 		return new ComputeFactory();
 	}
 	
-	public final ICompute getCompute(final String processHint) throws NullPointerException {
+	public final ICompute getCompute(final String type) throws NullPointerException {
     	return new ComputeKV();
     }
 }

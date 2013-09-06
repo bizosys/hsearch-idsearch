@@ -65,14 +65,9 @@ public class KVRowReader {
 	    	
 			scanner = table.getScanner(scan);
 			
-			for (Result r: scanner) {
-				if ( null == r) continue;
-				if ( r.isEmpty()) continue;
-				byte[] storedBytes = r.getValue(COL_FAM.getBytes(), new byte[]{0});
-				if ( null == storedBytes) continue;
-				return storedBytes;
-			}
-			return null;
+			Result r = scanner.iterator().next();
+			return r.getValue(COL_FAM.getBytes(), new byte[]{0});
+
 		} catch ( IOException ex) {
 			throw ex;
 		} finally {

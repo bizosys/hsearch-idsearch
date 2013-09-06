@@ -71,8 +71,11 @@ public class KVDocIndexer {
     }
     
     public BitSetOrSet search(byte[] data, Analyzer analyzer, String  docType, String fieldType, String query) throws IOException, ParseException, InstantiationException {
-    	String combineQuery = parseQuery(analyzer, docType, fieldType, query);
-    	HSearchQuery hq = new HSearchQuery(combineQuery);
+    	
+    	String combinedQuery = parseQuery(analyzer, docType, fieldType, query);
+    	
+    	HSearchQuery hq = new HSearchQuery(combinedQuery);
+
     	MapperKV md  = new MapperKV();
     	HSearchProcessingInstruction outputTypeCode = new HSearchProcessingInstruction(HSearchProcessingInstruction.PLUGIN_CALLBACK_ID, HSearchProcessingInstruction.OUTPUT_COLS);
     	md.setOutputType(outputTypeCode);
@@ -96,7 +99,7 @@ public class KVDocIndexer {
     	
     	String fldTypeCode = "*".equals(fieldType) ? "*" :
     		new Integer(FieldTypeCodes.getInstance().getCode(fieldType)).toString();
-
+    	
 		QueryParser qp = new QueryParser(Version.LUCENE_36, "K", analyzer);
 		Query q = null;
 		try {
@@ -123,6 +126,8 @@ public class KVDocIndexer {
 		queryBuilder.append(docTypeCode);
 		queryBuilder.append('|');
 		queryBuilder.append(fldTypeCode);
+		queryBuilder.append('|');
+		queryBuilder.append('*');
 		queryBuilder.append('|');
 		queryBuilder.append(allWords.toString());
 		queryBuilder.append("|*|*");

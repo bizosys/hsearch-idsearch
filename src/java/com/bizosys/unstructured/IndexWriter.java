@@ -115,7 +115,7 @@ public class IndexWriter {
 	
 	public byte[] toBytes(List<IndexRow> rows, boolean isUnique) throws IOException {
 
-		if ( this.cachedIndex.size() == 0 ) return null; 
+		if ( rows.size() == 0 ) return null; 
 
 		switch (tableType) {
 		
@@ -448,7 +448,7 @@ public class IndexWriter {
 				List<IndexRow> rows = cols.get(column);
 				byte[] data = null;
 				
-				data = getBytes(rows, data, keepDuplicates);
+				data = getBytes(rows, keepDuplicates);
 				if ( null == data) continue;
 				
 				byte[] colNameBytes = new String( new char[] {column} ).getBytes();
@@ -464,8 +464,13 @@ public class IndexWriter {
 		}
 	}
 
-	private final byte[] getBytes(List<IndexRow> rows, byte[] data, boolean keepDuplicates) throws IOException {
+	public final byte[] getBytes(boolean keepDuplicates) throws IOException {
+		return getBytes(this.cachedIndex, keepDuplicates);
+	}
+	
+	public final byte[] getBytes(List<IndexRow> rows, boolean keepDuplicates) throws IOException {
 		
+		byte[] data = null;
 		switch (tableType) {
 		
 			case FREQUENCY_TABLE :

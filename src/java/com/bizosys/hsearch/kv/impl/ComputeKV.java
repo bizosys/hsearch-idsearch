@@ -218,35 +218,43 @@ public class ComputeKV implements ICompute {
 		switch (this.kvType) {
 		
 			case Datatype.BOOLEAN:
-				data = kv_boolean.toBytesOnSortedData();
+				if ( null != kv_boolean)
+					data = kv_boolean.toBytesOnSortedData();
 				break;
 			
 			case Datatype.BYTE:
-				data = kv_byte.toBytesOnSortedData();
+				if ( null != kv_byte)
+					data = kv_byte.toBytesOnSortedData();
 				break;
 			
 			case Datatype.SHORT:
-				data = kv_short.toBytesOnSortedData();
+				if ( null != kv_short)
+					data = kv_short.toBytesOnSortedData();
 				break;
 			
 			case Datatype.INTEGER:
-				data = kv_integer.toBytesOnSortedData();
+				if ( null != kv_integer)
+					data = kv_integer.toBytesOnSortedData();
 				break;
 			
 			case Datatype.FLOAT:
-				data = kv_float.toBytesOnSortedData();
+				if ( null != kv_float)
+					data = kv_float.toBytesOnSortedData();
 				break;
 			
 			case Datatype.LONG:
-				data = kv_long.toBytesOnSortedData();
+				if ( null != kv_long)
+					data = kv_long.toBytesOnSortedData();
 				break;
 			
 			case Datatype.DOUBLE:
-				data = kv_double.toBytesOnSortedData();
+				if ( null != kv_double)
+					data = kv_double.toBytesOnSortedData();
 				break;
 			
 			case Datatype.STRING:
-				data = kv_string.toBytesOnSortedData();
+				if ( null != kv_string)
+					data = kv_string.toBytesOnSortedData();
 				break;
 				
 			default:

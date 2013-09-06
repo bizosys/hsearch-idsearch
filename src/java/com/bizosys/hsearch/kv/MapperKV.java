@@ -32,6 +32,7 @@ import com.bizosys.hsearch.kv.MapperKVBase;
 import com.bizosys.hsearch.kv.impl.ComputeFactory;
 import com.bizosys.hsearch.kv.impl.ICompute;
 import com.bizosys.hsearch.treetable.client.HSearchProcessingInstruction;
+import com.bizosys.hsearch.util.HSearchLog;
 
 
 public final class MapperKV extends MapperKVBase {
@@ -79,11 +80,15 @@ public final class MapperKV extends MapperKVBase {
      */
     @Override
     public final void getResultSingleQuery(final Collection<byte[]> container) throws IOException {
-    	
-    	if(this.instruction.getCallbackType() == HSearchProcessingInstruction.PLUGIN_CALLBACK_COLS)
-    		container.add(this.compute.toBytes());
-    	else
-    		container.add(SortedBytesInteger.getInstance().toBytes(this.ids));
+    	byte[] result = null;
+    	if(this.instruction.getCallbackType() == HSearchProcessingInstruction.PLUGIN_CALLBACK_COLS){
+    		result = this.compute.toBytes();
+    		if(null != result)container.add(result);    		
+    	}
+    	else{
+    		result = SortedBytesInteger.getInstance().toBytes(this.ids);
+    		if(null != result)container.add(result);
+    	}
     }
 
     /**
