@@ -192,7 +192,17 @@ public class ColGenerator {
 	}
 
 	public static void main(String[] args) throws IOException, ParseException {
-		FieldMapping fm = FieldMapping.getXMLFieldMappings("/work/hsearch-idsearch/src/java/com/bizosys/hsearch/admin/schema.xml");
+		FieldMapping fm = FieldMapping.getInstance();
+		
+		if ( args.length < 1) {
+			File file = new File("./src/java/com/bizosys/hsearch/admin/schema.xml");
+			if ( ! file.exists()) {
+				System.err.println("java ColGenerator ./schema.xml");
+				System.exit(1);
+			}
+		}
+		
+		fm.parseXMLString(args[0]);
 		ColGenerator.generate(fm, "/tmp", "Column");
 	}
 

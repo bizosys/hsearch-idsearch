@@ -42,36 +42,38 @@ public class FieldMapping extends DefaultHandler {
 
 	private static final boolean DEBUG_ENABLED = HSearchLog.l.isDebugEnabled();
 
-	public static class Field {
+	public class Field {
 
 		public String name;
 		public  String sourceName;
 		public  int sourceSeq;
 		public  boolean isIndexable;
-		public  boolean isSave;
+		public  boolean isStored;
 		public  boolean isRepeatable;
 		public  boolean isMergedKey;
 		public  int mergePosition;
 		public  boolean isJoinKey;
 		public boolean skipNull;
 		public String defaultValue;
-		public  String fieldType;
-		public  String analyzer;
+		public String fieldType;
+		public String analyzer;
+		public boolean isAnalyzed;
 
 		public boolean isDocIndex;
 		
 		public Field() {
 		}
 
-		public Field(String name,String sourceName, int sourceSeq, boolean isIndexable,boolean isSave,
+		public Field(String name,String sourceName, int sourceSeq, boolean isIndexable,boolean isStored,
 				boolean isRepeatable, boolean isMergedKey, int mergePosition,
-				boolean isJoinKey, boolean skipNull, String defaultValue, String fieldType, String analyzer, boolean isDocIndex) {
+				boolean isJoinKey, boolean skipNull, String defaultValue, String fieldType, String analyzer, 
+				boolean isDocIndex, boolean isAnalyzed) {
 			
 			this.name = name;
 			this.sourceName = sourceName;
 			this.sourceSeq = sourceSeq;
 			this.isIndexable = isIndexable;
-			this.isSave = isSave;
+			this.isStored = isStored;
 			this.isRepeatable = isRepeatable;
 			this.isMergedKey = isMergedKey;
 			this.mergePosition = mergePosition;
@@ -80,6 +82,7 @@ public class FieldMapping extends DefaultHandler {
 			this.defaultValue = defaultValue;
 			this.fieldType = fieldType;
 			this.analyzer = analyzer;
+			this.isAnalyzed = isAnalyzed;
 			this.isDocIndex = isDocIndex;
 		}
 
@@ -96,7 +99,7 @@ public class FieldMapping extends DefaultHandler {
 		}
 	}
 
-	private Field field;
+	public Field field;
 	
 	public Map<Integer, Field> fieldSeqs = new HashMap<Integer, Field>();
 	public Map<String, Field> nameSeqs = new HashMap<String, Field>();
@@ -104,89 +107,71 @@ public class FieldMapping extends DefaultHandler {
 	public String familyName = null;
 	public char fieldSeparator = '|';
 	
-	String name = null;
-	String sourceName = null;
-	int sourceSeq = 0;
-	boolean isIndexable = false;
-	boolean isSave = false;
-	boolean isRepeatable = false;
-	boolean isMergedKey = false;
-	int mergePosition = 0;
-	boolean isJoinKey = false;
-	boolean skipNull = false;
-	String defaultValue = null;;	
-	String fieldType = null;;
-	String analyzer = null;
-	boolean isDocIndex = false;
+	public String name = null;
+	public String sourceName = null;
+	public int sourceSeq = 0;
+	public boolean isIndexable = false;
+	public boolean isStored = false;
+	public boolean isRepeatable = false;
+	public boolean isMergedKey = false;
+	public int mergePosition = 0;
+	public boolean isJoinKey = false;
+	public boolean skipNull = false;
+	public String defaultValue = null;;	
+	public String fieldType = null;;
+	public String analyzer = null;
+	public boolean isAnalyzed = false;
+	public boolean isDocIndex = false;
 	
 	public static FieldMapping getInstance(){
 		return new FieldMapping();
 	}
 	
-	private FieldMapping() {
+	public FieldMapping() {
 
 	}
 
 	public static void main(String[] args) throws IOException, SAXException,
-			ParserConfigurationException {
+			ParserConfigurationException, ParseException {
 		
-		String xmlString = "<schema name='call-record'><fields><field name='2' sourcesequence='166' sourcename='FILEID' type='int' indexed='true' isSave='true' repeatable='true' mergekey='true' mergeposition='0' isjoinkey='false' skipNull='true' defaultValue=''/><field name='677' sourcesequence='142' sourcename='CUSTOMFIELD5' type='String' indexed='true' isSave='true' repeatable='true' mergekey='false' mergeposition='' isjoinkey='false' skipNull='true' defaultValue=''/></fields></schema>";
-		FieldMapping fm = getXMLStringFieldMappings(xmlString);
+		String xmlString = "<schema tableName=\"findings-detail\" familyName=\"1\" fieldSeparator=\"|\"><fields><field name=\"2\" sourcesequence=\"166\" sourcename=\"FILEID\" type=\"int\" indexed=\"true\" stored=\"true\" analyzer=\"\" analyzed=\"false\" repeatable=\"true\" mergekey=\"true\" mergeposition=\"0\" isjoinkey=\"false\" skipNull=\"false\" defaultValue=\"-2147483648\" /><field name=\"524\" sourcesequence=\"99\" sourcename=\"PCDID\" type=\"int\" indexed=\"true\" stored=\"true\" analyzer=\"\" analyzed=\"false\" repeatable=\"true\" mergekey=\"true\" mergeposition=\"1\" isjoinkey=\"false\" skipNull=\"false\" defaultValue=\"-2147483648\"/></fields></schema>";
+		FieldMapping fm = FieldMapping.getInstance();
+		fm.parseXMLString(xmlString);
 		fm.display();
 
 	}
 	
-	public static final FieldMapping getXMLStringFieldMappings(final String xmlString){
+	public void parseXMLString(final String xmlString) throws ParseException{
 		SAXParserFactory saxFactory = SAXParserFactory.newInstance();
 		SAXParser saxParser;
-		FieldMapping fieldMapping = null;
 		try {
 
 			saxParser = saxFactory.newSAXParser();
-			fieldMapping = new FieldMapping();
-			saxParser.parse(new InputSource(new StringReader(xmlString)), fieldMapping);
+			saxParser.parse(new InputSource(new StringReader(xmlString)), this);
 			
-		} catch (ParserConfigurationException e) {
-			e.printStackTrace();
-		} catch (SAXException e) {
-			e.printStackTrace();
-		}catch (IOException e) {
-			e.printStackTrace();
+		} catch (Exception e) {
+			HSearchLog.l.fatal("File Path: ", e);
+			throw new ParseException(e.getMessage(), 0);
 		}
-		
-		return fieldMapping;
 	}
 	
-	public static final FieldMapping getXMLFieldMappings(final String filePath) throws ParseException {
+	public void parseXML(final String filePath) throws ParseException {
 
 		SAXParserFactory saxFactory = SAXParserFactory.newInstance();
 		SAXParser saxParser;
-		FieldMapping fieldMapping = null;
 		try {
 
 			saxParser = saxFactory.newSAXParser();
-			fieldMapping = new FieldMapping();
 			File file = new File(filePath);
-			saxParser.parse(file, fieldMapping);
-			return fieldMapping;
+			saxParser.parse(file, this);
 			
-		} catch (ParserConfigurationException e) {
-			HSearchLog.l.fatal("File Path:" , e);
-			e.printStackTrace(System.err);
-			throw new ParseException(e.getMessage(), 0);
-		} catch (SAXException e) {
+		} catch (Exception e) {
 			HSearchLog.l.fatal("File Path:" + filePath , e);
-			e.printStackTrace(System.err);
-			throw new ParseException(e.getMessage(), 0);
-		}catch (IOException e) {
-			HSearchLog.l.fatal("File Path:" + filePath , e);
-			e.printStackTrace(System.err);
 			throw new ParseException(e.getMessage(), 0);
 		}
 	}
 
-	public void startElement(String uri, String localName, String qName,
-			Attributes attributes) throws SAXException {
+	public void startElement(String uri, String localName, String qName,Attributes attributes) throws SAXException {
 
 		if(qName.equalsIgnoreCase("schema")){
 			tableName = attributes.getValue("tableName");
@@ -206,7 +191,7 @@ public class FieldMapping extends DefaultHandler {
 					.parseInt(attributes.getValue("sourcesequence"));
 			fieldType = attributes.getValue("type");
 			isIndexable = attributes.getValue("indexed").equalsIgnoreCase("true") ? true : false;
-			isSave = attributes.getValue("isSave").equalsIgnoreCase("true") ? true : false;
+			isStored = attributes.getValue("stored").equalsIgnoreCase("true") ? true : false;
 			isRepeatable = attributes.getValue("repeatable").equalsIgnoreCase("true") ? true : false;
 			isMergedKey = attributes.getValue("mergekey").equalsIgnoreCase("true") ? true : false;
 			mergePosition = (null == attributes.getValue("mergeposition") || (attributes.getValue("mergeposition").length() == 0)) 
@@ -216,10 +201,12 @@ public class FieldMapping extends DefaultHandler {
 			skipNull = attributes.getValue("skipNull").equalsIgnoreCase("true") ? true : false;
 			defaultValue = attributes.getValue("defaultValue");
 			analyzer = attributes.getValue("analyzer");
+			isAnalyzed = attributes.getValue("analyzed").equalsIgnoreCase("true") ? true : false;
 			isDocIndex = (null == analyzer) ? false : analyzer.length() > 0;
 			
-			field = new Field(name, sourceName, sourceSeq, isIndexable, isSave, isRepeatable,
-					isMergedKey, mergePosition, isJoinKey, skipNull, defaultValue, fieldType, analyzer, isDocIndex);
+			field = new Field(name, sourceName, sourceSeq, isIndexable, isStored, isRepeatable,
+					isMergedKey, mergePosition, isJoinKey, skipNull, defaultValue, fieldType, analyzer, 
+					isDocIndex, isAnalyzed);
 		}
 	}
 
@@ -231,7 +218,7 @@ public class FieldMapping extends DefaultHandler {
 		}
 	}
 
-	private void display() {
+	public void display() {
 		for (Map.Entry<Integer, Field> entry : fieldSeqs.entrySet()) {
 			System.out.println(entry.getKey() + " - "+ entry.getValue().toString());
 		}

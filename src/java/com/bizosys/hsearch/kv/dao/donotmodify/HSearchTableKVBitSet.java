@@ -2,30 +2,21 @@ package com.bizosys.hsearch.kv.dao.donotmodify;
 
 import java.io.IOException;
 import java.text.ParseException;
-import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.BitSet;
-import java.util.Collection;
-import java.util.Iterator;
 
 import com.bizosys.hsearch.byteutils.ByteUtil;
-import com.bizosys.hsearch.byteutils.SortedBytesArray;
 import com.bizosys.hsearch.byteutils.SortedBytesBoolean;
 import com.bizosys.hsearch.byteutils.SortedBytesInteger;
 import com.bizosys.hsearch.byteutils.Storable;
-import com.bizosys.hsearch.byteutils.SortedBytesBase.Reference;
 import com.bizosys.hsearch.kv.MapperKV;
 import com.bizosys.hsearch.kv.MapperKVBase;
-import com.bizosys.hsearch.treetable.BytesSection;
 import com.bizosys.hsearch.treetable.Cell2;
-import com.bizosys.hsearch.treetable.Cell2FoundIndex;
 import com.bizosys.hsearch.treetable.Cell2Visitor;
 import com.bizosys.hsearch.treetable.CellKeyValue;
-import com.bizosys.hsearch.treetable.CellComparator.BooleanComparator;
 import com.bizosys.hsearch.treetable.client.HSearchQuery;
 import com.bizosys.hsearch.treetable.client.IHSearchPlugin;
 import com.bizosys.hsearch.treetable.client.IHSearchTable;
-import com.sun.org.apache.xpath.internal.operations.Bool;
 
 public final class HSearchTableKVBitSet implements IHSearchTable {
 

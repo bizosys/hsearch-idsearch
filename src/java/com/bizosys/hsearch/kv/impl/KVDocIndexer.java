@@ -53,13 +53,13 @@ public class KVDocIndexer {
 	
 	IndexWriter writer = null;
 
-	public void addToIndex(Analyzer analyzer, String docType, String fieldType, Map<Integer, String> docIdWithFieldValue) throws IOException, InstantiationException {
+	public void addToIndex(Analyzer analyzer, String docType, String fieldType, Map<Integer, String> docIdWithFieldValue, boolean isAnalyzed) throws IOException, InstantiationException {
 		if ( null == writer) writer = new IndexWriter(new HSearchTableKVIndex());
     	AnalyzerFactory analyzers = new AnalyzerFactory(analyzer);
-    	
+    	Field.Index index = isAnalyzed ? Field.Index.ANALYZED : Field.Index.NOT_ANALYZED;
 		for (Integer docId : docIdWithFieldValue.keySet()) {
 		    Document lucenDoc = new Document();
-		    lucenDoc.add(new Field(fieldType, docIdWithFieldValue.get(docId), Field.Store.YES, Field.Index.ANALYZED));
+		    lucenDoc.add(new Field(fieldType, docIdWithFieldValue.get(docId), Field.Store.YES, index));
 		    writer.addDocument(docId, lucenDoc,docType, analyzers);
 		}
 	}
@@ -171,8 +171,8 @@ public class KVDocIndexer {
 		ftypes.put("lname", 2);
 		indexer.addFieldTypes(ftypes);
 
-    	indexer.addToIndex(new StandardAnalyzer(Version.LUCENE_36), "emp", "fname", docIdWithFieldValue1);
-    	indexer.addToIndex(new StandardAnalyzer(Version.LUCENE_36), "emp", "lname", docIdWithFieldValue2);
+    	indexer.addToIndex(new StandardAnalyzer(Version.LUCENE_36), "emp", "fname", docIdWithFieldValue1, true);
+    	indexer.addToIndex(new StandardAnalyzer(Version.LUCENE_36), "emp", "lname", docIdWithFieldValue2, true);
     	
     	byte[] ser = indexer.toBytes();
     	    	

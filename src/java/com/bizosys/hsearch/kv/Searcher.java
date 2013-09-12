@@ -36,6 +36,8 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 import java.util.regex.Pattern;
 
+import org.apache.lucene.analysis.Analyzer;
+
 import com.bizosys.hsearch.federate.BitSetOrSet;
 import com.bizosys.hsearch.federate.FederatedSearch;
 import com.bizosys.hsearch.federate.FederatedSearchException;
@@ -56,9 +58,8 @@ import com.bizosys.hsearch.treetable.client.HSearchProcessingInstruction;
 import com.bizosys.hsearch.util.HSearchLog;
 
 public class Searcher {
-	
-	public static ExecutorService ES = null;
-	
+	private static ExecutorService ES = null;
+
 	public String dataRepository = "";
 	public String schemaRepositoryName = "";
 	
@@ -68,13 +69,15 @@ public class Searcher {
 	public static final Pattern patternBracketsOutsideQuotes = Pattern.compile("(\\(|\\))(?=(?:[^\"]*\"[^\"]*\")*[^\"]*$)");
 	public static final Pattern patternRemoveQuotes = Pattern.compile("\"");
 	
-	private List<KVRowI> resultset = null;
+	private Set<KVRowI> resultset = null;
+	private Map<String, String> filters = null;
+	public KVDataSchemaRepository repository = KVDataSchemaRepository.getInstance();
+	public KVDocIndexer indexer = new KVDocIndexer();
+	public Analyzer analyzer = null;
+
 	private Map<String, Set<Object>> facetsMap = null;
 	private Map<String, List<HsearchFacet>> pivotFacetsMap = null;
-	public KVDataSchemaRepository repository = KVDataSchemaRepository.getInstance();
-	private Map<String, String> filters = null;
 	
-	KVDocIndexer indexer = new KVDocIndexer();
 	
 	public static boolean DEBUG_ENABLED = HSearchLog.l.isDebugEnabled();
 	public static boolean INFO_ENABLED = HSearchLog.l.isInfoEnabled();
@@ -82,13 +85,14 @@ public class Searcher {
 	private Searcher(){
 	}
 	
-	public Searcher(final String schemaName, final FieldMapping fm){
+	public Searcher(final String schemaName, final FieldMapping fm, final Analyzer analyzer){
 		this.schemaRepositoryName = schemaName;
-		repository.add(schemaRepositoryName, fm);
-		resultset = new ArrayList<KVRowI>();
+		this.repository.add(schemaRepositoryName, fm);
+		this.resultset = new HashSet<KVRowI>();
+		this.filters = new HashMap<String, String>();
+		this.analyzer = analyzer;
 		facetsMap = new HashMap<String, Set<Object>>();
 		pivotFacetsMap = new HashMap<String, List<HsearchFacet>>();
-		filters = new HashMap<String, String>();
 	}
 
 	public final Set<String> searchRegex(final String dataRepository,
@@ -155,14 +159,14 @@ public class Searcher {
 		for (String field : fields) {
 
 			result = (Map<Integer, Object>) foundResults.get(field);
-			documentIds = result.keySet();
+			documentIds = new HashSet<Integer>(result.keySet());
 			
 			//if where query is not empty do the intersection
 			if(!isWhereQueryEmpty){
 				foundValues = new BitSetOrSet();
 				foundValues.setDocumentIds(documentIds);
-				foundIds.and(foundValues);
-				documentIds = foundIds.getDocumentIds();
+				foundValues.and(foundIds);
+				documentIds = foundValues.getDocumentIds();
 			}
 
 			for (Integer id : documentIds) {
@@ -247,7 +251,7 @@ public class Searcher {
 				filterQuery = "*|*";
 			
 			rowId = mergeId + "_" + field;
-			StorageReader reader = new StorageReader(repository, schemaRepositoryName, indexer, dataRepository, rowId, filterQuery, HSearchProcessingInstruction.PLUGIN_CALLBACK_COLS);
+			StorageReader reader = new StorageReader(repository, schemaRepositoryName, indexer, analyzer, dataRepository, rowId, filterQuery, HSearchProcessingInstruction.PLUGIN_CALLBACK_COLS);
 			Future<Object> future = ES.submit(reader);
 			fieldWithfuture.put(field, future);
 		}
@@ -278,7 +282,8 @@ public class Searcher {
 				filterQuery = foundIds + "|*";
 				rowId = mergeId + "_" + field;
 				
-				StorageReader reader = new StorageReader(repository, schemaRepositoryName, indexer, dataRepository, rowId, filterQuery, HSearchProcessingInstruction.PLUGIN_CALLBACK_COLS);
+				StorageReader reader = new StorageReader(repository, schemaRepositoryName, indexer, 
+					analyzer, dataRepository, rowId, filterQuery, HSearchProcessingInstruction.PLUGIN_CALLBACK_COLS);
 				
 				Map<Integer, Object> readingIdWithValue = (Map<Integer, Object>) reader.readStorage() ;
 				if ( DEBUG_ENABLED ) {
@@ -307,7 +312,7 @@ public class Searcher {
 		}
 	}	
 
-	public final List<KVRowI> sort (final String... sorters) throws ParseException {
+	public final Set<KVRowI> sort (final String... sorters) throws ParseException {
 		
 		GroupSorterSequencer[] sortSequencer = new GroupSorterSequencer[sorters.length];
 
@@ -346,21 +351,19 @@ public class Searcher {
 		for (GroupSorterSequencer seq : sortSequencer) {
 			gs.setSorter(seq);
 		}
-		
-		GroupSortedObject[] sortedContainer = new GroupSortedObject[resultset.size()];
+		int resultsetT = resultset.size();
+		GroupSortedObject[] sortedContainer = new GroupSortedObject[resultsetT];
 		resultset.toArray(sortedContainer);
 		gs.sort(sortedContainer);
-
-		ListIterator<KVRowI> i = resultset.listIterator();
-		for (int j=0; j<sortedContainer.length; j++) {
-		    i.next();
-		    i.set((KVRowI)sortedContainer[j]);
+		resultset = new HashSet<KVRowI>();
+		for (int j=0; j < resultsetT; j++) {
+			resultset.add((KVRowI)sortedContainer[j]);
 		}
 
 		return this.resultset;
 	}
 	
-	public final List<KVRowI> getResult() {
+	public final Set<KVRowI> getResult() {
 		return this.resultset;
 	}
 
@@ -390,7 +393,7 @@ public class Searcher {
 			String[] fields = patternComma.split(aPivotFacet);
 			search(dataRepository, mergeId, aPivotFacet, facetQuery, combiner, enricher);
 			String[] sorters = patternComma.split(pivotFacetSort);
-			List<KVRowI> result = sort(sorters);
+			Set<KVRowI> result = sort(sorters);
 			HsearchFacet root = new HsearchFacet("root", new TypedObject("root"), new ArrayList<HsearchFacet>());
 			HsearchFacet current = root;
 			for (KVRowI kvRowI : result) {
@@ -429,7 +432,7 @@ public class Searcher {
 					String rowId, Map<String, Object> filterValues) throws IOException {
 				
 				String filterQuery = filterValues.values().iterator().next().toString();
-				StorageReader reader = new StorageReader(repository, schemaRepositoryName, indexer, dataRepository, rowId, filterQuery, HSearchProcessingInstruction.PLUGIN_CALLBACK_ID);
+				StorageReader reader = new StorageReader(repository, schemaRepositoryName, indexer, analyzer, dataRepository, rowId, filterQuery, HSearchProcessingInstruction.PLUGIN_CALLBACK_ID);
 				Set<Integer> readingIds = (Set<Integer>) reader.readStorage();
 				BitSetOrSet rows = new BitSetOrSet();
 				rows.setDocumentIds(readingIds);

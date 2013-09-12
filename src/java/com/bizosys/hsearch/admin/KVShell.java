@@ -28,7 +28,9 @@ import java.io.PrintStream;
 import java.net.URL;
 import java.net.URLClassLoader;
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 import java.util.jar.Attributes;
 import java.util.jar.JarOutputStream;
 import java.util.jar.Manifest;
@@ -50,7 +52,7 @@ import com.bizosys.hsearch.hbase.HDML;
 import com.bizosys.hsearch.kv.Searcher;
 import com.bizosys.hsearch.kv.impl.FieldMapping;
 import com.bizosys.hsearch.kv.impl.IEnricher;
-import com.bizosys.hsearch.kv.impl.IndexerMapReduce;
+import com.bizosys.hsearch.kv.impl.KVIndexer;
 import com.bizosys.hsearch.kv.impl.KVRowI;
 import com.sun.tools.javac.Main;
 
@@ -63,20 +65,20 @@ public class KVShell {
 	
 
 	public List<String> queryFields = null;
-	public List<KVRowI> resultStore = null; 
+	public Set<KVRowI> resultStore = null; 
 	public Searcher searcher = null;
 	public PrintStream writer = null;
 	public String customClasspath = null;
 	
 	public KVShell(PrintStream writer) throws IOException {
 		queryFields = new ArrayList<String>();
-		resultStore = new ArrayList<KVRowI>();
+		resultStore = new HashSet<KVRowI>();
 		this.writer = writer;
 	}
 	
 	public KVShell() throws IOException {
 		queryFields = new ArrayList<String>();
-		resultStore = new ArrayList<KVRowI>();
+		resultStore = new HashSet<KVRowI>();
 		this.writer = System.out;
 	}
 
@@ -179,7 +181,8 @@ public class KVShell {
 			}
 
 			String schemaStr = sb.toString();
-			fm = FieldMapping.getXMLStringFieldMappings(schemaStr);
+			fm = FieldMapping.getInstance();
+			fm.parseXMLString(schemaStr);
 			
 			List<HColumnDescriptor> colFamilies = new ArrayList<HColumnDescriptor>();
 			HColumnDescriptor cols = new HColumnDescriptor(fm.familyName.getBytes());
@@ -210,10 +213,12 @@ public class KVShell {
 			}
 
 			String schemaStr = sb.toString();
-			FieldMapping fm = FieldMapping.getXMLStringFieldMappings(schemaStr);
+			FieldMapping fm = FieldMapping.getInstance();
+			fm.parseXMLString(schemaStr);
 			
 			String[] indexerDetail = new String[]{arguments[0],arguments[1],fm.tableName};
-			IndexerMapReduce.main(indexerDetail);
+			
+			new KVIndexer().execute(indexerDetail);
 
 			ColGenerator.generate(fm, SRC_TEMP, "Column");
 
@@ -284,10 +289,11 @@ public class KVShell {
 			}
 			
 			String schemaStr = sb.toString();
-			FieldMapping fm = FieldMapping.getXMLStringFieldMappings(schemaStr);
+			FieldMapping fm = FieldMapping.getInstance();
+			fm.parseXMLString(schemaStr);
 
 			IEnricher enricher = null;
-			if(null == searcher)searcher = new Searcher("kv-store", fm);
+			if(null == searcher)searcher = new Searcher("kv-store", fm, null);
 			
 			searcher.search(fm.tableName, arguments[1], arguments[2], arguments[3], blankRow, enricher);
 			String[] selectFields = arguments[2].split(",");
@@ -307,7 +313,7 @@ public class KVShell {
 	public void sort(String sorters) throws IOException {
 		try {
 			String[] sorterA = sorters.split(",");
-			List<KVRowI> data = searcher.sort(sorterA);
+			Set<KVRowI> data = searcher.sort(sorterA);
 			int index = 0;
 			for (KVRowI aRow : data) {
 				writer.println(aRow.getValue(queryFields.get(index++)) + "\t" + aRow.getValue(queryFields.get(index++)) + "\t" + aRow.getValue(queryFields.get(index++))+ "\t" + aRow.getValue(queryFields.get(index++)));
@@ -322,7 +328,7 @@ public class KVShell {
 
 	public void showFacet(String facetQuery){
 		String[] facetA = facetQuery.split(",");
-		List<KVRowI> data = searcher.getResult();
+		Set<KVRowI> data = searcher.getResult();
 		for (KVRowI aRow : data) {
 			for (String facet : facetA) {
 				writer.print(aRow.getValue(facet) + "\t");				

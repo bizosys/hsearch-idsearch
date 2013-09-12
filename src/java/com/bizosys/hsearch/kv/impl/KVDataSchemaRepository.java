@@ -67,7 +67,9 @@ public class KVDataSchemaRepository {
 				switch (dataTypeChar) {
 				case 't':
 					
-					if(fld.isDocIndex)dataTypeField = Datatype.FREQUENCY_INDEX;
+					if(fld.isDocIndex && !fld.isStored)
+						 dataTypeField = Datatype.FREQUENCY_INDEX;
+
 					else dataTypeField = Datatype.STRING;
 					
 					break;
