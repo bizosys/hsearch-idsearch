@@ -8,7 +8,6 @@ public class HsearchFacet {
 	
 	private String field = null;
 	private TypedObject value = null;
-	
 	private List<HsearchFacet> internalFacets = null;
 
 	public HsearchFacet(final String field, final TypedObject value, final List<HsearchFacet> internalFacets) {
@@ -35,12 +34,9 @@ public class HsearchFacet {
                 return child;
             }
         }
-        return getChild(new HsearchFacet(field, data, new ArrayList<HsearchFacet>()));
-    }
-
-	private final HsearchFacet getChild(final HsearchFacet child) {
-        internalFacets.add(child);
-        return child;
+        HsearchFacet facet = new HsearchFacet(field, data, new ArrayList<HsearchFacet>()); 
+        internalFacets.add(facet);
+        return facet;
     }
 	
 	@Override

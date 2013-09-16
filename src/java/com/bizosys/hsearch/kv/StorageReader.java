@@ -1,6 +1,7 @@
 package com.bizosys.hsearch.kv;
 
 import java.io.IOException;
+import java.util.Collection;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
@@ -21,6 +22,7 @@ import com.bizosys.hsearch.federate.FederatedSearchException;
 import com.bizosys.hsearch.idsearch.config.DocumentTypeCodes;
 import com.bizosys.hsearch.idsearch.config.FieldTypeCodes;
 import com.bizosys.hsearch.kv.impl.ComputeKV;
+import com.bizosys.hsearch.kv.impl.Datatype;
 import com.bizosys.hsearch.kv.impl.FieldMapping.Field;
 import com.bizosys.hsearch.kv.impl.KVDataSchemaRepository;
 import com.bizosys.hsearch.kv.impl.KVDataSchemaRepository.KVDataSchema;
@@ -87,7 +89,7 @@ public class StorageReader implements Callable<Object> {
 					}
 
 					ComputeKV compute = new ComputeKV();
-					compute.kvType = outputType;
+					compute.kvType = (outputType == Datatype.FREQUENCY_INDEX) ? Datatype.STRING : outputType;
 					compute.rowContainer = new HashMap<Integer, Object>();
 					
 					long start = System.currentTimeMillis();
@@ -104,7 +106,7 @@ public class StorageReader implements Callable<Object> {
 				case HSearchProcessingInstruction.PLUGIN_CALLBACK_ID:
 					
 					//call freetext if it is
-					if(fld.isDocIndex && !fld.isStored){
+					if(fld.isDocIndex && fld.isAnalyzed){
 						return freeTextSearch(fieldName, outputType);
 		    		}
 					else{
@@ -180,7 +182,8 @@ public class StorageReader implements Callable<Object> {
 				currentRowId = mergeid + "_" + wordHash.charAt(0) + "_" + wordHash.charAt(wordHash.length() - 1);
 				
 				byte[] data = KVRowReader.getAllValues(tableName, currentRowId.getBytes(), filter, callBackType, outputType);
-				byte[] dataChunk = SortedBytesArray.getInstanceArr().parse(data).values().iterator().next();
+				Collection<byte[]> dataL = SortedBytesArray.getInstanceArr().parse(data).values();
+				byte[] dataChunk = dataL.isEmpty() ? null : dataL.iterator().next();
 				Set<Integer> ids = new HashSet<Integer>();
 				SortedBytesInteger.getInstance().parse(dataChunk).values(ids);
 				

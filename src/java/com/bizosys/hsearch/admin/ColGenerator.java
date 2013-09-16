@@ -48,7 +48,7 @@ public class ColGenerator {
 		dataTypesPrimitives.put("byte", 'c');
 	}
 
-	public static void generate(FieldMapping fm , String path, String className) throws IOException {
+	public static void generate(final FieldMapping fm , final String path, final String completeClassName) throws IOException {
 
 		String template = getTextFileContent("Column.tmp");
 				
@@ -68,7 +68,8 @@ public class ColGenerator {
 		
 		for (Map.Entry<String, Field> entry : fm.nameSeqs.entrySet()) {
 			FieldMapping.Field fld = entry.getValue();
-						
+			if(!fld.isStored)
+				continue;
 			String casted ="";
 			String fieldValue = "";
 			char dataTypeChar = dataTypesPrimitives.get(fld.fieldType.toLowerCase());
@@ -141,7 +142,19 @@ public class ColGenerator {
 				setId = "this."+fld.sourceName.toLowerCase();
 			}
 		}
-
+		
+		int index = completeClassName.lastIndexOf('.');
+		String pkg = "";
+		String className = completeClassName;
+		if(index > 0){
+			pkg = completeClassName.substring(0,index);
+			className = completeClassName.substring(index + 1);
+		}
+		
+		if(0 == pkg.length())
+			template = template.replace("--PACKAGE_NAME--", "");
+		else
+			template = template.replace("--PACKAGE_NAME--", "package " + pkg + ";");
 		template = template.replace("--COLUMN-NAME--", className);
 		template = template.replace("--PARAMS--", params);
 		template = template.replace("--SETTERS--", setters);
@@ -190,10 +203,17 @@ public class ColGenerator {
 			} catch (Exception ex) {ex.printStackTrace(System.err);}
 		}
 	}
-
+	
+	public static void createVO(final FieldMapping fm, final String outputPath, final String completeClassName){
+		try {
+			ColGenerator.generate(fm, outputPath, completeClassName);
+		} catch (Exception e) {
+			e.printStackTrace(System.err);
+		}
+	}
+	
 	public static void main(String[] args) throws IOException, ParseException {
 		FieldMapping fm = FieldMapping.getInstance();
-		
 		if ( args.length < 1) {
 			File file = new File("./src/java/com/bizosys/hsearch/admin/schema.xml");
 			if ( ! file.exists()) {
@@ -201,8 +221,6 @@ public class ColGenerator {
 				System.exit(1);
 			}
 		}
-		
-		fm.parseXMLString(args[0]);
 		ColGenerator.generate(fm, "/tmp", "Column");
 	}
 

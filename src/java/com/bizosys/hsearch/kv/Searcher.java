@@ -26,7 +26,6 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
-import java.util.ListIterator;
 import java.util.Map;
 import java.util.Set;
 import java.util.TreeSet;
@@ -56,9 +55,9 @@ import com.bizosys.hsearch.kv.impl.KVDocIndexer;
 import com.bizosys.hsearch.kv.impl.KVRowI;
 import com.bizosys.hsearch.treetable.client.HSearchProcessingInstruction;
 import com.bizosys.hsearch.util.HSearchLog;
+import com.bizosys.hsearch.util.ShutdownCleanup;
 
 public class Searcher {
-	private static ExecutorService ES = null;
 
 	public String dataRepository = "";
 	public String schemaRepositoryName = "";
@@ -70,29 +69,20 @@ public class Searcher {
 	public static final Pattern patternRemoveQuotes = Pattern.compile("\"");
 	
 	private Set<KVRowI> resultset = null;
-	private Map<String, String> filters = null;
+	private Map<String, Set<Object>> facetsMap = null;
+	private Map<String, List<HsearchFacet>> pivotFacetsMap = null;
 	public KVDataSchemaRepository repository = KVDataSchemaRepository.getInstance();
 	public KVDocIndexer indexer = new KVDocIndexer();
 	public Analyzer analyzer = null;
-
-	private Map<String, Set<Object>> facetsMap = null;
-	private Map<String, List<HsearchFacet>> pivotFacetsMap = null;
-	
 	
 	public static boolean DEBUG_ENABLED = HSearchLog.l.isDebugEnabled();
 	public static boolean INFO_ENABLED = HSearchLog.l.isInfoEnabled();
-	
-	private Searcher(){
-	}
-	
+		
 	public Searcher(final String schemaName, final FieldMapping fm, final Analyzer analyzer){
 		this.schemaRepositoryName = schemaName;
 		this.repository.add(schemaRepositoryName, fm);
 		this.resultset = new HashSet<KVRowI>();
-		this.filters = new HashMap<String, String>();
 		this.analyzer = analyzer;
-		facetsMap = new HashMap<String, Set<Object>>();
-		pivotFacetsMap = new HashMap<String, List<HsearchFacet>>();
 	}
 
 	public final Set<String> searchRegex(final String dataRepository,
@@ -100,6 +90,7 @@ public class Searcher {
 			KVRowI blankRow, IEnricher... enrichers) throws IOException, InterruptedException, ExecutionException, FederatedSearchException  {
 
 		long start = System.currentTimeMillis();
+		
 		List<String> rowIds = HReader.getMatchingRowIds(dataRepository, mergeIdPattern);
 		if ( null == rowIds) return null;
 		if ( rowIds.size() == 0 ) return null;
@@ -110,7 +101,7 @@ public class Searcher {
 			lastIndex = mergeIdWithFieldId.lastIndexOf('_');
 			mergeIds.add(  mergeIdWithFieldId.substring(0, lastIndex) );
 		}
-
+		
 		if ( DEBUG_ENABLED) {
 			long end = System.currentTimeMillis();
 			int mergeIdsT = ( null == mergeIds) ? 0 : mergeIds.size();
@@ -126,7 +117,7 @@ public class Searcher {
 			long end = System.currentTimeMillis();
 			HSearchLog.l.debug( mergeIdPattern +  " fields retrieved in Time ms, " + (end - start));
 		}
-
+		
 		return mergeIds;
 	}
 	
@@ -216,7 +207,6 @@ public class Searcher {
 				colonIndex = splittedQuery.indexOf(':');
 				fieldName = splittedQuery.substring(0,colonIndex);
 				fieldQuery = "*|" + splittedQuery.substring(colonIndex + 1,splittedQuery.length());
-				filters.put(fieldName, fieldQuery);
 				QueryPart qpart = new QueryPart(mergeId + "_" + fieldName);
 				qpart.setParam("query", fieldQuery);
 				queryDetails.put(queryId, qpart);
@@ -224,6 +214,7 @@ public class Searcher {
 			
 			FederatedSearch ff = createFederatedSearch();
 			BitSetOrSet mixedQueryMatchedIds = ff.execute(whereQuery, queryDetails);
+
 			return mixedQueryMatchedIds;
 			
 		} catch (Exception e) {
@@ -232,13 +223,17 @@ public class Searcher {
 		}
 	}
 
+	 protected static ExecutorService ES = null;
 	 private void init(){
-		 if(null == ES) ES = Executors.newFixedThreadPool(20);
+		 if(null == ES) {
+			 ES = Executors.newFixedThreadPool(30);
+			 ShutdownCleanup.getInstance().addExectorService(ES);
+		 }
 	 }
 
 	private final Map<String, Object> getValues(final String mergeId, final String selectFields) throws IOException, InterruptedException, ExecutionException {
 		
-		String filterQuery = null;
+		String filterQuery = "*|*";
 		String rowId = null;
 		Map<String, Object> individualResults = new HashMap<String, Object>();
 
@@ -246,10 +241,6 @@ public class Searcher {
 		Map<String, Future<Object>> fieldWithfuture = new HashMap<String, Future<Object>>();
 		init();
 		for (String field : selectFieldsA) {
-			filterQuery = filters.get(field);
-			if(null == filterQuery)
-				filterQuery = "*|*";
-			
 			rowId = mergeId + "_" + field;
 			StorageReader reader = new StorageReader(repository, schemaRepositoryName, indexer, analyzer, dataRepository, rowId, filterQuery, HSearchProcessingInstruction.PLUGIN_CALLBACK_COLS);
 			Future<Object> future = ES.submit(reader);
@@ -264,53 +255,6 @@ public class Searcher {
 		
 		return individualResults;
 	}
-	
-	@SuppressWarnings("unchecked")
-	private final Set<Object> getValues(final String mergeId, final String selectFields,  final String foundIds, final Map<String, Object> individualResults)
-		throws IOException, InterruptedException, ExecutionException {
-		
-		String filterQuery = null;
-		String rowId = null;
-		BitSetOrSet destination = new BitSetOrSet();
-
-		String[] selectFieldsA = patternComma.split(selectFields);
-		boolean isFirst = true;
-
-		try {
-			for (String field : selectFieldsA) {
-				
-				filterQuery = foundIds + "|*";
-				rowId = mergeId + "_" + field;
-				
-				StorageReader reader = new StorageReader(repository, schemaRepositoryName, indexer, 
-					analyzer, dataRepository, rowId, filterQuery, HSearchProcessingInstruction.PLUGIN_CALLBACK_COLS);
-				
-				Map<Integer, Object> readingIdWithValue = (Map<Integer, Object>) reader.readStorage() ;
-				if ( DEBUG_ENABLED ) {
-					int readingIdWithValueLen = ( null == readingIdWithValue) ? 0 : readingIdWithValue.size();
-					if(0 == readingIdWithValueLen) HSearchLog.l.debug("No data fetched for " + field);
-				}
-
-				individualResults.put(field, readingIdWithValue);
-				Set<Integer> readingId = new HashSet<Integer>(readingIdWithValue.keySet());
-
-				if(isFirst) {
-					isFirst = false;
-					destination.setDocumentIds(readingId);
-					continue;
-				}
-				
-				BitSetOrSet source = new BitSetOrSet();
-				source.setDocumentIds(readingId);
-				destination.and(source);
-			}
-			return destination.getDocumentIds();
-
-		} catch (FederatedSearchException e) {
-			HSearchLog.l.fatal("Federated Search Exception", e);
-			throw new IOException(e);
-		}
-	}	
 
 	public final Set<KVRowI> sort (final String... sorters) throws ParseException {
 		
@@ -368,32 +312,49 @@ public class Searcher {
 	}
 
 	@SuppressWarnings("unchecked")
-	public final Map<String, Set<Object>> facet(final String dataRepository, final String mergeId, final String facetQuery, final String facetFields, final String facetSort, final KVRowI combiner) throws IOException, ParseException, InterruptedException, ExecutionException{
-		Map<String, Object> individualResults = new HashMap<String, Object>(); 
-		BitSetOrSet foundIds = getIds(mergeId, facetQuery);
+	public final Map<String, Set<Object>> facet(final String dataRepository, final String mergeId, final String facetFields, final String facetQuery, final KVRowI aBlankrow) throws IOException, ParseException, InterruptedException, ExecutionException, FederatedSearchException{
+		 
 		this.dataRepository = dataRepository;
-		getValues(mergeId, facetFields, foundIds.toString(), individualResults);
-		
+		Map<Integer, Object> foundResults = null;
+		BitSetOrSet foundValues = null;
+		BitSetOrSet foundIds = null;
+		Set<Integer> documentIds = null;
+		facetsMap = new HashMap<String, Set<Object>>();
+		boolean isWhereQueryEmpty = ( null == facetQuery) ? true : (facetQuery.length() == 0);
+		if(!isWhereQueryEmpty)
+			foundIds = getIds(mergeId, facetQuery);
+
+		Map<String, Object> individualResults  = getValues(mergeId, facetFields);
 		for (String field : individualResults.keySet()) {
-			Map<Integer, Object> res = (Map<Integer, Object>) individualResults.get(field);
-			Set<Object> facets = new TreeSet<Object>(); 
-			for (Integer key : res.keySet()) {
-				facets.add(res.get(key));
+			foundResults = (Map<Integer, Object>) individualResults.get(field);
+			documentIds = new HashSet<Integer>(foundResults.keySet());
+			
+			//if where query is not empty do the intersection
+			if(!isWhereQueryEmpty){
+				foundValues = new BitSetOrSet();
+				foundValues.setDocumentIds(documentIds);
+				foundValues.and(foundIds);
+				documentIds = foundValues.getDocumentIds();
 			}
+			
+			Set<Object> facets = new TreeSet<Object>(); 
+
+			for (Integer id : documentIds) 
+				facets.add(foundResults.get(id));
 			facetsMap.put(field, facets);
 		}
 		
 		return facetsMap;
 	}
 	
-	public final Map<String, List<HsearchFacet>> pivotFacet(final String dataRepository, final String mergeId, final String facetQuery, final String pivotFacetFields, final String pivotFacetSort, final KVRowI combiner) throws IOException, ParseException, InterruptedException, ExecutionException, FederatedSearchException{
+	public final Map<String, List<HsearchFacet>> pivotFacet(final String dataRepository, final String mergeId, final String pivotFacetFields, final String facetQuery, final KVRowI aBlankrow) throws IOException, ParseException, InterruptedException, ExecutionException, FederatedSearchException{
 		String[] pivotFacets = pivotFacetFields.split("\\|");
+		pivotFacetsMap = new HashMap<String, List<HsearchFacet>>();
 		IEnricher enricher = null;
 		for (String aPivotFacet : pivotFacets) {
 			String[] fields = patternComma.split(aPivotFacet);
-			search(dataRepository, mergeId, aPivotFacet, facetQuery, combiner, enricher);
-			String[] sorters = patternComma.split(pivotFacetSort);
-			Set<KVRowI> result = sort(sorters);
+			search(dataRepository, mergeId, aPivotFacet, facetQuery, aBlankrow, enricher);
+			Set<KVRowI> result = getResult();
 			HsearchFacet root = new HsearchFacet("root", new TypedObject("root"), new ArrayList<HsearchFacet>());
 			HsearchFacet current = root;
 			for (KVRowI kvRowI : result) {
@@ -410,16 +371,8 @@ public class Searcher {
 
 	public final void clear() {
 		if(null != resultset)resultset.clear();
-		if(null != filters)filters.clear();
-		if(null != ES)ES.shutdown();
 		if(null != facetsMap)facetsMap.clear();
 		if(null != pivotFacetsMap)pivotFacetsMap.clear();
-	}
-	
-	private final Searcher cloneShallow() {
-		Searcher searcher = new Searcher();
-		searcher.schemaRepositoryName = this.schemaRepositoryName;
-		return searcher;
 	}
 	
 	private FederatedSearch createFederatedSearch() {
@@ -440,13 +393,5 @@ public class Searcher {
 			}
 		};
 		return ff;
-	}
-	
-	public final void setFieldTypeCodes(final Map<String, Integer> ftypes) throws IOException {
-		this.indexer.addFieldTypes(ftypes);
-	}
-
-	public final void setDocumentTypeCodes(final Map<String, Integer> dtypes) throws IOException {
-		indexer.addDoumentTypes(dtypes);
 	}
 }

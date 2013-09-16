@@ -18,29 +18,57 @@
 * limitations under the License.
 */
 
---PACKAGE_NAME--
+package com.bizosys.hsearch.kv;
 
 import com.bizosys.hsearch.functions.GroupSortedObject;
 import com.bizosys.hsearch.kv.impl.KVDataSchemaRepository.KVDataSchema;
 import com.bizosys.hsearch.kv.impl.KVRowI;
 import com.bizosys.hsearch.kv.TypedObject;
 
-public class --COLUMN-NAME-- extends GroupSortedObject implements KVRowI{
+public class ExamResult extends GroupSortedObject implements KVRowI{
 	
 	public String mergeId = null;
---PARAMS--
+	public int empid = 0;
+	public String classz = null;
+	public float marks = 0.0f;
+	public String location = null;
+	public int age = 0;
+	public String role = null;
+	public String comments = null;
+
 		
 	KVDataSchema dataSchema = null;
 	
-	public --COLUMN-NAME--() {}
-	public --COLUMN-NAME--(KVDataSchema dataScheme) {
+	public ExamResult() {}
+	public ExamResult(KVDataSchema dataScheme) {
 		this.dataSchema = dataScheme;
 	}
 
 	public final void setValue(final String key, final Object value){
 		int keySeq = this.dataSchema.nameToSeqMapping.get(key);
 		switch ( keySeq ) {
---SETTERS--
+		case 1:
+			 this.empid = (Integer)value;
+		 break;
+		case 0:
+			 this.classz = value.toString();
+		 break;
+		case 5:
+			 this.marks = (Float)value;
+		 break;
+		case 4:
+			 this.location = value.toString();
+		 break;
+		case 2:
+			 this.age = (Integer)value;
+		 break;
+		case 3:
+			 this.role = value.toString();
+		 break;
+		case 7:
+			 this.comments = value.toString();
+		 break;
+
 		}
 	}
 	
@@ -48,7 +76,21 @@ public class --COLUMN-NAME-- extends GroupSortedObject implements KVRowI{
 	public final Object getValue(final String key){
 		int keySeq = this.dataSchema.nameToSeqMapping.get(key);
 		switch ( keySeq ) {
---GETTERS--
+		case 1:
+			 return this.empid;
+		case 0:
+			 return this.classz;
+		case 5:
+			 return this.marks;
+		case 4:
+			 return this.location;
+		case 2:
+			 return this.age;
+		case 3:
+			 return this.role;
+		case 7:
+			 return this.comments;
+
 		}
 		return null;
 	}
@@ -57,7 +99,21 @@ public class --COLUMN-NAME-- extends GroupSortedObject implements KVRowI{
 	public TypedObject getValueNative(String name) {
 		int keySeq = this.dataSchema.nameToSeqMapping.get(name);
 		switch ( keySeq ) {
---GETTERS_NATIVE--
+		case 1:
+			 return new TypedObject(this.empid);
+		case 0:
+			 return new TypedObject(this.classz);
+		case 5:
+			 return new TypedObject(this.marks);
+		case 4:
+			 return new TypedObject(this.location);
+		case 2:
+			 return new TypedObject(this.age);
+		case 3:
+			 return new TypedObject(this.role);
+		case 7:
+			 return new TypedObject(this.comments);
+
 		}
 		return null;
 	}		
@@ -65,7 +121,7 @@ public class --COLUMN-NAME-- extends GroupSortedObject implements KVRowI{
 	@Override
 	public final boolean getBooleanField(final int fldSequence) {
 		switch ( fldSequence ) {
---BOOLEAN_SEQUENCER--
+
 		}
 		return false;
 	}
@@ -73,7 +129,7 @@ public class --COLUMN-NAME-- extends GroupSortedObject implements KVRowI{
 	@Override
 	public final byte getByteField(final int fldSequence) {
 		switch ( fldSequence ) {
---BYTE_SEQUENCER--
+
 		}
 		return 0;
 	}
@@ -81,7 +137,7 @@ public class --COLUMN-NAME-- extends GroupSortedObject implements KVRowI{
 	@Override
 	public final short getShortField(final int fldSequence) {
 		switch ( fldSequence ) {
---SHORT_SEQUENCER--
+
 		}
 		return 0;
 	}
@@ -89,7 +145,11 @@ public class --COLUMN-NAME-- extends GroupSortedObject implements KVRowI{
 	@Override
 	public final int getIntegerField(final int fldSequence) {
 		switch ( fldSequence ) {
---INTEGER_SEQUENCER--
+	case 1:
+		 return this.empid;
+	case 2:
+		 return this.age;
+
 		}
 		return 0;
 	}
@@ -97,7 +157,9 @@ public class --COLUMN-NAME-- extends GroupSortedObject implements KVRowI{
 	@Override
 	public final float getFloatField(final int fldSequence) {
 		switch ( fldSequence ) {
---FLOAT_SEQUENCER--
+	case 5:
+		 return this.marks;
+
 		}
 		return 0;
 	}
@@ -105,7 +167,7 @@ public class --COLUMN-NAME-- extends GroupSortedObject implements KVRowI{
 	@Override
 	public final double getDoubleField(final int fldSequence) {
 		switch ( fldSequence ) {
---DOUBLE_SEQUENCER--
+
 		}
 		return 0;
 	}
@@ -113,7 +175,7 @@ public class --COLUMN-NAME-- extends GroupSortedObject implements KVRowI{
 	@Override
 	public final long getLongField(final int fldSequence) {
 		switch ( fldSequence ) {
---LONG_SEQUENCER--
+
 		}
 		return 0;
 	}
@@ -121,7 +183,15 @@ public class --COLUMN-NAME-- extends GroupSortedObject implements KVRowI{
 	@Override
 	public final String getStringField(final int fldSequence) {
 		switch ( fldSequence ) {
---STRING_SEQUENCER--
+	case 0:
+		 return this.classz;
+	case 4:
+		 return this.location;
+	case 3:
+		 return this.role;
+	case 7:
+		 return this.comments;
+
 		}
 		return null;
 	}
@@ -133,12 +203,12 @@ public class --COLUMN-NAME-- extends GroupSortedObject implements KVRowI{
 	
 	@Override
 	public final KVRowI create() {
-		return new --COLUMN-NAME--();
+		return new ExamResult();
 	}
 
 	@Override
 	public final KVRowI create(final KVDataSchema dataSchema) {
-		return new --COLUMN-NAME--(dataSchema);
+		return new ExamResult(dataSchema);
 	}
 
 
@@ -149,12 +219,12 @@ public class --COLUMN-NAME-- extends GroupSortedObject implements KVRowI{
 	
 	@Override
 	public final void setId(final Integer id) {
-		--SET_ID-- = id;
+		this.empid = id;
 	}
 
 	@Override
 	public final int getId() {
-		return --SET_ID--;
+		return this.empid;
 	}
 
 	@Override

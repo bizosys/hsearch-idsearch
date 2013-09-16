@@ -32,8 +32,6 @@ import com.bizosys.hsearch.kv.MapperKVBase;
 import com.bizosys.hsearch.kv.impl.ComputeFactory;
 import com.bizosys.hsearch.kv.impl.ICompute;
 import com.bizosys.hsearch.treetable.client.HSearchProcessingInstruction;
-import com.bizosys.hsearch.util.HSearchLog;
-
 
 public final class MapperKV extends MapperKVBase {
 
@@ -43,8 +41,8 @@ public final class MapperKV extends MapperKVBase {
 
     HSearchProcessingInstruction instruction = null;
 
-    ICompute compute = null;
-    Set<Integer> ids = new HashSet<Integer>();
+    public ICompute compute = null;
+    public Set<Integer> ids = new HashSet<Integer>();
     
     @Override
     public final void setOutputType(final HSearchProcessingInstruction outputTypeCode) {

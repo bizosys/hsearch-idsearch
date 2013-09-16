@@ -21,14 +21,10 @@
 package com.bizosys.hsearch.kv;
 
 import java.io.IOException;
-import java.util.ArrayList;
-import java.util.List;
 
 import org.apache.hadoop.hbase.client.Result;
 import org.apache.hadoop.hbase.client.ResultScanner;
 import org.apache.hadoop.hbase.client.Scan;
-import org.apache.hadoop.hbase.filter.Filter;
-import org.apache.hadoop.hbase.filter.PrefixFilter;
 
 import com.bizosys.hsearch.hbase.HBaseFacade;
 import com.bizosys.hsearch.hbase.HTableWrapper;
@@ -46,14 +42,14 @@ public class KVRowReader {
 		HBaseFacade facade = null;
 		ResultScanner scanner = null;
 		HTableWrapper table = null;
+		byte[] storedBytes = null;
 		try {
 			facade = HBaseFacade.getInstance();
-			
 			table = facade.getTable(tableName);
 			
 			Scan scan = new Scan();
 			scan.setCacheBlocks(true);
-			scan.setCaching(1);
+			scan.setCaching(500);
 			scan.setMaxVersions(1);
 			
 			scan.setStartRow(row);
@@ -64,10 +60,9 @@ public class KVRowReader {
 	    	scan.setFilter(sf);
 	    	
 			scanner = table.getScanner(scan);
-			
 			Result r = scanner.iterator().next();
-			return r.getValue(COL_FAM.getBytes(), new byte[]{0});
-
+			storedBytes = (null == r) ? null : r.getValue(COL_FAM.getBytes(), new byte[]{0});
+			return storedBytes;
 		} catch ( IOException ex) {
 			throw ex;
 		} finally {

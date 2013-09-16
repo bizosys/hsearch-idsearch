@@ -38,7 +38,7 @@ public class KVIndexer {
 
 	public static String XML_FILE_PATH = "CONFIG_XMLFILE_LOCATION";
 	public static char FIELD_SEPARATOR = '|';
-	public static byte[] FAM_NAME = new byte[]{1};
+	public static byte[] FAM_NAME = "1".getBytes();
 	public static byte[] COL_NAME = new byte[]{0};
 
 	public static class KV {
@@ -51,9 +51,10 @@ public class KVIndexer {
 			this.value = value;
 		}
 	}
-	static Map<String, Character> dataTypesPrimitives = new HashMap<String, Character>();
+	public static Map<String, Character> dataTypesPrimitives = new HashMap<String, Character>();
 	static {
 		dataTypesPrimitives.put("string", 't');
+		dataTypesPrimitives.put("text", 'e');
 		dataTypesPrimitives.put("int", 'i');
 		dataTypesPrimitives.put("float", 'f');
 		dataTypesPrimitives.put("double", 'd');

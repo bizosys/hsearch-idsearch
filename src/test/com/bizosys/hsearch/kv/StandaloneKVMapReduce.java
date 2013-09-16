@@ -1,20 +1,15 @@
-package com.bizosys.hsearch.kv.impl;
+package com.bizosys.hsearch.kv;
 
-import java.io.BufferedReader;
 import java.io.IOException;
-import java.io.InputStreamReader;
-import java.util.Arrays;
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Map;
+import java.util.Map.Entry;
 import java.util.Set;
 
-import org.apache.hadoop.conf.Configuration;
-import org.apache.hadoop.fs.FileSystem;
-import org.apache.hadoop.fs.Path;
-import org.apache.hadoop.io.LongWritable;
 import org.apache.hadoop.io.Text;
-import org.apache.hadoop.mapreduce.Mapper;
 import org.apache.lucene.analysis.Analyzer;
 import org.apache.lucene.analysis.standard.StandardAnalyzer;
 import org.apache.lucene.index.Term;
@@ -23,16 +18,20 @@ import org.apache.lucene.queryParser.QueryParser;
 import org.apache.lucene.search.Query;
 import org.apache.lucene.util.Version;
 
-import com.bizosys.hsearch.kv.impl.KVIndexer.KV;
+import com.bizosys.hsearch.hbase.HWriter;
+import com.bizosys.hsearch.hbase.NV;
+import com.bizosys.hsearch.hbase.RecordScalar;
+import com.bizosys.hsearch.kv.impl.FieldMapping;
+import com.bizosys.hsearch.kv.impl.KVIndexer;
+import com.bizosys.hsearch.kv.impl.KVReducer;
 import com.bizosys.hsearch.util.Hashing;
 import com.bizosys.hsearch.util.LineReaderUtil;
 import com.bizosys.hsearch.util.LuceneUtil;
 
-public class KVMapper extends Mapper<LongWritable, Text, Text, Text> {
-    	
-	String[] result = null;
+public class StandaloneKVMapReduce {
+
 	Set<Integer> neededPositions = null; 
-	FieldMapping fm = FieldMapping.getInstance();
+	FieldMapping fm = null;
 
 	Map<Integer,String> rowIdMap = new HashMap<Integer, String>();
 	StringBuilder rowkKeybuilder = new StringBuilder();
@@ -41,58 +40,54 @@ public class KVMapper extends Mapper<LongWritable, Text, Text, Text> {
 	String wordhashStr;
 	char firstChar;
 	char lastChar;
+	Analyzer analyzer = null;
 	QueryParser qp = null;
 	Query q = null;
-	Analyzer analyzer = null;
-
-	public KV onMap(KV kv ) {
-		return kv;
-	}
-
-	@Override
-	protected void setup(Context context) throws IOException, InterruptedException {
-		
-		Configuration conf = context.getConfiguration();
-		String path = conf.get(KVIndexer.XML_FILE_PATH);
-		StringBuilder sb = new StringBuilder();
-		//TODO:Needs to be taken from xml file
+	KVReducer reducer = new KVReducer();
+	String tableName = null;
+	
+	public StandaloneKVMapReduce(){
 		analyzer = new StandardAnalyzer(Version.LUCENE_36);
 		qp = new QueryParser(Version.LUCENE_36, "K", analyzer);
-		
-		try {
-			Path hadoopPath = new Path(path);
-			FileSystem fs = FileSystem.get(new Configuration());
-			BufferedReader br = new BufferedReader(new InputStreamReader(fs.open(hadoopPath)));
-			String line = null;
-			while((line = br.readLine())!=null) {
-				sb.append(line);
-			}
-
-			fm.parseXMLString(sb.toString());
-			neededPositions = fm.fieldSeqs.keySet();
-			KVIndexer.FIELD_SEPARATOR = fm.fieldSeparator;
-
-		} catch (Exception e) {
-			System.err.println("Cannot read from path " + path);
-		}
 	}
 	
-    @Override
-    protected void map(LongWritable key, Text value, Context context) throws IOException, InterruptedException {
+	public static void main(String[] args) {
 
-    	if ( null == result) {
-    		result = value.toString().split("|");
-    	}
-    	Arrays.fill(result, null);
-    	LineReaderUtil.fastSplit(result, value.toString(), KVIndexer.FIELD_SEPARATOR);
+	}
+	
+	public void indexData(final String data, final FieldMapping fm) throws IOException{
+		
+		this.fm = fm;
+		tableName = fm.tableName;
+		neededPositions = fm.fieldSeqs.keySet();
+		List<String> eachRecord = new ArrayList<String>();
+		Map<Text, List<Text>> mappings = new HashMap<Text, List<Text>>();
+		LineReaderUtil.fastSplit(eachRecord, data, Initalizer.RECORD_SEPARATOR);
+		for (String aLine : eachRecord) {
+			if(0 == aLine.length())
+				continue;
+			String[] result = aLine.split("\\|");
+			map(result, mappings);
+		}
+		
+		for (Entry<Text, List<Text>> entry : mappings.entrySet()) {
+			reduce(entry.getKey(), entry.getValue());			
+		}
+		
+		System.out.println("Successfully indexed the data");
+	}
+	
+	public void map(String[] result, Map<Text, List<Text>> mappings){
     	int joinKeyPos = -1;
     	String fldValue = "";
     	String rowId = "";
     	String rowKey = "";
     	String rowVal = "";
+    	Text key;
+    	Text val;
     	rowIdMap.clear();
     	boolean isMergeOrjoinKey = false;
-    	
+
     	for (int neededIndex : neededPositions) {
 			if(neededIndex < 0)continue;
     		FieldMapping.Field fld = fm.fieldSeqs.get(neededIndex);
@@ -137,10 +132,6 @@ public class KVMapper extends Mapper<LongWritable, Text, Text, Text> {
     		} else {
     			if (isFieldNull) fldValue = fld.defaultValue;
     		}
-    		
-    		//TODO:call onMap method if needed to modify key and value
-    		//KV kv = onMap(new KVIndexer.KV(rowId, fldValue));
-    		
     		//if free text index needs to be done
     		if(fld.isDocIndex){
 
@@ -165,9 +156,18 @@ public class KVMapper extends Mapper<LongWritable, Text, Text, Text> {
                 		
                 		rowkKeybuilder.delete(0, rowkKeybuilder.length());
  
-                		rowVal = result[joinKeyPos] + KVIndexer.FIELD_SEPARATOR + term.text();
-            			
-            			context.write(new Text(rowKey), new Text(rowVal));
+                		rowVal = result[joinKeyPos] + Initalizer.FIELD_SEPARATOR + term.text();
+                		
+                		key = new Text(rowKey);
+                		val = new Text(rowVal);
+                		
+                		if(mappings.containsKey(key))
+                			mappings.get(key).add(val);
+                		else{
+                			List<Text> values = new ArrayList<Text>();
+                			values.add(val);
+                			mappings.put(key, values);
+                		}
     				}
     				
 				} catch (ParseException e) {
@@ -175,10 +175,10 @@ public class KVMapper extends Mapper<LongWritable, Text, Text, Text> {
 					e.printStackTrace();
 				}
     		}
-
+    		
     		if(!fld.isStored)
     			continue;
-
+    		
     		rowkKeybuilder.delete(0, rowkKeybuilder.capacity());
     		isEmpty = ( null == rowId) ? true : (rowId.length() == 0);
     		rowKey = ( isEmpty) ? fld.name : rowId + fld.name;
@@ -190,8 +190,76 @@ public class KVMapper extends Mapper<LongWritable, Text, Text, Text> {
     		rowkKeybuilder.delete(0, rowkKeybuilder.length());
     		
     		rowVal = result[joinKeyPos] + KVIndexer.FIELD_SEPARATOR + fldValue;
+    		key = new Text(rowKey);
+    		val = new Text(rowVal);
     		
-      		context.write(new Text(rowKey), new Text(rowVal));
-    	}
-    }
+    		if(mappings.containsKey(key))
+    			mappings.get(key).add(val);
+    		else{
+    			List<Text> values = new ArrayList<Text>();
+    			values.add(val);
+    			mappings.put(key, values);
+    		}
+		}
+	}
+	
+	public void reduce(Text key, List<Text> values) throws IOException{
+
+		String keyData = key.toString();
+    	String[] resultKey = new String[4];
+		
+    	LineReaderUtil.fastSplit(resultKey, keyData, KVIndexer.FIELD_SEPARATOR);
+		
+    	String rowKey = resultKey[0];
+		String dataType = resultKey[1].toLowerCase();
+		String fieldName = resultKey[2];
+		boolean isAnalyzed = resultKey[3].equalsIgnoreCase("true") ? true : false;
+		
+		byte[] finalData = null;
+		char dataTypeChar = KVIndexer.dataTypesPrimitives.get(dataType);
+		
+		switch (dataTypeChar) {
+
+			case 't':
+				finalData = reducer.indexString(values);
+				break;
+
+			case 'e':
+				finalData = reducer.indexText(values, isAnalyzed, fieldName);
+				break;
+
+			case 'i':
+				finalData = reducer.indexInteger(values);
+				break;
+
+			case 'f':
+				finalData = reducer.indexFloat(values);
+				break;
+
+			case 'd':
+				finalData = reducer.indexDouble(values);
+				break;
+
+			case 'l':
+				finalData = reducer.indexLong(values);
+				break;
+			
+			case 'b':
+				finalData = reducer.indexBoolean(values);
+				break;
+
+			case 'c':
+				finalData = reducer.indexByte(values);
+				break;
+
+			default:
+				break;
+		}
+		
+		if(null == finalData)return;
+		
+		NV kv = new NV(KVIndexer.FAM_NAME,KVIndexer.COL_NAME, finalData);
+		RecordScalar record = new RecordScalar(rowKey.getBytes(), kv);
+		HWriter.getInstance(false).insertScalar(tableName, record);
+	}
 }
