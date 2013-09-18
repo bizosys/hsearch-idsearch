@@ -12,6 +12,7 @@ import com.bizosys.hsearch.hbase.HBaseException;
 import com.bizosys.hsearch.hbase.HBaseFacade;
 import com.bizosys.hsearch.hbase.HDML;
 import com.bizosys.hsearch.kv.impl.FieldMapping;
+import com.bizosys.hsearch.kv.impl.StandaloneKVMapReduce;
 
 public class Initalizer {
 
@@ -20,6 +21,9 @@ public class Initalizer {
 	
 	public static void main(String[] args) throws Exception {
     	
+		StandaloneKVMapReduce.RECORD_SEPARATOR = RECORD_SEPARATOR;
+		StandaloneKVMapReduce.FIELD_SEPARATOR = FIELD_SEPARATOR;
+		
     	String schemaPath = "src/test/com/bizosys/hsearch/kv/examresult.xml";
     	String valueObjectPath = "src/test/com/bizosys/hsearch/kv/";
     	String valueObjectClassName = "com.bizosys.hsearch.kv.ExamResult";
@@ -109,7 +113,7 @@ public class Initalizer {
 		
 		StandaloneKVMapReduce indexer = new StandaloneKVMapReduce();
 		try {
-			indexer.indexData(sb.toString(), fm);
+			indexer.indexData(sb.toString(), fm, false);
 		} catch (IOException e) {
 			e.printStackTrace(System.err);
 			System.err.println("Problem in indexing " + e.getMessage());

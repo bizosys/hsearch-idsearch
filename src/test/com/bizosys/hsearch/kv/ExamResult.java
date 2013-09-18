@@ -236,5 +236,33 @@ public class ExamResult extends GroupSortedObject implements KVRowI{
 	public String getmergeId() {
 		return this.mergeId;
 	}
+	
+
+	@Override
+	public int getValueSeq(String fldName) {
+		return this.dataSchema.nameToSeqMapping.get(fldName);
+	}
+	
+		@Override
+	public Object getValue(int fldSeq) {
+		switch ( fldSeq ) {
+		case 1:
+			 return this.empid;
+		case 0:
+			 return this.classz;
+		case 5:
+			 return this.marks;
+		case 4:
+			 return this.location;
+		case 2:
+			 return this.age;
+		case 3:
+			 return this.role;
+		case 7:
+			 return this.comments;
+
+		}
+		return null;
+	}	
 
 }

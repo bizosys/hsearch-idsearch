@@ -26,6 +26,7 @@ import org.apache.lucene.analysis.Analyzer;
 import org.apache.lucene.analysis.standard.StandardAnalyzer;
 
 import com.bizosys.unstructured.util.Constants;
+import com.bizosys.unstructured.util.IdSearchLog;
 
 public class AnalyzerFactory {
 	
@@ -60,14 +61,19 @@ public class AnalyzerFactory {
 	public void close() {
 		for (Analyzer analyzer : analyzerTypes.values()) {
 			if ( null != analyzer ) {
-				try { analyzer.close(); } catch (Exception ex) {/**Eat and digest*/}
+				try { analyzer.close(); 
+				} catch (Exception ex) {
+					IdSearchLog.l.warn("analyzerTypes closing:" + ex.getMessage());
+				}
 			}
 		}
 		analyzerTypes.clear();
 		
 		if ( null != this.defaultAnalyzer) {
-			System.out.println(this.defaultAnalyzer.toString());
-			try { this.defaultAnalyzer.close(); } catch (Exception ex) {/**Eat and digest*/}
+			try { this.defaultAnalyzer.close(); 
+			} catch (Exception ex) {
+				IdSearchLog.l.warn("defaultAnalyzer closing:" + ex.getMessage());
+			}
 			this.defaultAnalyzer = null;
 		}
 	}

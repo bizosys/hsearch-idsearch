@@ -1,5 +1,7 @@
 package com.bizosys.hsearch.kv;
 
+import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -10,6 +12,7 @@ import org.apache.lucene.util.Version;
 import junit.framework.TestCase;
 import junit.framework.TestFerrari;
 
+import com.bizosys.hsearch.federate.BitSetOrSet;
 import com.bizosys.hsearch.kv.impl.FieldMapping;
 import com.bizosys.hsearch.kv.impl.IEnricher;
 import com.bizosys.hsearch.kv.impl.KVRowI;
@@ -18,7 +21,7 @@ import com.oneline.ferrari.TestAll;
 public class SearchTester extends TestCase {
 
 	public static String[] modes = new String[] { "all", "random", "method"};
-	public static String mode = modes[1];
+	public static String mode = modes[2];
 	public FieldMapping fm = null;
 	public static void main(String[] args) throws Exception {
 		SearchTester t = new SearchTester();
@@ -30,7 +33,8 @@ public class SearchTester extends TestCase {
 
 		} else if  ( modes[2].equals(mode) ) {
 			t.setUp();
-			t.freeTextSearchTest();
+			t.comboSearchWithfacetTest();
+			t.comboSearchWithfacetTest();
 			t.tearDown();
 		}
 	}
@@ -68,6 +72,25 @@ public class SearchTester extends TestCase {
 		
 		System.out.println("Fetched " + mergedResult.size() + " results in " + (end - start) + " ms.");
 	}
+	
+	public void comboSearchWithfacetTest() throws Exception {
+		long start = System.currentTimeMillis();
+		Searcher searcher = new Searcher("test", fm, null);
+		KVRowI aBlankRow = new ExamResult();
+
+		IEnricher enricher = null;
+		BitSetOrSet foundIds = searcher.getIds(fm.tableName, "A", "location:{Hebbal,HSR Layout} AND marks:!2.0");
+		System.out.println("Total Ids Found :" + foundIds.size());
+		System.out.println("Ids :" + foundIds.toString());
+		
+		searcher.search(fm.tableName, "A", "age,location,marks","location:{Hebbal}", aBlankRow, enricher);
+		searcher.sort("location","marks");
+		Map<String, Map<Object, FacetCount>> facets = searcher.createFacetCount("age,location");
+		
+		long end = System.currentTimeMillis();
+		System.out.println("Facetted " + facets.toString() + " results in " + (end - start) + " ms.");
+
+	}	
 	
 	public void facetTest() throws Exception {
 		long start = System.currentTimeMillis();

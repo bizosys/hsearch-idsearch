@@ -24,14 +24,18 @@ import com.bizosys.hsearch.kv.impl.KVDataSchemaRepository.KVDataSchema;
 
 public interface KVRowI {
 
-	public void setId(final Integer id);
-	public int getId();
-	public void setmergeId(final String mergeId);
-	public String getmergeId();
-	public KVRowI create();
-	public KVRowI create(final KVDataSchema dataSchema);
-	public void setValue(final String name, final Object value);
-	public Object getValue(final String name);
-	public TypedObject getValueNative(final String name);
-	public int getDataType(final String name);
+	void setId(final Integer id);
+	int getId();
+	void setmergeId(final String mergeId);
+	String getmergeId();
+	KVRowI create();
+	KVRowI create(final KVDataSchema dataSchema);
+	void setValue(final String fldName, final Object value);
+	Object getValue(final String fldName);
+	TypedObject getValueNative(final String fldName);
+	int getDataType(final String fldName);
+	
+	int getValueSeq(final String fldName);
+	Object getValue(final int fldSeq);
+	
 }

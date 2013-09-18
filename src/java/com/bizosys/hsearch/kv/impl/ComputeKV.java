@@ -32,28 +32,44 @@ import com.bizosys.hsearch.byteutils.SortedBytesInteger;
 import com.bizosys.hsearch.byteutils.SortedBytesLong;
 import com.bizosys.hsearch.byteutils.SortedBytesShort;
 import com.bizosys.hsearch.byteutils.SortedBytesString;
+import com.bizosys.hsearch.federate.BitSetOrSet;
 import com.bizosys.hsearch.treetable.Cell2;
 import com.bizosys.hsearch.treetable.Cell2Visitor;
 import com.bizosys.hsearch.util.HSearchLog;
 
 public class ComputeKV implements ICompute {
 	
-	public static class MergeVisitor<K1, V> implements Cell2Visitor<K1, V> {
-		public Cell2<K1, V> mergeCell = null;;
-		@Override
-		public void visit(K1 k, V v) {
-			mergeCell.add(k, v);
-		}
+	public BitSetOrSet matchIds = null;
+	
+	public ComputeKV(final BitSetOrSet matchIds) {
+		this.matchIds = matchIds;
 	}
 	
-	public static class RowVisitor<K1, V> implements Cell2Visitor<K1, V> {
-		public Map<K1, Object> container = null;
+	public static final class RowVisitor<V> implements Cell2Visitor<Integer, V> {
+		public Map<Integer, Object> container = null;
+		private BitSetOrSet matchIds = null;
+		private boolean isMatchedIds = false;
+		
+		public RowVisitor() {
+		}
+		
+		public RowVisitor(final BitSetOrSet matchIds) {
+			this.matchIds = matchIds;
+			if ( null != this.matchIds) isMatchedIds = true;
+		}
+
 		public int fieldSeq = 0;
 		public int totalFields = 0;
 		
 		@Override
-		public void visit(K1 k, V v) {
-			container.put(k, v);
+		public final void visit(final Integer k, final V v) {
+			if ( isMatchedIds ) {
+				if ( matchIds.contains(k) ) {
+					container.put(k, v);
+				}
+			} else {
+				container.put(k, v);
+			}
 		}
 	}	
 	
@@ -72,19 +88,15 @@ public class ComputeKV implements ICompute {
 		
 	public Map<Integer, Object> rowContainer = null;
 	
-	public ComputeKV() {
-		
-	}
-	
 	@Override
-	public void setCallBackType(final int callbackType) {
+	public final void setCallBackType(final int callbackType) {
 		this.kvType = callbackType;
 	}
 
 	/**
 	 * Mapper invokes as it keeps getting columns
 	 */
-	public void put(final int key, final Object value) {
+	public final void put(final int key, final Object value) {
 		
 		switch (this.kvType) {
 			case Datatype.BOOLEAN:
@@ -139,7 +151,7 @@ public class ComputeKV implements ICompute {
 	}
 	
 	public ComputeKV createNew() {
-		ComputeKV kv = new ComputeKV();
+		ComputeKV kv = new ComputeKV(this.matchIds);
 		kv.kvType = this.kvType;
 		return kv;
 	}
@@ -273,7 +285,7 @@ public class ComputeKV implements ICompute {
 					kv_boolean = new Cell2<Integer, Boolean>(
 							SortedBytesInteger.getInstance(), SortedBytesBoolean.getInstance(), dataChunk);
 					
-					RowVisitor<Integer, Boolean> visitor = new RowVisitor<Integer, Boolean>();
+					RowVisitor<Boolean> visitor = new RowVisitor<Boolean>(this.matchIds);
 					visitor.fieldSeq = this.fieldSeq;
 					visitor.totalFields = this.totalFields;
 					visitor.container = rowContainer;
@@ -285,7 +297,7 @@ public class ComputeKV implements ICompute {
 					kv_byte = new Cell2<Integer, Byte>(
 							SortedBytesInteger.getInstance(), SortedBytesChar.getInstance(), dataChunk);
 					
-					RowVisitor<Integer, Byte> visitor = new RowVisitor<Integer, Byte>();
+					RowVisitor<Byte> visitor = new RowVisitor<Byte>(this.matchIds);
 					visitor.fieldSeq = this.fieldSeq;
 					visitor.totalFields = this.totalFields;
 					visitor.container = rowContainer;
@@ -297,7 +309,7 @@ public class ComputeKV implements ICompute {
 					kv_short = new Cell2<Integer, Short>(
 							SortedBytesInteger.getInstance(), SortedBytesShort.getInstance(), dataChunk);
 					
-					RowVisitor<Integer, Short> visitor = new RowVisitor<Integer, Short>();
+					RowVisitor<Short> visitor = new RowVisitor<Short>(this.matchIds);
 					visitor.fieldSeq = this.fieldSeq;
 					visitor.totalFields = this.totalFields;
 					visitor.container = rowContainer;
@@ -309,7 +321,7 @@ public class ComputeKV implements ICompute {
 					kv_integer = new Cell2<Integer, Integer>(
 							SortedBytesInteger.getInstance(), SortedBytesInteger.getInstance(), dataChunk);
 					
-					RowVisitor<Integer, Integer> visitor = new RowVisitor<Integer, Integer>();
+					RowVisitor<Integer> visitor = new RowVisitor<Integer>(this.matchIds);
 					visitor.fieldSeq = this.fieldSeq;
 					visitor.totalFields = this.totalFields;
 					visitor.container = rowContainer;
@@ -321,7 +333,7 @@ public class ComputeKV implements ICompute {
 					kv_float = new Cell2<Integer, Float>(
 							SortedBytesInteger.getInstance(), SortedBytesFloat.getInstance(), dataChunk);
 					
-					RowVisitor<Integer, Float> visitor = new RowVisitor<Integer, Float>();
+					RowVisitor<Float> visitor = new RowVisitor<Float>(this.matchIds);
 					visitor.fieldSeq = this.fieldSeq;
 					visitor.totalFields = this.totalFields;
 					visitor.container = rowContainer;
@@ -333,7 +345,7 @@ public class ComputeKV implements ICompute {
 					kv_long = new Cell2<Integer, Long>(
 							SortedBytesInteger.getInstance(), SortedBytesLong.getInstance(), dataChunk);
 					
-					RowVisitor<Integer, Long> visitor = new RowVisitor<Integer, Long>();
+					RowVisitor<Long> visitor = new RowVisitor<Long>(this.matchIds);
 					visitor.fieldSeq = this.fieldSeq;
 					visitor.totalFields = this.totalFields;
 					visitor.container = rowContainer;
@@ -345,7 +357,7 @@ public class ComputeKV implements ICompute {
 					kv_double = new Cell2<Integer, Double>(
 							SortedBytesInteger.getInstance(), SortedBytesDouble.getInstance(), dataChunk);
 					
-					RowVisitor<Integer, Double> visitor = new RowVisitor<Integer, Double>();
+					RowVisitor<Double> visitor = new RowVisitor<Double>(this.matchIds);
 					visitor.fieldSeq = this.fieldSeq;
 					visitor.totalFields = this.totalFields;
 					visitor.container = rowContainer;
@@ -357,7 +369,7 @@ public class ComputeKV implements ICompute {
 					kv_string = new Cell2<Integer, String>(
 							SortedBytesInteger.getInstance(), SortedBytesString.getInstance(), dataChunk);
 					
-					RowVisitor<Integer, String> visitor = new RowVisitor<Integer, String>();
+					RowVisitor<String> visitor = new RowVisitor<String>(this.matchIds);
 					visitor.fieldSeq = this.fieldSeq;
 					visitor.totalFields = this.totalFields;
 					visitor.container = rowContainer;

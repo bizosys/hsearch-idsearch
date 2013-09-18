@@ -1,4 +1,4 @@
-package com.bizosys.hsearch.kv;
+package com.bizosys.hsearch.kv.impl;
 
 import java.io.IOException;
 import java.util.ArrayList;
@@ -21,15 +21,17 @@ import org.apache.lucene.util.Version;
 import com.bizosys.hsearch.hbase.HWriter;
 import com.bizosys.hsearch.hbase.NV;
 import com.bizosys.hsearch.hbase.RecordScalar;
-import com.bizosys.hsearch.kv.impl.FieldMapping;
-import com.bizosys.hsearch.kv.impl.KVIndexer;
-import com.bizosys.hsearch.kv.impl.KVReducer;
 import com.bizosys.hsearch.util.Hashing;
 import com.bizosys.hsearch.util.LineReaderUtil;
 import com.bizosys.hsearch.util.LuceneUtil;
+import com.bizosys.unstructured.util.IdSearchLog;
 
 public class StandaloneKVMapReduce {
 
+	public static char RECORD_SEPARATOR = '\n';
+	public static char FIELD_SEPARATOR = '\t';
+	public static boolean DEBUG_ENABLED = IdSearchLog.l.isDebugEnabled();
+	
 	Set<Integer> neededPositions = null; 
 	FieldMapping fm = null;
 
@@ -55,18 +57,31 @@ public class StandaloneKVMapReduce {
 
 	}
 	
-	public void indexData(final String data, final FieldMapping fm) throws IOException{
+	public void indexData(final String data, final FieldMapping fm, boolean skipHeader) throws IOException{
 		
 		this.fm = fm;
 		tableName = fm.tableName;
 		neededPositions = fm.fieldSeqs.keySet();
 		List<String> eachRecord = new ArrayList<String>();
 		Map<Text, List<Text>> mappings = new HashMap<Text, List<Text>>();
-		LineReaderUtil.fastSplit(eachRecord, data, Initalizer.RECORD_SEPARATOR);
+		LineReaderUtil.fastSplit(eachRecord, data, RECORD_SEPARATOR);
+		
+		String[] result = null;
+		
 		for (String aLine : eachRecord) {
-			if(0 == aLine.length())
+			if ( skipHeader ) {
+				skipHeader = false;
 				continue;
-			String[] result = aLine.split("\\|");
+			}
+			if ( null == aLine) continue;
+			if(0 == aLine.length()) continue;
+			if ( null == result) {
+				List<String> flds = new ArrayList<String>();
+				LineReaderUtil.fastSplit(flds, aLine, FIELD_SEPARATOR);
+				result = new String[flds.size()];
+			}
+			
+			LineReaderUtil.fastSplit(result, aLine, FIELD_SEPARATOR);
 			map(result, mappings);
 		}
 		
@@ -156,7 +171,7 @@ public class StandaloneKVMapReduce {
                 		
                 		rowkKeybuilder.delete(0, rowkKeybuilder.length());
  
-                		rowVal = result[joinKeyPos] + Initalizer.FIELD_SEPARATOR + term.text();
+                		rowVal = result[joinKeyPos] + KVIndexer.FIELD_SEPARATOR + term.text();
                 		
                 		key = new Text(rowKey);
                 		val = new Text(rowVal);
@@ -205,6 +220,15 @@ public class StandaloneKVMapReduce {
 	
 	public void reduce(Text key, List<Text> values) throws IOException{
 
+		if ( DEBUG_ENABLED ) {
+			if ( values.size() > 10 ) {
+				List<Text> display = values.subList(0, 10);
+				IdSearchLog.l.debug(key + "\t" + display.toString());
+			} else {
+				IdSearchLog.l.debug(key + "\t" + values.toString());
+			}
+		}
+		
 		String keyData = key.toString();
     	String[] resultKey = new String[4];
 		
@@ -216,6 +240,10 @@ public class StandaloneKVMapReduce {
 		boolean isAnalyzed = resultKey[3].equalsIgnoreCase("true") ? true : false;
 		
 		byte[] finalData = null;
+		if ( ! KVIndexer.dataTypesPrimitives.containsKey(dataType)) {
+			throw new IOException("Unknown data type :" + dataType + "\n" + 
+				"Allowed data types are :" + KVIndexer.dataTypesPrimitives.toString());
+		}
 		char dataTypeChar = KVIndexer.dataTypesPrimitives.get(dataType);
 		
 		switch (dataTypeChar) {

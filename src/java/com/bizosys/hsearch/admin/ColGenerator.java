@@ -72,6 +72,7 @@ public class ColGenerator {
 				continue;
 			String casted ="";
 			String fieldValue = "";
+			
 			char dataTypeChar = dataTypesPrimitives.get(fld.fieldType.toLowerCase());
 
 			switch (dataTypeChar) {

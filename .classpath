@@ -1,5 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <classpath>
+	<classpathentry kind="lib" path="conf"/>
 	<classpathentry kind="src" path="src/java"/>
 	<classpathentry kind="src" path="examples"/>
 	<classpathentry kind="src" path="src/test"/>
@@ -110,12 +111,13 @@
 	<classpathentry kind="lib" path="/hsearch-hbase/hbase-cdh4/lib/zookeeper-3.4.5-cdh4.2.0.jar"/>
 	<classpathentry kind="lib" path="/hsearch-core/lib/gson-2.2.2-sources.jar"/>
 	<classpathentry kind="lib" path="/hsearch-core/lib/gson-2.2.2.jar"/>
-	<classpathentry kind="lib" path="lib/lucene-analyzers-3.6.2.jar"/>
-	<classpathentry kind="lib" path="lib/lucene-core-3.6.2.jar"/>
-	<classpathentry kind="lib" path="lib/lucene-queryparser-3.6.2.jar"/>
 	<classpathentry kind="lib" path="lib/hsearch-federated.jar"/>
 	<classpathentry kind="lib" path="lib/hsearch-core.jar" sourcepath="lib/src-hsearch-core.jar"/>
 	<classpathentry kind="lib" path="D:/install/frameworks/jdk1.6.0_25/lib/tools.jar"/>
 	<classpathentry kind="var" path="TOOLS_JAR"/>
+	<classpathentry kind="lib" path="/1lineserver-web/lib/1lineserver-common.jar"/>
+	<classpathentry kind="lib" path="/1lineserver-web/lib/1lineserver-jdbc.jar" sourcepath="D:/work/1lineserver-sync/lib/src-1lineserver-jdbc.jar"/>
+	<classpathentry kind="lib" path="lib/lucene-analyzers-3.6.2.jar"/>
+	<classpathentry kind="lib" path="lib/lucene-core-3.6.2.jar"/>
 	<classpathentry kind="output" path="classes"/>
 </classpath>

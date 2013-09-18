@@ -4,6 +4,7 @@ import java.io.IOException;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.Iterator;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.Callable;
@@ -46,12 +47,14 @@ public class StorageReader implements Callable<Object> {
 	public String rowId;
 	public String filter;
 	public int callBackType;	
+	public BitSetOrSet matchIds = null;
 	
-	public StorageReader(KVDataSchemaRepository repository,
+	public StorageReader(KVDataSchemaRepository repository, BitSetOrSet matchIds,
 			String schemaRepositoryName, KVDocIndexer indexer, Analyzer analyzer,
 			String tableName, String rowId, String filter,int callBackType) {
 		
 		this.repository = repository;
+		this.matchIds = matchIds;
 		this.schemaRepositoryName = schemaRepositoryName;
 		this.indexer = indexer;
 		this.analyzer = analyzer;
@@ -78,6 +81,10 @@ public class StorageReader implements Callable<Object> {
 			fieldName = rowId.substring(rowId.lastIndexOf('_') + 1, rowId.length());
 			dataScheme = repository.get(schemaRepositoryName);
 			fld = dataScheme.fm.nameSeqs.get(fieldName);
+			if ( ! dataScheme.dataTypeMapping.containsKey(fieldName)) {
+				throw new IndexOutOfBoundsException("Not able to find " + fieldName);
+			}
+			
 			int outputType = dataScheme.dataTypeMapping.get(fieldName);
 			
 			switch (callBackType) {
@@ -88,7 +95,7 @@ public class StorageReader implements Callable<Object> {
 						throw new IOException("Field: " + fieldName + " is not saved cannot be selected ");
 					}
 
-					ComputeKV compute = new ComputeKV();
+					ComputeKV compute = new ComputeKV(this.matchIds);
 					compute.kvType = (outputType == Datatype.FREQUENCY_INDEX) ? Datatype.STRING : outputType;
 					compute.rowContainer = new HashMap<Integer, Object>();
 					
@@ -111,9 +118,11 @@ public class StorageReader implements Callable<Object> {
 		    		}
 					else{
 						data = KVRowReader.getAllValues(tableName, rowId.getBytes(), filter, callBackType, outputType);
-						byte[] dataChunk = SortedBytesArray.getInstanceArr().parse(data).values().iterator().next();
+						Iterator<byte[]> chunkItr = SortedBytesArray.getInstanceArr().parse(data).values().iterator();
+						byte[] dataChunk = (chunkItr.hasNext()) ? chunkItr.next() : null;
 						Set<Integer> ids = new HashSet<Integer>();
-						SortedBytesInteger.getInstance().parse(dataChunk).values(ids);
+						if  ( null != dataChunk) 
+							SortedBytesInteger.getInstance().parse(dataChunk).values(ids);
 						return ids;
 					}
 			}

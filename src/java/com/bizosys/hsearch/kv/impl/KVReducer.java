@@ -33,7 +33,6 @@ public class KVReducer extends TableReducer<Text, Text, ImmutableBytesWritable> 
 
 	@Override
     protected void reduce(Text key, Iterable<Text> values, Context context) throws IOException, InterruptedException {
-		
     	String keyData = key.toString();
     	String[] resultKey = new String[4];
 		
@@ -90,6 +89,7 @@ public class KVReducer extends TableReducer<Text, Text, ImmutableBytesWritable> 
 		if(null == finalData)return;
 		Put put = new Put(rowKey.getBytes());
         put.add(KVIndexer.FAM_NAME,KVIndexer.COL_NAME, finalData);
+        
         context.write(null, put);
 	}
 
@@ -300,6 +300,7 @@ public class KVReducer extends TableReducer<Text, Text, ImmutableBytesWritable> 
 			line = text.toString();
 
 			LineReaderUtil.fastSplit(resultValue, line, KVIndexer.FIELD_SEPARATOR);
+			
 			containerKey = Integer.parseInt(resultValue[0]);
 			containervalue = (null == resultValue[1]) ? "" : resultValue[1];
 			hasValue = true;

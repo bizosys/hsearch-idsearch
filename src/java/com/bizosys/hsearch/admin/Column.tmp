@@ -166,5 +166,19 @@ public class --COLUMN-NAME-- extends GroupSortedObject implements KVRowI{
 	public String getmergeId() {
 		return this.mergeId;
 	}
+	
+
+	@Override
+	public int getValueSeq(String fldName) {
+		return this.dataSchema.nameToSeqMapping.get(fldName);
+	}
+	
+		@Override
+	public Object getValue(int fldSeq) {
+		switch ( fldSeq ) {
+--GETTERS--
+		}
+		return null;
+	}	
 
 }
