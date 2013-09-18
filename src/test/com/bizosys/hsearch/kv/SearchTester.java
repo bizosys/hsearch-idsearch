@@ -21,7 +21,7 @@ import com.oneline.ferrari.TestAll;
 public class SearchTester extends TestCase {
 
 	public static String[] modes = new String[] { "all", "random", "method"};
-	public static String mode = modes[2];
+	public static String mode = modes[1];
 	public FieldMapping fm = null;
 	public static void main(String[] args) throws Exception {
 		SearchTester t = new SearchTester();
@@ -33,8 +33,7 @@ public class SearchTester extends TestCase {
 
 		} else if  ( modes[2].equals(mode) ) {
 			t.setUp();
-			t.comboSearchWithfacetTest();
-			t.comboSearchWithfacetTest();
+			t.pivotFacetTest();
 			t.tearDown();
 		}
 	}

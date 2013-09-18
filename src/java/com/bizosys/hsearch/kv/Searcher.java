@@ -57,6 +57,7 @@ import com.bizosys.hsearch.treetable.client.HSearchProcessingInstruction;
 import com.bizosys.hsearch.util.HSearchLog;
 import com.bizosys.hsearch.util.LineReaderUtil;
 import com.bizosys.hsearch.util.ShutdownCleanup;
+import com.bizosys.unstructured.util.IdSearchLog;
 
 public class Searcher {
 
@@ -91,7 +92,7 @@ public class Searcher {
 			KVRowI blankRow, IEnricher... enrichers) throws IOException, InterruptedException, ExecutionException, FederatedSearchException  {
 
 		long start = System.currentTimeMillis();
-		
+		this.dataRepository = dataRepository;
 		List<String> rowIds = HReader.getMatchingRowIds(dataRepository, mergeIdPattern);
 		if ( null == rowIds) return null;
 		if ( rowIds.size() == 0 ) return null;
@@ -126,7 +127,10 @@ public class Searcher {
 			final String mergeId, String selectQuery, String whereQuery, 
 			KVRowI blankRow, IEnricher... enrichers) throws IOException, InterruptedException, ExecutionException, FederatedSearchException {
 		
-		getValues(dataRepository, mergeId, getIds(mergeId, whereQuery),
+		this.dataRepository = dataRepository;
+		boolean isWhereQueryEmpty = ( null == whereQuery) ? true : (whereQuery.length() == 0);
+		BitSetOrSet matchIds = ( isWhereQueryEmpty) ? null : getIds(mergeId, whereQuery);
+		getValues(dataRepository, mergeId,matchIds,
 			selectQuery, whereQuery, blankRow, enrichers);
 	}
 	
@@ -434,6 +438,11 @@ public class Searcher {
 					String rowId, Map<String, Object> filterValues) throws IOException {
 				
 				String filterQuery = filterValues.values().iterator().next().toString();
+				int tableNameLen = ( null == dataRepository) ? 0 : dataRepository.trim().length();
+				if ( 0 == tableNameLen) {
+					IdSearchLog.l.fatal("Unknown data repository for query " + queryId);
+					throw new IOException("Unknown data repository for query " + queryId);
+				}
 				StorageReader reader = new StorageReader(repository, null, schemaRepositoryName, indexer, analyzer, dataRepository, rowId, filterQuery, HSearchProcessingInstruction.PLUGIN_CALLBACK_ID);
 				Set<Integer> readingIds = (Set<Integer>) reader.readStorage();
 				BitSetOrSet rows = new BitSetOrSet();

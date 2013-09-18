@@ -55,7 +55,7 @@ public class ComputeKV implements ICompute {
 		
 		public RowVisitor(final BitSetOrSet matchIds) {
 			this.matchIds = matchIds;
-			if ( null != this.matchIds) isMatchedIds = true;
+			isMatchedIds = ( null != this.matchIds);
 		}
 
 		public int fieldSeq = 0;
@@ -63,7 +63,7 @@ public class ComputeKV implements ICompute {
 		
 		@Override
 		public final void visit(final Integer k, final V v) {
-			if ( isMatchedIds ) {
+			if ( isMatchedIds && null != k) {
 				if ( matchIds.contains(k) ) {
 					container.put(k, v);
 				}
