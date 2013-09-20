@@ -29,6 +29,7 @@ public class ExamResult extends GroupSortedObject implements KVRowI{
 	
 	public String mergeId = null;
 	public int empid = 0;
+	public boolean sex = false;
 	public String classz = null;
 	public float marks = 0.0f;
 	public String location = null;
@@ -49,6 +50,9 @@ public class ExamResult extends GroupSortedObject implements KVRowI{
 		switch ( keySeq ) {
 		case 1:
 			 this.empid = (Integer)value;
+		 break;
+		case 8:
+			 this.sex = (Boolean)value;
 		 break;
 		case 0:
 			 this.classz = value.toString();
@@ -78,6 +82,8 @@ public class ExamResult extends GroupSortedObject implements KVRowI{
 		switch ( keySeq ) {
 		case 1:
 			 return this.empid;
+		case 8:
+			 return this.sex;
 		case 0:
 			 return this.classz;
 		case 5:
@@ -101,6 +107,8 @@ public class ExamResult extends GroupSortedObject implements KVRowI{
 		switch ( keySeq ) {
 		case 1:
 			 return new TypedObject(this.empid);
+		case 8:
+			 return new TypedObject(this.sex);
 		case 0:
 			 return new TypedObject(this.classz);
 		case 5:
@@ -121,6 +129,8 @@ public class ExamResult extends GroupSortedObject implements KVRowI{
 	@Override
 	public final boolean getBooleanField(final int fldSequence) {
 		switch ( fldSequence ) {
+	case 8:
+		 return this.sex;
 
 		}
 		return false;
@@ -248,6 +258,8 @@ public class ExamResult extends GroupSortedObject implements KVRowI{
 		switch ( fldSeq ) {
 		case 1:
 			 return this.empid;
+		case 8:
+			 return this.sex;
 		case 0:
 			 return this.classz;
 		case 5:

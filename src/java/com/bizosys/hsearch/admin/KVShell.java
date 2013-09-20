@@ -50,10 +50,10 @@ import org.apache.hadoop.hbase.HColumnDescriptor;
 
 import com.bizosys.hsearch.hbase.HDML;
 import com.bizosys.hsearch.kv.IEnricher;
+import com.bizosys.hsearch.kv.KVIndexer;
+import com.bizosys.hsearch.kv.KVRowI;
 import com.bizosys.hsearch.kv.Searcher;
 import com.bizosys.hsearch.kv.impl.FieldMapping;
-import com.bizosys.hsearch.kv.impl.KVIndexer;
-import com.bizosys.hsearch.kv.impl.KVRowI;
 import com.sun.tools.javac.Main;
 
 

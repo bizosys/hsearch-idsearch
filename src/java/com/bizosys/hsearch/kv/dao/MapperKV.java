@@ -18,9 +18,10 @@
 * limitations under the License.
 */
 
-package com.bizosys.hsearch.kv;
+package com.bizosys.hsearch.kv.dao;
 
 import java.io.IOException;
+import java.util.BitSet;
 import java.util.Collection;
 import java.util.HashSet;
 import java.util.Set;
@@ -28,7 +29,6 @@ import java.util.Set;
 import com.bizosys.hsearch.byteutils.SortedBytesInteger;
 import com.bizosys.hsearch.byteutils.Storable;
 import com.bizosys.hsearch.federate.BitSetOrSet;
-import com.bizosys.hsearch.kv.MapperKVBase;
 import com.bizosys.hsearch.kv.impl.ComputeFactory;
 import com.bizosys.hsearch.kv.impl.ICompute;
 import com.bizosys.hsearch.treetable.client.HSearchProcessingInstruction;
@@ -137,6 +137,23 @@ public final class MapperKV extends MapperKVBase {
         @Override
         public final void onReadComplete() {
         }
+
+
+        @Override
+		public boolean onRowKey(BitSet ids) {
+        	for (int id = ids.nextSetBit(0); id >= 0; id = ids.nextSetBit(id+1)) {
+        		this.whole.ids.add(id);
+        	}
+			return true;
+		}
+
+		@Override
+		public boolean onRowCols(BitSet ids, Object value) {
+        	for (int id = ids.nextSetBit(0); id >= 0; id = ids.nextSetBit(id+1)) {
+        		computation.put(id, value);
+        	}
+			return true;
+		}
     }
 
     @Override

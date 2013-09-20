@@ -17,9 +17,8 @@
 * See the License for the specific language governing permissions and
 * limitations under the License.
 */
-package com.bizosys.hsearch.kv;
+package com.bizosys.hsearch.kv.impl;
 
-import com.bizosys.hsearch.kv.impl.Datatype;
 
 public class TypedObject {
 

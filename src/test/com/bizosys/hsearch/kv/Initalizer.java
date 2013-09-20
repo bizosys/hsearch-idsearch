@@ -12,7 +12,6 @@ import com.bizosys.hsearch.hbase.HBaseException;
 import com.bizosys.hsearch.hbase.HBaseFacade;
 import com.bizosys.hsearch.hbase.HDML;
 import com.bizosys.hsearch.kv.impl.FieldMapping;
-import com.bizosys.hsearch.kv.impl.StandaloneKVMapReduce;
 
 public class Initalizer {
 
@@ -82,13 +81,15 @@ public class Initalizer {
 		String [] comments = new String[] {"He is a good boy and very authentic","Tremendous boy","blazing performance in this test"};
 		int commentsCounter = 0;
 
+
 		StringBuilder sb = new StringBuilder(65535);
 		for ( int i=0; i<100; i++) {
 			
+			Boolean isMale = ( i%2 == 0);
 	    	sb.append(classz[classzCounter]).append(FIELD_SEPARATOR).append(i).append(FIELD_SEPARATOR).append(ages[agesCounter])
 	    	.append(FIELD_SEPARATOR).append(role[roleCounter]).append(FIELD_SEPARATOR).append(location[locationCounter])
 	    	.append(FIELD_SEPARATOR).append((float)i/10).append(FIELD_SEPARATOR).append(remarks[remarksCounter])
-	    	.append(FIELD_SEPARATOR).append(comments[commentsCounter]).append(RECORD_SEPARATOR);
+	    	.append(FIELD_SEPARATOR).append(comments[commentsCounter]).append(FIELD_SEPARATOR).append(isMale.toString()).append(RECORD_SEPARATOR);
 
 	    	classzCounter++;
 	    	if ( classzCounter > 1) classzCounter = 0;

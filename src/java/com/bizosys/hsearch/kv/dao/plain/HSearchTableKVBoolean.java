@@ -4,8 +4,7 @@ import java.io.IOException;
 
 import com.bizosys.hsearch.byteutils.SortedBytesBoolean;
 import com.bizosys.hsearch.byteutils.SortedBytesInteger;
-import com.bizosys.hsearch.kv.MapperKVBase;
-import com.bizosys.hsearch.kv.dao.MapperKVBaseEmpty;
+import com.bizosys.hsearch.kv.dao.MapperKVBase;
 import com.bizosys.hsearch.treetable.BytesSection;
 import com.bizosys.hsearch.treetable.Cell2;
 import com.bizosys.hsearch.treetable.Cell2Visitor;
@@ -221,39 +220,4 @@ public final class HSearchTableKVBoolean implements IHSearchTable {
     public void clear() throws IOException {
         table.getMap().clear();
     }
-
-    public static void main(String[] args) throws Exception {
-		HSearchTableKVBoolean table = new HSearchTableKVBoolean();
-		table.put(1, true);
-		table.put(2, true);
-		table.put(3, false);
-		table.put(4, false);
-		table.put(5, true);
-		table.put(6, true);
-		table.put(7, true);
-		table.put(8, true);
-		table.put(9, false);
-		table.put(10, false);
-		
-		byte[] ser = table.toBytes();
-		
-		HSearchTableKVBoolean deserTable = new HSearchTableKVBoolean();
-		
-		MapperKVBase base = new MapperKVBaseEmpty() {
-			
-			@Override
-			public boolean onRowKey(int id) {
-				System.out.println(id);
-				return false;
-			}
-			
-			@Override
-			public boolean onRowCols(int key, Object value) {
-				System.out.println(key + "\t" + value);
-				return true;
-			}
-		};
-		
-		deserTable.get(ser, new HSearchQuery("*|true"), base);		
-	}
 }

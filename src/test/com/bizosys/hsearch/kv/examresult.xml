@@ -1,15 +1,18 @@
 <schema tableName="examresult" familyName="1" fieldSeparator="|">
 <fields>
-		<field name="classz" sourcesequence="0" sourcename="classz" type="String" analyzer="" analyzed = "false" indexed="true" stored="true" repeatable="true" mergekey="true" mergeposition="0" isjoinkey="false" skipNull="false" defaultValue="-2147483648" />
-		<field name="empid" sourcesequence="1" sourcename="empid" type="int" analyzer="" analyzed = "false" indexed="true" stored="true" repeatable="true" mergekey="false" mergeposition="" isjoinkey="true" skipNull="false" defaultValue="-2147483648" />
+		<field name="classz" sourcesequence="0" sourcename="classz" type="String" analyzer="" analyzed = "false" indexed="true" stored="true" repeatable="false" mergekey="true" mergeposition="0" isjoinkey="false" skipNull="false" defaultValue="-2147483648" />
+		<field name="empid" sourcesequence="1" sourcename="empid" type="int" analyzer="" analyzed = "false" indexed="true" stored="true" repeatable="false" mergekey="false" mergeposition="" isjoinkey="true" skipNull="false" defaultValue="-2147483648" />
 
 		<field name="age" sourcesequence="2" sourcename="age" type="int" analyzer="" analyzed = "false" indexed="true" stored="true" repeatable="true" mergekey="false" mergeposition="" isjoinkey="false" skipNull="false" defaultValue="-2147483648" />
 		<field name="role" sourcesequence="3" sourcename="role" type="String" analyzer="" analyzed = "false" indexed="true" stored="true" repeatable="true" mergekey="false" mergeposition="" isjoinkey="false" skipNull="false" defaultValue="-2147483648" />
 		<field name="location" sourcesequence="4" sourcename="location" type="String" analyzer="" analyzed = "false" indexed="true" stored="true" repeatable="true" mergekey="false" mergeposition="" isjoinkey="false" skipNull="false" defaultValue="-2147483648" />
-		<field name="marks" sourcesequence="5" sourcename="marks" type="float" analyzer="" analyzed = "false" indexed="true" stored="true" repeatable="true" mergekey="false" mergeposition="" isjoinkey="false" skipNull="false" defaultValue="-2147483648" />
+		<field name="marks" sourcesequence="5" sourcename="marks" type="float" analyzer="" analyzed = "false" indexed="true" stored="true" repeatable="false" mergekey="false" mergeposition="" isjoinkey="false" skipNull="false" defaultValue="-2147483648" />
 		<!--the below free text field can only be searched but not fetched because stored is false.-->
-		<field name="remarks" sourcesequence="6" sourcename="remarks" type="String" analyzer="Standard" analyzed = "true" indexed="true" stored="false" repeatable="true" mergekey="false" mergeposition="" isjoinkey="false" skipNull="false" defaultValue="-2147483648" />
+		<field name="remarks" sourcesequence="6" sourcename="remarks" type="String" analyzer="Standard" analyzed = "true" indexed="true" stored="false" repeatable="false" mergekey="false" mergeposition="" isjoinkey="false" skipNull="false" defaultValue="-2147483648" />
 		<!--the below free text field can be searched and fetched because stored is true-->
-		<field name="comments" sourcesequence="7" sourcename="comments" type="String" analyzer="Standard" analyzed = "true" indexed="true" stored="true" repeatable="true" mergekey="false" mergeposition="" isjoinkey="false" skipNull="false" defaultValue="-2147483648" />
+		<field name="comments" sourcesequence="7" sourcename="comments" type="String" analyzer="Standard" analyzed = "true" indexed="true" stored="true" repeatable="false" mergekey="false" mergeposition="" isjoinkey="false" skipNull="false" defaultValue="-2147483648" />
+
+		<field name="sex" sourcesequence="8" sourcename="sex" type="boolean" analyzer="" analyzed = "" indexed="true" stored="true" repeatable="true" mergekey="false" mergeposition="" isjoinkey="false" skipNull="false" defaultValue="true" />
+
 </fields>
 </schema>

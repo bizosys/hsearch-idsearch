@@ -1,4 +1,4 @@
-package com.bizosys.hsearch.kv.impl;
+package com.bizosys.hsearch.kv;
 
 import java.io.IOException;
 import java.util.ArrayList;
@@ -21,6 +21,8 @@ import org.apache.lucene.util.Version;
 import com.bizosys.hsearch.hbase.HWriter;
 import com.bizosys.hsearch.hbase.NV;
 import com.bizosys.hsearch.hbase.RecordScalar;
+import com.bizosys.hsearch.kv.impl.FieldMapping;
+import com.bizosys.hsearch.kv.impl.KVReducer;
 import com.bizosys.hsearch.util.Hashing;
 import com.bizosys.hsearch.util.LineReaderUtil;
 import com.bizosys.hsearch.util.LuceneUtil;
@@ -167,6 +169,7 @@ public class StandaloneKVMapReduce {
             			
                 		rowKey = rowkKeybuilder.append(rowKey).append( KVIndexer.FIELD_SEPARATOR ).append( "text" )
                 								.append(KVIndexer.FIELD_SEPARATOR).append(fld.name)			   
+                								.append(KVIndexer.FIELD_SEPARATOR).append("false")
                 								.append(KVIndexer.FIELD_SEPARATOR).append("false").toString();
                 		
                 		rowkKeybuilder.delete(0, rowkKeybuilder.length());
@@ -200,7 +203,9 @@ public class StandaloneKVMapReduce {
 
     		rowKey = rowkKeybuilder.append(rowKey).append(KVIndexer.FIELD_SEPARATOR).append( fld.fieldType )
     											  .append(KVIndexer.FIELD_SEPARATOR).append(fld.name)
-					                              .append(KVIndexer.FIELD_SEPARATOR).append(fld.isAnalyzed).toString();
+					                              .append(KVIndexer.FIELD_SEPARATOR).append(fld.isAnalyzed)
+					                              .append(KVIndexer.FIELD_SEPARATOR).append(fld.isRepeatable)
+					                              .toString();
     		
     		rowkKeybuilder.delete(0, rowkKeybuilder.length());
     		
@@ -230,7 +235,7 @@ public class StandaloneKVMapReduce {
 		}
 		
 		String keyData = key.toString();
-    	String[] resultKey = new String[4];
+    	String[] resultKey = new String[5];
 		
     	LineReaderUtil.fastSplit(resultKey, keyData, KVIndexer.FIELD_SEPARATOR);
 		
@@ -239,51 +244,18 @@ public class StandaloneKVMapReduce {
 		String fieldName = resultKey[2];
 		boolean isAnalyzed = resultKey[3].equalsIgnoreCase("true") ? true : false;
 		
-		byte[] finalData = null;
 		if ( ! KVIndexer.dataTypesPrimitives.containsKey(dataType)) {
 			throw new IOException("Unknown data type :" + dataType + "\n" + 
 				"Allowed data types are :" + KVIndexer.dataTypesPrimitives.toString());
 		}
+		boolean isRepetable = resultKey[4].equalsIgnoreCase("true") ? true : false;
+		
+		
 		char dataTypeChar = KVIndexer.dataTypesPrimitives.get(dataType);
 		
-		switch (dataTypeChar) {
+		//TODO:call onReduce method to modify key and value if needed
 
-			case 't':
-				finalData = reducer.indexString(values);
-				break;
-
-			case 'e':
-				finalData = reducer.indexText(values, isAnalyzed, fieldName);
-				break;
-
-			case 'i':
-				finalData = reducer.indexInteger(values);
-				break;
-
-			case 'f':
-				finalData = reducer.indexFloat(values);
-				break;
-
-			case 'd':
-				finalData = reducer.indexDouble(values);
-				break;
-
-			case 'l':
-				finalData = reducer.indexLong(values);
-				break;
-			
-			case 'b':
-				finalData = reducer.indexBoolean(values);
-				break;
-
-			case 'c':
-				finalData = reducer.indexByte(values);
-				break;
-
-			default:
-				break;
-		}
-		
+		byte[] finalData = reducer.cookBytes(values, fieldName, isAnalyzed, isRepetable, dataTypeChar);
 		if(null == finalData)return;
 		
 		NV kv = new NV(KVIndexer.FAM_NAME,KVIndexer.COL_NAME, finalData);

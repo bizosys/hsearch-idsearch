@@ -12,13 +12,12 @@ import org.apache.lucene.util.Version;
 
 import com.bizosys.hsearch.federate.BitSetOrSet;
 import com.bizosys.hsearch.kv.impl.FieldMapping;
-import com.bizosys.hsearch.kv.impl.KVRowI;
 import com.oneline.ferrari.TestAll;
 
 public class SearchTester extends TestCase {
 
 	public static String[] modes = new String[] { "all", "random", "method"};
-	public static String mode = modes[2];
+	public static String mode = modes[1];
 	public FieldMapping fm = null;
 	public static void main(String[] args) throws Exception {
 		SearchTester t = new SearchTester();
@@ -30,7 +29,8 @@ public class SearchTester extends TestCase {
 
 		} else if  ( modes[2].equals(mode) ) {
 			t.setUp();
-			t.sanityTest();
+			t.testBoolean();
+			t.testBoolean();
 			t.tearDown();
 		}
 	}
@@ -67,6 +67,28 @@ public class SearchTester extends TestCase {
 		
 		System.out.println("Fetched " + mergedResult.size() + " results in " + (end - start) + " ms.");
 	}
+	
+	private void testBoolean() throws Exception {
+		long start = System.currentTimeMillis();
+		Searcher searcher = new Searcher("test", fm, null);
+		KVRowI aBlankRow = new ExamResult();
+
+		IEnricher enricher = null;
+		searcher.search(fm.tableName, "A", "sex,age","age:22", aBlankRow, enricher);
+		Set<KVRowI> mergedResult = searcher.getResult();
+
+		long end = System.currentTimeMillis();
+		if(mergedResult.size() == 0){
+			System.out.println("No data for given query.");
+		}else{
+			for (KVRowI aResult : mergedResult) {
+				Boolean sex = ((ExamResult)aResult).sex; 
+				System.out.println(aResult.getId() + "\t" + 
+					aResult.getValue("age")+ "\t" + sex);
+			}
+		}
+		System.out.println("Fetched " + mergedResult.size() + " results in " + (end - start) + " ms.");
+	}	
 	
 	public void searchTest() throws Exception {
 		long start = System.currentTimeMillis();

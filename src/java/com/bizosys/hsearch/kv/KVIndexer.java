@@ -17,7 +17,7 @@
 * See the License for the specific language governing permissions and
 * limitations under the License.
 */
-package com.bizosys.hsearch.kv.impl;
+package com.bizosys.hsearch.kv;
 
 import java.io.IOException;
 import java.util.HashMap;
@@ -33,6 +33,9 @@ import org.apache.hadoop.mapreduce.Job;
 import org.apache.hadoop.mapreduce.Mapper;
 import org.apache.hadoop.mapreduce.lib.input.FileInputFormat;
 import org.apache.hadoop.mapreduce.lib.input.TextInputFormat;
+
+import com.bizosys.hsearch.kv.impl.KVMapper;
+import com.bizosys.hsearch.kv.impl.KVReducer;
 
 public class KVIndexer {
 

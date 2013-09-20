@@ -17,10 +17,10 @@
 * See the License for the specific language governing permissions and
 * limitations under the License.
 */
-package com.bizosys.hsearch.kv.impl;
+package com.bizosys.hsearch.kv;
 
-import com.bizosys.hsearch.kv.TypedObject;
 import com.bizosys.hsearch.kv.impl.KVDataSchemaRepository.KVDataSchema;
+import com.bizosys.hsearch.kv.impl.TypedObject;
 
 public interface KVRowI {
 

@@ -34,44 +34,15 @@ import com.bizosys.hsearch.byteutils.SortedBytesShort;
 import com.bizosys.hsearch.byteutils.SortedBytesString;
 import com.bizosys.hsearch.federate.BitSetOrSet;
 import com.bizosys.hsearch.treetable.Cell2;
-import com.bizosys.hsearch.treetable.Cell2Visitor;
 import com.bizosys.hsearch.util.HSearchLog;
 
 public class ComputeKV implements ICompute {
-	
+
 	public BitSetOrSet matchIds = null;
 	
 	public ComputeKV(final BitSetOrSet matchIds) {
 		this.matchIds = matchIds;
 	}
-	
-	public static final class RowVisitor<V> implements Cell2Visitor<Integer, V> {
-		public Map<Integer, Object> container = null;
-		private BitSetOrSet matchIds = null;
-		private boolean isMatchedIds = false;
-		
-		public RowVisitor() {
-		}
-		
-		public RowVisitor(final BitSetOrSet matchIds) {
-			this.matchIds = matchIds;
-			isMatchedIds = ( null != this.matchIds);
-		}
-
-		public int fieldSeq = 0;
-		public int totalFields = 0;
-		
-		@Override
-		public final void visit(final Integer k, final V v) {
-			if ( isMatchedIds && null != k) {
-				if ( matchIds.contains(k) ) {
-					container.put(k, v);
-				}
-			} else {
-				container.put(k, v);
-			}
-		}
-	}	
 	
 	public int kvType = 1;
 	public boolean kvRepeatation = false;
@@ -283,13 +254,12 @@ public class ComputeKV implements ICompute {
 			switch (this.kvType) {
 				case Datatype.BOOLEAN:
 				{
+					System.out.println("Remote data Length :"  + data.length);
 					kv_boolean = new Cell2<Integer, Boolean>(
 							SortedBytesInteger.getInstance(), SortedBytesBoolean.getInstance(), dataChunk);
 					
-					RowVisitor<Boolean> visitor = new RowVisitor<Boolean>(this.matchIds);
-					visitor.fieldSeq = this.fieldSeq;
-					visitor.totalFields = this.totalFields;
-					visitor.container = rowContainer;
+					ComputeKVRowVisitor<Boolean> visitor = new ComputeKVRowVisitor<Boolean>(
+						this.matchIds, this.fieldSeq, this.totalFields, rowContainer);
 					kv_boolean.process(visitor);
 					break;
 				}
@@ -298,10 +268,8 @@ public class ComputeKV implements ICompute {
 					kv_byte = new Cell2<Integer, Byte>(
 							SortedBytesInteger.getInstance(), SortedBytesChar.getInstance(), dataChunk);
 					
-					RowVisitor<Byte> visitor = new RowVisitor<Byte>(this.matchIds);
-					visitor.fieldSeq = this.fieldSeq;
-					visitor.totalFields = this.totalFields;
-					visitor.container = rowContainer;
+					ComputeKVRowVisitor<Byte> visitor = new ComputeKVRowVisitor<Byte>(
+						this.matchIds, this.fieldSeq, this.totalFields, rowContainer);
 					kv_byte.process(visitor);
 					break;
 				}
@@ -309,11 +277,8 @@ public class ComputeKV implements ICompute {
 				{
 					kv_short = new Cell2<Integer, Short>(
 							SortedBytesInteger.getInstance(), SortedBytesShort.getInstance(), dataChunk);
-					
-					RowVisitor<Short> visitor = new RowVisitor<Short>(this.matchIds);
-					visitor.fieldSeq = this.fieldSeq;
-					visitor.totalFields = this.totalFields;
-					visitor.container = rowContainer;
+					ComputeKVRowVisitor<Short> visitor = new ComputeKVRowVisitor<Short>(
+							this.matchIds, this.fieldSeq, this.totalFields, rowContainer);
 					kv_short.process(visitor);
 					break;
 				}
@@ -321,11 +286,8 @@ public class ComputeKV implements ICompute {
 				{
 					kv_integer = new Cell2<Integer, Integer>(
 							SortedBytesInteger.getInstance(), SortedBytesInteger.getInstance(), dataChunk);
-					
-					RowVisitor<Integer> visitor = new RowVisitor<Integer>(this.matchIds);
-					visitor.fieldSeq = this.fieldSeq;
-					visitor.totalFields = this.totalFields;
-					visitor.container = rowContainer;
+					ComputeKVRowVisitor<Integer> visitor = new ComputeKVRowVisitor<Integer>(
+							this.matchIds, this.fieldSeq, this.totalFields, rowContainer);
 					kv_integer.process(visitor);
 					break;
 				}
@@ -333,11 +295,8 @@ public class ComputeKV implements ICompute {
 				{
 					kv_float = new Cell2<Integer, Float>(
 							SortedBytesInteger.getInstance(), SortedBytesFloat.getInstance(), dataChunk);
-					
-					RowVisitor<Float> visitor = new RowVisitor<Float>(this.matchIds);
-					visitor.fieldSeq = this.fieldSeq;
-					visitor.totalFields = this.totalFields;
-					visitor.container = rowContainer;
+					ComputeKVRowVisitor<Float> visitor = new ComputeKVRowVisitor<Float>(
+							this.matchIds, this.fieldSeq, this.totalFields, rowContainer);
 					kv_float.process(visitor);
 					break;
 				}
@@ -345,11 +304,8 @@ public class ComputeKV implements ICompute {
 				{
 					kv_long = new Cell2<Integer, Long>(
 							SortedBytesInteger.getInstance(), SortedBytesLong.getInstance(), dataChunk);
-					
-					RowVisitor<Long> visitor = new RowVisitor<Long>(this.matchIds);
-					visitor.fieldSeq = this.fieldSeq;
-					visitor.totalFields = this.totalFields;
-					visitor.container = rowContainer;
+					ComputeKVRowVisitor<Long> visitor = new ComputeKVRowVisitor<Long>(
+							this.matchIds, this.fieldSeq, this.totalFields, rowContainer);
 					kv_long.process(visitor);
 					break;
 				}
@@ -357,11 +313,8 @@ public class ComputeKV implements ICompute {
 				{
 					kv_double = new Cell2<Integer, Double>(
 							SortedBytesInteger.getInstance(), SortedBytesDouble.getInstance(), dataChunk);
-					
-					RowVisitor<Double> visitor = new RowVisitor<Double>(this.matchIds);
-					visitor.fieldSeq = this.fieldSeq;
-					visitor.totalFields = this.totalFields;
-					visitor.container = rowContainer;
+					ComputeKVRowVisitor<Double> visitor = new ComputeKVRowVisitor<Double>(
+							this.matchIds, this.fieldSeq, this.totalFields, rowContainer);
 					kv_double.process(visitor);
 					break;
 				}
@@ -369,11 +322,8 @@ public class ComputeKV implements ICompute {
 				{
 					kv_string = new Cell2<Integer, String>(
 							SortedBytesInteger.getInstance(), SortedBytesString.getInstance(), dataChunk);
-					
-					RowVisitor<String> visitor = new RowVisitor<String>(this.matchIds);
-					visitor.fieldSeq = this.fieldSeq;
-					visitor.totalFields = this.totalFields;
-					visitor.container = rowContainer;
+					ComputeKVRowVisitor<String> visitor = new ComputeKVRowVisitor<String>(
+							this.matchIds, this.fieldSeq, this.totalFields, rowContainer);
 					kv_string.process(visitor);
 					break;
 				}

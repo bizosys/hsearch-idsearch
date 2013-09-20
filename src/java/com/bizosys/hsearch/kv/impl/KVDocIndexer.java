@@ -41,7 +41,7 @@ import com.bizosys.hsearch.byteutils.SortedBytesInteger;
 import com.bizosys.hsearch.federate.BitSetOrSet;
 import com.bizosys.hsearch.idsearch.config.DocumentTypeCodes;
 import com.bizosys.hsearch.idsearch.config.FieldTypeCodes;
-import com.bizosys.hsearch.kv.MapperKV;
+import com.bizosys.hsearch.kv.dao.MapperKV;
 import com.bizosys.hsearch.kv.dao.plain.HSearchTableKVIndex;
 import com.bizosys.hsearch.treetable.client.HSearchProcessingInstruction;
 import com.bizosys.hsearch.treetable.client.HSearchQuery;

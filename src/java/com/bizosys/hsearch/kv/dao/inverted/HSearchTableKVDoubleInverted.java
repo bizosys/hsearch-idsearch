@@ -1,19 +1,22 @@
-package com.bizosys.hsearch.kv.dao.plain;
+package com.bizosys.hsearch.kv.dao.inverted;
 
 import java.io.IOException;
+import java.util.BitSet;
+import java.util.HashMap;
+import java.util.Map;
 
-import com.bizosys.hsearch.byteutils.SortedBytesInteger;
-import com.bizosys.hsearch.byteutils.SortedBytesString;
+import com.bizosys.hsearch.byteutils.SortedBytesBitset;
+import com.bizosys.hsearch.byteutils.SortedBytesDouble;
 import com.bizosys.hsearch.kv.dao.MapperKVBase;
 import com.bizosys.hsearch.treetable.BytesSection;
 import com.bizosys.hsearch.treetable.Cell2;
 import com.bizosys.hsearch.treetable.Cell2Visitor;
-import com.bizosys.hsearch.treetable.CellComparator.StringComparator;
+import com.bizosys.hsearch.treetable.CellComparator;
 import com.bizosys.hsearch.treetable.client.HSearchQuery;
 import com.bizosys.hsearch.treetable.client.IHSearchPlugin;
 import com.bizosys.hsearch.treetable.client.IHSearchTable;
 
-public class HSearchTableKVString implements IHSearchTable {
+public class HSearchTableKVDoubleInverted implements IHSearchTable {
 
     public static boolean DEBUG_ENABLED = false;
     
@@ -22,7 +25,7 @@ public class HSearchTableKVString implements IHSearchTable {
     public static final int MODE_VAL = 2;
     public static final int MODE_KEYVAL = 3;
 
-    public static final class Cell2FilterVisitor implements Cell2Visitor<Integer, String> {
+    public static final class Cell2FilterVisitor implements Cell2Visitor<BitSet, Double> {
 
         public HSearchQuery query;
         public IHSearchPlugin plugin;
@@ -53,87 +56,50 @@ public class HSearchTableKVString implements IHSearchTable {
             this.cellMax0 = cellMax2;
             this.inValues0 = inValues2;
         }
-        
+
         @Override
-        public final void visit(Integer cell1Key, String cell1Val) {
-            			//Is it all or not.
-			if (query.filterCells[0]) {
-				
-				//IS it exact or not
-				if (null != matchingCell0) {
-					if ( query.notValCells[0] ) {
-						//Exact val match
-						if (matchingCell0.intValue() == cell1Key.intValue()) return;
-					} else {
-						//Not Exact val 
-						if (matchingCell0.intValue() != cell1Key.intValue()) return;
-					}
-				} else {
-					//Either range or IN
-					if ( query.inValCells[0]) {
-						//IN
-						boolean isMatched = false;
-						//LOOKING FOR ONE MATCHING
-						for ( Object obj : query.inValuesAO[0]) {
-							isMatched = cell1Key.equals(obj.toString());
-							
-							//ONE MATCHED, NO NEED TO PROCESS
-							if ( query.notValCells[0] ) { 
-								if (!isMatched ) break; 
-							} else {
-								if (isMatched ) break;
-							}
-						}
-						if ( !isMatched ) return; //NONE MATCHED
-						
-					} else {
-						//RANGE
-						boolean isMatched = cell1Key.intValue() < cellMin0.intValue() || 
-											cell1Key.intValue() > cellMax0.intValue();
-						if ( query.notValCells[0] ) {
-							//Not Exact Range
-							if (!isMatched ) return;
-						} else {
-							//Exact Range
-							if (isMatched ) return;
-						}
-					}
-				}
-			}
-            
-            if (null != plugin) {
+        public final void visit(BitSet cell1Key, Double cell1Val) {
+        	
+        	//We are not looking for the matching keys.
+			MapperKVBase.TablePartsCallback visitor =  tablePartsCallback;
+
+			if (null != plugin) {
             	switch (this.mode) {
         		case MODE_COLS :
-        			tablePartsCallback.onRowCols(cell1Key, cell1Val);                                
+	    			visitor.onRowCols(cell1Key, cell1Val);
         			break;
         		case MODE_KEY :
-        			tablePartsCallback.onRowKey(cell1Key);
+	    			visitor.onRowKey(cell1Key);
         			break;
             	}
             }
         }
     }
     ///////////////////////////////////////////////////////////////////	
-    Cell2<Integer,String> table = createBlankTable();
+    Map<Double,BitSet> table = new HashMap<Double, BitSet>();
 
-    public HSearchTableKVString() {
-    }
-
-    public Cell2<Integer,String> createBlankTable() {
-        return new Cell2<Integer,String>(SortedBytesInteger.getInstance(),
-				SortedBytesString.getInstance());
+    public HSearchTableKVDoubleInverted() {
     }
 
     public byte[] toBytes() throws IOException {
-        if (null == table) {
-            return null;
-        }
-        table.sort(new StringComparator<Integer>());
-        return table.toBytesOnSortedData();
+    	 if (null == table) return null;
+         Cell2<BitSet, Double> cell2 = new Cell2<BitSet, Double>(
+         		SortedBytesBitset.getInstance(), SortedBytesDouble.getInstance());
+         for (Map.Entry<Double, BitSet> entry: table.entrySet()) {
+ 			cell2.add(entry.getValue(),entry.getKey());
+ 		}
+        cell2.sort(new CellComparator.DoubleComparator<BitSet>());
+        return cell2.toBytesOnSortedData();
     }
 
-    public void put(Integer key, String value) {
-        table.add(key, value);
+    public void put(Integer key, Double value) {
+    	if ( table.containsKey(value)) {
+    		table.get(value).set(key);
+    	} else {
+    		BitSet bits = new BitSet();
+    		bits.set(key);
+    		table.put(value, bits);
+    	}
     }
 
     @Override
@@ -161,34 +127,36 @@ public class HSearchTableKVString implements IHSearchTable {
 
         Cell2FilterVisitor cell2Visitor = new Cell2FilterVisitor(query, pluginI, callback, mode);
 
-        query.parseValuesConcurrent(new String[]{"Integer", "String"});
+        query.parseValuesConcurrent(new String[]{"Integer", "Double"});
 
 		cell2Visitor.matchingCell0 = ( query.filterCells[0] ) ? (Integer) query.exactValCellsO[0]: null;
-		String matchingCell1 = ( query.filterCells[1] ) ? (String) query.exactValCellsO[1]: null;
+		Double matchingCell1 = ( query.filterCells[1] ) ? (Double) query.exactValCellsO[1]: null;
 
 
 		cell2Visitor.cellMin0 = ( query.minValCells[0] == HSearchQuery.DOUBLE_MIN_VALUE) ? null : new Double(query.minValCells[0]).intValue();
-		String cellMin1 = null;
+		Double cellMin1 = null;
 
 
 		cell2Visitor.cellMax0 =  (query.maxValCells[0] == HSearchQuery.DOUBLE_MAX_VALUE) ? null : new Double(query.maxValCells[0]).intValue();
-		String cellMax1 = null;
+		Double cellMax1 =  null;
 
 
 		cell2Visitor.inValues0 =  (query.inValCells[0]) ? (Integer[])query.inValuesAO[0]: null;
-		String[] inValues1 =  (query.inValCells[1]) ? (String[])query.inValuesAO[1]: null;
+		Double[] inValues1 =  (query.inValCells[1]) ? (Double[])query.inValuesAO[1]: null;
 
+		Cell2<BitSet, Double> cell2 = new Cell2<BitSet, Double>(
+        		SortedBytesBitset.getInstance(), SortedBytesDouble.getInstance());
+        cell2.data = new BytesSection(input);
 	
-		this.table.data = new BytesSection(input);
 		if (query.filterCells[1]) {
 			if(query.notValCells[1])
-				this.table.processNot(matchingCell1, cell2Visitor);
+				cell2.processNot(matchingCell1, cell2Visitor);
 			else if(query.inValCells[1])
-				this.table.processIn(inValues1, cell2Visitor);
+				cell2.processIn(inValues1, cell2Visitor);
 			else 
-				this.table.process(matchingCell1, cellMin1, cellMax1,cell2Visitor);
+				cell2.process(matchingCell1, cellMin1, cellMax1,cell2Visitor);
 		} else {
-			this.table.process(cell2Visitor);
+			cell2.process(cell2Visitor);
 		}
 		
         if (null != callback) {
@@ -217,7 +185,7 @@ public class HSearchTableKVString implements IHSearchTable {
      * Free the cube data
      */
     public void clear() throws IOException {
-        table.getMap().clear();
+        table.clear();
     }
 
 }

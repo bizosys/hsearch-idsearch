@@ -1,4 +1,4 @@
-package com.bizosys.hsearch.kv;
+package com.bizosys.hsearch.kv.impl;
 
 import java.io.IOException;
 import java.util.Collection;
@@ -23,12 +23,9 @@ import com.bizosys.hsearch.federate.BitSetOrSet;
 import com.bizosys.hsearch.federate.FederatedSearchException;
 import com.bizosys.hsearch.idsearch.config.DocumentTypeCodes;
 import com.bizosys.hsearch.idsearch.config.FieldTypeCodes;
-import com.bizosys.hsearch.kv.impl.ComputeKV;
-import com.bizosys.hsearch.kv.impl.Datatype;
+import com.bizosys.hsearch.kv.dao.KVRowReader;
 import com.bizosys.hsearch.kv.impl.FieldMapping.Field;
-import com.bizosys.hsearch.kv.impl.KVDataSchemaRepository;
 import com.bizosys.hsearch.kv.impl.KVDataSchemaRepository.KVDataSchema;
-import com.bizosys.hsearch.kv.impl.KVDocIndexer;
 import com.bizosys.hsearch.treetable.client.HSearchProcessingInstruction;
 import com.bizosys.hsearch.util.HSearchLog;
 import com.bizosys.hsearch.util.Hashing;
@@ -142,10 +139,11 @@ public class StorageReader implements Callable<Object> {
 					}
 			}
 		} catch (Exception e) {
-			String msg = e.getMessage() + "\nField :" + fieldName + " rowid "+ rowId + " query " + filter;
+			int dataLen = ( null == data) ? 0 : data.length;
+			String msg = e.getMessage() + "\nField :" + fieldName + " rowid "+ rowId + " query " + filter + "\t\t data len=" + dataLen  ;
 			if ( null != dataScheme ) {
 				if ( null != dataScheme.fldWithDataTypeMapping ) {
-					msg = msg + "\tdataScheme>" + dataScheme.fldWithDataTypeMapping.toString();
+					msg = msg + "\ndataScheme>" + dataScheme.fldWithDataTypeMapping.toString();
 				}
 			}
 			HSearchLog.l.fatal("ReadStorage Exception " + msg , e );

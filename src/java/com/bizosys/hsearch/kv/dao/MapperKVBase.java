@@ -18,9 +18,10 @@
 * limitations under the License.
 */
 
-package com.bizosys.hsearch.kv;
+package com.bizosys.hsearch.kv.dao;
 
 import java.io.IOException;
+import java.util.BitSet;
 
 import com.bizosys.hsearch.treetable.client.IHSearchPlugin;
 
@@ -34,8 +35,12 @@ public abstract class MapperKVBase implements IHSearchPlugin {
 	
     public interface TablePartsCallback {
 
-        public boolean onRowCols( final int key,  final Object value);
-        public boolean onRowKey(final int id);
-        public void onReadComplete();
+        boolean onRowCols( final int key,  final Object value);
+        boolean onRowKey(final int id);
+        
+        boolean onRowCols(final BitSet ids, final Object value);
+        boolean onRowKey(final BitSet ids);
+        
+        void onReadComplete();
     }
 }

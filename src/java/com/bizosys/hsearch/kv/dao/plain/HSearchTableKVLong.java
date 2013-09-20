@@ -4,7 +4,7 @@ import java.io.IOException;
 
 import com.bizosys.hsearch.byteutils.SortedBytesInteger;
 import com.bizosys.hsearch.byteutils.SortedBytesLong;
-import com.bizosys.hsearch.kv.MapperKVBase;
+import com.bizosys.hsearch.kv.dao.MapperKVBase;
 import com.bizosys.hsearch.treetable.BytesSection;
 import com.bizosys.hsearch.treetable.Cell2;
 import com.bizosys.hsearch.treetable.Cell2Visitor;

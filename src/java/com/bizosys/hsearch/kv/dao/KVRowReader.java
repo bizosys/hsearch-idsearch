@@ -18,7 +18,7 @@
 * limitations under the License.
 */
 
-package com.bizosys.hsearch.kv;
+package com.bizosys.hsearch.kv.dao;
 
 import java.io.IOException;
 
@@ -28,7 +28,6 @@ import org.apache.hadoop.hbase.client.Scan;
 
 import com.bizosys.hsearch.hbase.HBaseFacade;
 import com.bizosys.hsearch.hbase.HTableWrapper;
-import com.bizosys.hsearch.kv.impl.ScalarFilter;
 import com.bizosys.hsearch.treetable.client.HSearchProcessingInstruction;
 
 public class KVRowReader {

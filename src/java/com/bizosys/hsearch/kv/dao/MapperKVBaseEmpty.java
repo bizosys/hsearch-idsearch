@@ -4,8 +4,7 @@ import java.io.IOException;
 import java.util.Collection;
 
 import com.bizosys.hsearch.federate.BitSetOrSet;
-import com.bizosys.hsearch.kv.MapperKVBase;
-import com.bizosys.hsearch.kv.MapperKVBase.TablePartsCallback;
+import com.bizosys.hsearch.kv.dao.MapperKVBase.TablePartsCallback;
 import com.bizosys.hsearch.treetable.client.HSearchProcessingInstruction;
 
 public abstract class MapperKVBaseEmpty extends MapperKVBase implements TablePartsCallback{

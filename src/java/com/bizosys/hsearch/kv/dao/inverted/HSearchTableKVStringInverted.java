@@ -1,19 +1,22 @@
-package com.bizosys.hsearch.kv.dao.plain;
+package com.bizosys.hsearch.kv.dao.inverted;
 
 import java.io.IOException;
+import java.util.BitSet;
+import java.util.HashMap;
+import java.util.Map;
 
-import com.bizosys.hsearch.byteutils.SortedBytesInteger;
+import com.bizosys.hsearch.byteutils.SortedBytesBitset;
 import com.bizosys.hsearch.byteutils.SortedBytesString;
 import com.bizosys.hsearch.kv.dao.MapperKVBase;
 import com.bizosys.hsearch.treetable.BytesSection;
 import com.bizosys.hsearch.treetable.Cell2;
 import com.bizosys.hsearch.treetable.Cell2Visitor;
-import com.bizosys.hsearch.treetable.CellComparator.StringComparator;
+import com.bizosys.hsearch.treetable.CellComparator;
 import com.bizosys.hsearch.treetable.client.HSearchQuery;
 import com.bizosys.hsearch.treetable.client.IHSearchPlugin;
 import com.bizosys.hsearch.treetable.client.IHSearchTable;
 
-public class HSearchTableKVString implements IHSearchTable {
+public class HSearchTableKVStringInverted implements IHSearchTable {
 
     public static boolean DEBUG_ENABLED = false;
     
@@ -22,7 +25,7 @@ public class HSearchTableKVString implements IHSearchTable {
     public static final int MODE_VAL = 2;
     public static final int MODE_KEYVAL = 3;
 
-    public static final class Cell2FilterVisitor implements Cell2Visitor<Integer, String> {
+    public static final class Cell2FilterVisitor implements Cell2Visitor<BitSet, String> {
 
         public HSearchQuery query;
         public IHSearchPlugin plugin;
@@ -55,85 +58,49 @@ public class HSearchTableKVString implements IHSearchTable {
         }
         
         @Override
-        public final void visit(Integer cell1Key, String cell1Val) {
-            			//Is it all or not.
-			if (query.filterCells[0]) {
-				
-				//IS it exact or not
-				if (null != matchingCell0) {
-					if ( query.notValCells[0] ) {
-						//Exact val match
-						if (matchingCell0.intValue() == cell1Key.intValue()) return;
-					} else {
-						//Not Exact val 
-						if (matchingCell0.intValue() != cell1Key.intValue()) return;
-					}
-				} else {
-					//Either range or IN
-					if ( query.inValCells[0]) {
-						//IN
-						boolean isMatched = false;
-						//LOOKING FOR ONE MATCHING
-						for ( Object obj : query.inValuesAO[0]) {
-							isMatched = cell1Key.equals(obj.toString());
-							
-							//ONE MATCHED, NO NEED TO PROCESS
-							if ( query.notValCells[0] ) { 
-								if (!isMatched ) break; 
-							} else {
-								if (isMatched ) break;
-							}
-						}
-						if ( !isMatched ) return; //NONE MATCHED
-						
-					} else {
-						//RANGE
-						boolean isMatched = cell1Key.intValue() < cellMin0.intValue() || 
-											cell1Key.intValue() > cellMax0.intValue();
-						if ( query.notValCells[0] ) {
-							//Not Exact Range
-							if (!isMatched ) return;
-						} else {
-							//Exact Range
-							if (isMatched ) return;
-						}
-					}
-				}
-			}
-            
-            if (null != plugin) {
+        public final void visit(BitSet cell1Key, String cell1Val) {
+        	
+        	//We are not looking for the matching keys.
+			MapperKVBase.TablePartsCallback visitor =  tablePartsCallback;
+
+			if (null != plugin) {
             	switch (this.mode) {
         		case MODE_COLS :
-        			tablePartsCallback.onRowCols(cell1Key, cell1Val);                                
+	    			visitor.onRowCols(cell1Key, cell1Val);
         			break;
         		case MODE_KEY :
-        			tablePartsCallback.onRowKey(cell1Key);
+	    			visitor.onRowKey(cell1Key);
         			break;
             	}
             }
         }
     }
     ///////////////////////////////////////////////////////////////////	
-    Cell2<Integer,String> table = createBlankTable();
+    Map<String,BitSet> table = new HashMap<String, BitSet>();
 
-    public HSearchTableKVString() {
+    public HSearchTableKVStringInverted() {
     }
 
-    public Cell2<Integer,String> createBlankTable() {
-        return new Cell2<Integer,String>(SortedBytesInteger.getInstance(),
-				SortedBytesString.getInstance());
-    }
 
     public byte[] toBytes() throws IOException {
-        if (null == table) {
-            return null;
-        }
-        table.sort(new StringComparator<Integer>());
-        return table.toBytesOnSortedData();
+    	if (null == table) return null;
+        Cell2<BitSet, String> cell2 = new Cell2<BitSet, String>(
+        		SortedBytesBitset.getInstance(), SortedBytesString.getInstance());
+        for (Map.Entry<String, BitSet> entry: table.entrySet()) {
+			cell2.add(entry.getValue(),entry.getKey());
+		}
+        cell2.sort(new CellComparator.StringComparator<BitSet>());
+        return cell2.toBytesOnSortedData();
     }
 
     public void put(Integer key, String value) {
-        table.add(key, value);
+    	if ( table.containsKey(value)) {
+    		table.get(value).set(key);
+    	} else {
+    		BitSet bits = new BitSet();
+    		bits.set(key);
+    		table.put(value, bits);
+    	}
     }
 
     @Override
@@ -179,16 +146,19 @@ public class HSearchTableKVString implements IHSearchTable {
 		String[] inValues1 =  (query.inValCells[1]) ? (String[])query.inValuesAO[1]: null;
 
 	
-		this.table.data = new BytesSection(input);
+		Cell2<BitSet, String> cell2 = new Cell2<BitSet, String>(
+	        		SortedBytesBitset.getInstance(), SortedBytesString.getInstance());
+	    cell2.data = new BytesSection(input);
+	        
 		if (query.filterCells[1]) {
 			if(query.notValCells[1])
-				this.table.processNot(matchingCell1, cell2Visitor);
+				cell2.processNot(matchingCell1, cell2Visitor);
 			else if(query.inValCells[1])
-				this.table.processIn(inValues1, cell2Visitor);
+				cell2.processIn(inValues1, cell2Visitor);
 			else 
-				this.table.process(matchingCell1, cellMin1, cellMax1,cell2Visitor);
+				cell2.process(matchingCell1, cellMin1, cellMax1,cell2Visitor);
 		} else {
-			this.table.process(cell2Visitor);
+			cell2.process(cell2Visitor);
 		}
 		
         if (null != callback) {
@@ -217,7 +187,7 @@ public class HSearchTableKVString implements IHSearchTable {
      * Free the cube data
      */
     public void clear() throws IOException {
-        table.getMap().clear();
+        table.clear();
     }
-
+    
 }

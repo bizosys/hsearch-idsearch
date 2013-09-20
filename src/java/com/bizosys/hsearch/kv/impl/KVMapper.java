@@ -23,7 +23,8 @@ import org.apache.lucene.queryParser.QueryParser;
 import org.apache.lucene.search.Query;
 import org.apache.lucene.util.Version;
 
-import com.bizosys.hsearch.kv.impl.KVIndexer.KV;
+import com.bizosys.hsearch.kv.KVIndexer;
+import com.bizosys.hsearch.kv.KVIndexer.KV;
 import com.bizosys.hsearch.util.Hashing;
 import com.bizosys.hsearch.util.LineReaderUtil;
 import com.bizosys.hsearch.util.LuceneUtil;
@@ -161,6 +162,7 @@ public class KVMapper extends Mapper<LongWritable, Text, Text, Text> {
             			
                 		rowKey = rowkKeybuilder.append(rowKey).append( KVIndexer.FIELD_SEPARATOR ).append( "text" )
                 								.append(KVIndexer.FIELD_SEPARATOR).append(fld.name)			   
+                								.append(KVIndexer.FIELD_SEPARATOR).append("false")
                 								.append(KVIndexer.FIELD_SEPARATOR).append("false").toString();
                 		
                 		rowkKeybuilder.delete(0, rowkKeybuilder.length());
@@ -185,7 +187,9 @@ public class KVMapper extends Mapper<LongWritable, Text, Text, Text> {
 
     		rowKey = rowkKeybuilder.append(rowKey).append(KVIndexer.FIELD_SEPARATOR).append( fld.fieldType )
     											  .append(KVIndexer.FIELD_SEPARATOR).append(fld.name)
-					                              .append(KVIndexer.FIELD_SEPARATOR).append(fld.isAnalyzed).toString();
+					                              .append(KVIndexer.FIELD_SEPARATOR).append(fld.isAnalyzed)
+					                              .append(KVIndexer.FIELD_SEPARATOR).append(fld.isRepeatable)
+					                              .toString();
     		
     		rowkKeybuilder.delete(0, rowkKeybuilder.length());
     		

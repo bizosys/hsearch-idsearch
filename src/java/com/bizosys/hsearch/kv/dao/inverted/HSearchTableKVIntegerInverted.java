@@ -2,23 +2,21 @@ package com.bizosys.hsearch.kv.dao.inverted;
 
 import java.io.IOException;
 import java.util.BitSet;
-import java.util.Comparator;
 import java.util.HashMap;
 import java.util.Map;
 
-import com.bizosys.hsearch.byteutils.SortedBytesBitsetCompressed;
-import com.bizosys.hsearch.byteutils.SortedBytesBoolean;
-import com.bizosys.hsearch.kv.MapperKVBase;
-import com.bizosys.hsearch.kv.dao.MapperKVBaseEmpty;
+import com.bizosys.hsearch.byteutils.SortedBytesBitset;
+import com.bizosys.hsearch.byteutils.SortedBytesInteger;
+import com.bizosys.hsearch.kv.dao.MapperKVBase;
 import com.bizosys.hsearch.treetable.BytesSection;
 import com.bizosys.hsearch.treetable.Cell2;
 import com.bizosys.hsearch.treetable.Cell2Visitor;
-import com.bizosys.hsearch.treetable.CellKeyValue;
+import com.bizosys.hsearch.treetable.CellComparator;
 import com.bizosys.hsearch.treetable.client.HSearchQuery;
 import com.bizosys.hsearch.treetable.client.IHSearchPlugin;
 import com.bizosys.hsearch.treetable.client.IHSearchTable;
 
-public final class HSearchTableKVBoolean implements IHSearchTable {
+public class HSearchTableKVIntegerInverted implements IHSearchTable {
 
     public static boolean DEBUG_ENABLED = false;
     
@@ -27,7 +25,7 @@ public final class HSearchTableKVBoolean implements IHSearchTable {
     public static final int MODE_VAL = 2;
     public static final int MODE_KEYVAL = 3;
 
-    public static final class Cell2FilterVisitor implements Cell2Visitor<BitSet, Boolean> {
+    public static final class Cell2FilterVisitor implements Cell2Visitor<BitSet, Integer> {
 
         public HSearchQuery query;
         public IHSearchPlugin plugin;
@@ -60,51 +58,43 @@ public final class HSearchTableKVBoolean implements IHSearchTable {
         }
 
         @Override
-        public final void visit(final BitSet cell1Key, final Boolean cell1Val) {
+        public final void visit(BitSet cell1Key, Integer cell1Val) {
         	
         	//We are not looking for the matching keys.
 			MapperKVBase.TablePartsCallback visitor =  tablePartsCallback;
-			int size = cell1Key.size();
 
 			if (null != plugin) {
             	switch (this.mode) {
         		case MODE_COLS :
-        	    	for (int i=0; i<size; i++) {
-        	    		if ( cell1Key.get(i)) {
-        	    			visitor.onRowCols(i, cell1Val);
-        	    		}
-        			}
-        			                                
+	    			visitor.onRowCols(cell1Key, cell1Val);
         			break;
         		case MODE_KEY :
-        	    	for (int i=0; i<size; i++) {
-        	    		if ( cell1Key.get(i)) {
-        	    			visitor.onRowKey(i);
-        	    		}
-        			}
+	    			visitor.onRowKey(cell1Key);
         			break;
             	}
             }
         }
     }
     ///////////////////////////////////////////////////////////////////	
-    Map<Boolean,BitSet> table = new HashMap<Boolean, BitSet>();
+    Map<Integer,BitSet> table = new HashMap<Integer, BitSet>();
 
-    public HSearchTableKVBoolean() {
+    public HSearchTableKVIntegerInverted() {
     }
 
-    public final byte[] toBytes() throws IOException {
-        if (null == table) return null;
-        Cell2<BitSet, Boolean> cell2 = new Cell2<BitSet, Boolean>(
-        		SortedBytesBitsetCompressed.getInstance(), SortedBytesBoolean.getInstance());
-        for (Map.Entry<Boolean, BitSet> entry: table.entrySet()) {
+    public byte[] toBytes() throws IOException {
+        if (null == table) {
+            return null;
+        }
+        Cell2<BitSet, Integer> cell2 = new Cell2<BitSet, Integer>(
+        		SortedBytesBitset.getInstance(), SortedBytesInteger.getInstance());
+        for (Map.Entry<Integer, BitSet> entry: table.entrySet()) {
 			cell2.add(entry.getValue(),entry.getKey());
 		}
-        cell2.sort(new ValComparator());
+        cell2.sort(new CellComparator.IntegerComparator<BitSet>());
         return cell2.toBytesOnSortedData();
     }
 
-    public final void put(final Integer key, final Boolean value) {
+    public void put(final Integer key, final Integer value) {
     	if ( table.containsKey(value)) {
     		table.get(value).set(key);
     	} else {
@@ -115,12 +105,12 @@ public final class HSearchTableKVBoolean implements IHSearchTable {
     }
 
     @Override
-    public final void get(final byte[] input, final HSearchQuery query, final IHSearchPlugin pluginI) throws IOException, NumberFormatException {
+    public void get(byte[] input, HSearchQuery query, IHSearchPlugin pluginI) throws IOException, NumberFormatException {
     	iterate(input, query, pluginI, MODE_COLS);
     }
 
     @Override
-    public final void keySet(final byte[] input, final HSearchQuery query, final IHSearchPlugin pluginI) throws IOException {
+    public void keySet(byte[] input, HSearchQuery query, IHSearchPlugin pluginI) throws IOException {
     	iterate(input, query, pluginI, MODE_KEY);
     }
 
@@ -139,27 +129,28 @@ public final class HSearchTableKVBoolean implements IHSearchTable {
 
         Cell2FilterVisitor cell2Visitor = new Cell2FilterVisitor(query, pluginI, callback, mode);
 
-        query.parseValuesConcurrent(new String[]{"Integer", "Boolean"});
+        query.parseValuesConcurrent(new String[]{"Integer", "Integer"});
 
 		cell2Visitor.matchingCell0 = ( query.filterCells[0] ) ? (Integer) query.exactValCellsO[0]: null;
-		Boolean matchingCell1 = ( query.filterCells[1] ) ? (Boolean) query.exactValCellsO[1]: null;
+		Integer matchingCell1 = ( query.filterCells[1] ) ? (Integer) query.exactValCellsO[1]: null;
 
 
 		cell2Visitor.cellMin0 = ( query.minValCells[0] == HSearchQuery.DOUBLE_MIN_VALUE) ? null : new Double(query.minValCells[0]).intValue();
-		Boolean cellMin1 = null;
+		Integer cellMin1 = null;
 
 
 		cell2Visitor.cellMax0 =  (query.maxValCells[0] == HSearchQuery.DOUBLE_MAX_VALUE) ? null : new Double(query.maxValCells[0]).intValue();
-		Boolean cellMax1 = null;
+		Integer cellMax1 =  null;
 
 
 		cell2Visitor.inValues0 =  (query.inValCells[0]) ? (Integer[])query.inValuesAO[0]: null;
-		Boolean[] inValues1 =  (query.inValCells[1]) ? (Boolean[])query.inValuesAO[1]: null;
+		Integer[] inValues1 =  (query.inValCells[1]) ? (Integer[])query.inValuesAO[1]: null;
 
-        Cell2<BitSet, Boolean> cell2 = new Cell2<BitSet, Boolean>(
-        		SortedBytesBitsetCompressed.getInstance(), SortedBytesBoolean.getInstance());
-        cell2.data = new BytesSection(input);
 	
+		Cell2<BitSet, Integer> cell2 = new Cell2<BitSet, Integer>(
+	        		SortedBytesBitset.getInstance(), SortedBytesInteger.getInstance());
+	    cell2.data = new BytesSection(input);
+	        
 		if (query.filterCells[1]) {
 			if(query.notValCells[1])
 				cell2.processNot(matchingCell1, cell2Visitor);
@@ -178,7 +169,7 @@ public final class HSearchTableKVBoolean implements IHSearchTable {
             plugin.onReadComplete();
         }    	
     }
-    
+
     public MapperKVBase castPlugin(IHSearchPlugin pluginI)
             throws IOException {
         MapperKVBase plugin = null;
@@ -199,48 +190,4 @@ public final class HSearchTableKVBoolean implements IHSearchTable {
     public void clear() throws IOException {
         table.clear();
     }
-
-	public static class ValComparator implements Comparator<CellKeyValue<BitSet, Boolean>>  { 
-		@Override
-		public int compare(CellKeyValue<BitSet, Boolean> o1, CellKeyValue<BitSet, Boolean> o2) {
-			if ( o1.getValue() == o2.getValue() ) return 0;
-			else return 1;
-		}
-	}
-	
-	public static void main(String[] args) throws Exception {
-		HSearchTableKVBoolean table = new HSearchTableKVBoolean();
-		
-		for ( int i=0; i<100000000; i++) {
-			if ( i == 100) table.put(i, true);
-			else table.put(i, false);
-		}
-		byte[] ser = table.toBytes();
-		float size = ser.length/1024/1024;
-		System.out.println("Data Size :" + size + " MB" + " or " + ser.length + " bytes");
-		
-		HSearchTableKVBoolean deserTable = new HSearchTableKVBoolean();
-		
-		MapperKVBase base = new MapperKVBaseEmpty() {
-			
-			@Override
-			public boolean onRowKey(int id) {
-				System.out.println(id);
-				return false;
-			}
-			
-			@Override
-			public boolean onRowCols(int key, Object value) {
-				System.out.println(key + "\t" + value);
-				return true;
-			}
-		};
-		
-		long s = System.currentTimeMillis();
-		deserTable.get(ser, new HSearchQuery("*|true"), base);		
-		long e = System.currentTimeMillis();
-		System.out.println("Time taken :" + + (e - s));
-		
-	}
-    
 }

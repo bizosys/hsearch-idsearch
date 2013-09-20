@@ -21,7 +21,6 @@ package com.bizosys.hsearch.kv;
 
 import java.util.Collection;
 
-import com.bizosys.hsearch.kv.impl.KVRowI;
 
 public interface IEnricher {
 	public void enrich(Collection<KVRowI> rows);

@@ -7,7 +7,7 @@ import com.bizosys.hsearch.byteutils.SortedBytesBoolean;
 import com.bizosys.hsearch.byteutils.SortedBytesInteger;
 import com.bizosys.hsearch.byteutils.SortedBytesString;
 import com.bizosys.hsearch.byteutils.SortedBytesUnsignedShort;
-import com.bizosys.hsearch.kv.MapperKVBase;
+import com.bizosys.hsearch.kv.dao.MapperKVBase;
 import com.bizosys.hsearch.treetable.BytesSection;
 import com.bizosys.hsearch.treetable.Cell2;
 import com.bizosys.hsearch.treetable.Cell2Visitor;
