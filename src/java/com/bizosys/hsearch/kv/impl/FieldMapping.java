@@ -26,6 +26,7 @@ import java.io.StringReader;
 import java.text.ParseException;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
 
 import javax.xml.parsers.ParserConfigurationException;
 import javax.xml.parsers.SAXParser;
@@ -123,8 +124,22 @@ public class FieldMapping extends DefaultHandler {
 	public boolean isAnalyzed = false;
 	public boolean isDocIndex = false;
 	
+	@Deprecated
 	public static FieldMapping getInstance(){
 		return new FieldMapping();
+	}
+	
+	static Map<String, FieldMapping> cache = new ConcurrentHashMap<String, FieldMapping>();
+	public static FieldMapping getInstance(String fileLoc) throws ParseException{
+		if ( cache.containsKey(fileLoc)) return cache.get(fileLoc);
+		FieldMapping fm = new FieldMapping();
+		fm.parseXML(fileLoc);
+		if ( ! cache.containsKey(fileLoc)) cache.put(fileLoc, fm);
+		return fm;
+	}
+	
+	public void clear() {
+		cache.clear();
 	}
 	
 	public FieldMapping() {
