@@ -1,27 +1,24 @@
 package com.bizosys.hsearch.kv;
 
-import java.util.HashMap;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
-import org.apache.lucene.analysis.standard.StandardAnalyzer;
-import org.apache.lucene.util.Version;
-
 import junit.framework.TestCase;
 import junit.framework.TestFerrari;
 
+import org.apache.lucene.analysis.standard.StandardAnalyzer;
+import org.apache.lucene.util.Version;
+
 import com.bizosys.hsearch.federate.BitSetOrSet;
 import com.bizosys.hsearch.kv.impl.FieldMapping;
-import com.bizosys.hsearch.kv.impl.IEnricher;
 import com.bizosys.hsearch.kv.impl.KVRowI;
 import com.oneline.ferrari.TestAll;
 
 public class SearchTester extends TestCase {
 
 	public static String[] modes = new String[] { "all", "random", "method"};
-	public static String mode = modes[1];
+	public static String mode = modes[2];
 	public FieldMapping fm = null;
 	public static void main(String[] args) throws Exception {
 		SearchTester t = new SearchTester();
@@ -33,7 +30,7 @@ public class SearchTester extends TestCase {
 
 		} else if  ( modes[2].equals(mode) ) {
 			t.setUp();
-			t.pivotFacetTest();
+			t.sanityTest();
 			t.tearDown();
 		}
 	}
@@ -50,6 +47,27 @@ public class SearchTester extends TestCase {
 		System.exit(1);
 	}
 
+	public void sanityTest() throws Exception {
+		long start = System.currentTimeMillis();
+		Searcher searcher = new Searcher("test", fm, null);
+		KVRowI aBlankRow = new ExamResult();
+
+		IEnricher enricher = null;
+		searcher.search(fm.tableName, "A", "age,location,marks","age:25", aBlankRow, enricher);
+		Set<KVRowI> mergedResult = searcher.getResult();
+
+		long end = System.currentTimeMillis();
+		if(mergedResult.size() == 0){
+			System.out.println("No data for given query.");
+		}else{
+			for (KVRowI aResult : mergedResult) {
+				System.out.println(aResult.getId() + "\t" + aResult.getValue("age")+ "\t" + aResult.getValue("location")+ "\t" + aResult.getValue("marks"));
+			}
+		}
+		
+		System.out.println("Fetched " + mergedResult.size() + " results in " + (end - start) + " ms.");
+	}
+	
 	public void searchTest() throws Exception {
 		long start = System.currentTimeMillis();
 		Searcher searcher = new Searcher("test", fm, null);

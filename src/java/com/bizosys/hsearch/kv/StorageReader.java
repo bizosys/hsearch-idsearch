@@ -16,6 +16,7 @@ import org.apache.lucene.queryParser.QueryParser;
 import org.apache.lucene.search.Query;
 import org.apache.lucene.util.Version;
 
+import com.bizosys.hsearch.byteutils.ISortedByte;
 import com.bizosys.hsearch.byteutils.SortedBytesArray;
 import com.bizosys.hsearch.byteutils.SortedBytesInteger;
 import com.bizosys.hsearch.federate.BitSetOrSet;
@@ -49,6 +50,11 @@ public class StorageReader implements Callable<Object> {
 	public int callBackType;	
 	public BitSetOrSet matchIds = null;
 	
+	KVRowReader dataReader = null;
+	public void setCaching(KVRowReader dataReader) {
+		this.dataReader = dataReader;
+	}
+	
 	public StorageReader(KVDataSchemaRepository repository, BitSetOrSet matchIds,
 			String schemaRepositoryName, KVDocIndexer indexer, Analyzer analyzer,
 			String tableName, String rowId, String filter,int callBackType) {
@@ -70,7 +76,7 @@ public class StorageReader implements Callable<Object> {
 		return obk;
 	}
 	
-	public final Object readStorage() {
+	public final Object readStorage() throws IOException {
 		
 		byte[] data = null;
 		String fieldName = null;
@@ -81,11 +87,12 @@ public class StorageReader implements Callable<Object> {
 			fieldName = rowId.substring(rowId.lastIndexOf('_') + 1, rowId.length());
 			dataScheme = repository.get(schemaRepositoryName);
 			fld = dataScheme.fm.nameSeqs.get(fieldName);
-			if ( ! dataScheme.dataTypeMapping.containsKey(fieldName)) {
+			if ( ! dataScheme.fldWithDataTypeMapping.containsKey(fieldName)) {
 				throw new IndexOutOfBoundsException("Not able to find " + fieldName);
 			}
 			
-			int outputType = dataScheme.dataTypeMapping.get(fieldName);
+			int outputType = dataScheme.fldWithDataTypeMapping.get(fieldName);
+			boolean isRepetable = dataScheme.getRepetation(fieldName);
 			
 			switch (callBackType) {
 				case HSearchProcessingInstruction.PLUGIN_CALLBACK_COLS:
@@ -97,10 +104,13 @@ public class StorageReader implements Callable<Object> {
 
 					ComputeKV compute = new ComputeKV(this.matchIds);
 					compute.kvType = (outputType == Datatype.FREQUENCY_INDEX) ? Datatype.STRING : outputType;
+					compute.kvRepeatation = isRepetable;
 					compute.rowContainer = new HashMap<Integer, Object>();
 					
 					long start = System.currentTimeMillis();
-					data = KVRowReader.getAllValues(tableName, rowId.getBytes(), filter, callBackType, compute.kvType);
+					
+					data = KVRowReader.getAllValues(
+							tableName, rowId.getBytes(), filter, callBackType, compute.kvType, compute.kvRepeatation);
 					compute.put(data);
 					
 					if(DEBUG_ENABLED){
@@ -117,26 +127,32 @@ public class StorageReader implements Callable<Object> {
 						return freeTextSearch(fieldName, outputType);
 		    		}
 					else{
-						data = KVRowReader.getAllValues(tableName, rowId.getBytes(), filter, callBackType, outputType);
+						data = KVRowReader.getAllValues(
+							tableName, rowId.getBytes(), filter, callBackType, outputType, isRepetable);
 						Iterator<byte[]> chunkItr = SortedBytesArray.getInstanceArr().parse(data).values().iterator();
 						byte[] dataChunk = (chunkItr.hasNext()) ? chunkItr.next() : null;
-						Set<Integer> ids = new HashSet<Integer>();
-						if  ( null != dataChunk) 
-							SortedBytesInteger.getInstance().parse(dataChunk).values(ids);
+						Set<Integer> ids = null;
+						if  ( null != dataChunk) {
+							ISortedByte<Integer> sbi = SortedBytesInteger.getInstance().parse(dataChunk);
+							int size = sbi.getSize();
+							ids = new HashSet<Integer>(size);
+							sbi.values(ids);
+						}
 						return ids;
 					}
 			}
 		} catch (Exception e) {
 			String msg = e.getMessage() + "\nField :" + fieldName + " rowid "+ rowId + " query " + filter;
 			if ( null != dataScheme ) {
-				if ( null != dataScheme.dataTypeMapping ) {
-					msg = msg + "\tdataScheme>" + dataScheme.dataTypeMapping.toString();
+				if ( null != dataScheme.fldWithDataTypeMapping ) {
+					msg = msg + "\tdataScheme>" + dataScheme.fldWithDataTypeMapping.toString();
 				}
 			}
 			HSearchLog.l.fatal("ReadStorage Exception " + msg , e );
-			e.printStackTrace();
+			e.printStackTrace(System.err);
+			throw new IOException(e);
 		}
-		return null;
+		throw new IOException("Unknown Request exception to StorareadStorage");
 	}
 
 	@SuppressWarnings("unchecked")
@@ -190,7 +206,8 @@ public class StorageReader implements Callable<Object> {
 				sb.delete(0, sb.length());
 				currentRowId = mergeid + "_" + wordHash.charAt(0) + "_" + wordHash.charAt(wordHash.length() - 1);
 				
-				byte[] data = KVRowReader.getAllValues(tableName, currentRowId.getBytes(), filter, callBackType, outputType);
+				byte[] data = KVRowReader.getAllValues(
+					tableName, currentRowId.getBytes(), filter, callBackType, outputType, false);
 				Collection<byte[]> dataL = SortedBytesArray.getInstanceArr().parse(data).values();
 				byte[] dataChunk = dataL.isEmpty() ? null : dataL.iterator().next();
 				Set<Integer> ids = new HashSet<Integer>();

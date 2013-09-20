@@ -17,9 +17,11 @@
 * See the License for the specific language governing permissions and
 * limitations under the License.
 */
-package com.bizosys.hsearch.kv.impl;
+package com.bizosys.hsearch.kv;
 
 import java.util.Collection;
+
+import com.bizosys.hsearch.kv.impl.KVRowI;
 
 public interface IEnricher {
 	public void enrich(Collection<KVRowI> rows);

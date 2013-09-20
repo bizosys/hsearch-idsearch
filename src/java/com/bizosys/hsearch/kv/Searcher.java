@@ -48,7 +48,6 @@ import com.bizosys.hsearch.functions.GroupSorter.GroupSorterSequencer;
 import com.bizosys.hsearch.hbase.HReader;
 import com.bizosys.hsearch.kv.impl.Datatype;
 import com.bizosys.hsearch.kv.impl.FieldMapping;
-import com.bizosys.hsearch.kv.impl.IEnricher;
 import com.bizosys.hsearch.kv.impl.KVDataSchemaRepository;
 import com.bizosys.hsearch.kv.impl.KVDataSchemaRepository.KVDataSchema;
 import com.bizosys.hsearch.kv.impl.KVDocIndexer;
@@ -122,7 +121,7 @@ public class Searcher {
 		
 		return mergeIds;
 	}
-
+	
 	public final void search(final String dataRepository, 
 			final String mergeId, String selectQuery, String whereQuery, 
 			KVRowI blankRow, IEnricher... enrichers) throws IOException, InterruptedException, ExecutionException, FederatedSearchException {
@@ -306,7 +305,7 @@ public class Searcher {
 			}
 			
 			fieldSeq = dataSchema.nameToSeqMapping.get(sorterName);
-			dataType = dataSchema.dataTypeMapping.get(sorterName);
+			dataType = dataSchema.fldWithDataTypeMapping.get(sorterName);
 			fldType = Datatype.getFieldType(dataType);
 
 			GroupSorterSequencer seq = new GroupSorterSequencer(fldType,fieldSeq,index,sortType);
@@ -444,6 +443,7 @@ public class Searcher {
 					throw new IOException("Unknown data repository for query " + queryId);
 				}
 				StorageReader reader = new StorageReader(repository, null, schemaRepositoryName, indexer, analyzer, dataRepository, rowId, filterQuery, HSearchProcessingInstruction.PLUGIN_CALLBACK_ID);
+				
 				Set<Integer> readingIds = (Set<Integer>) reader.readStorage();
 				BitSetOrSet rows = new BitSetOrSet();
 				rows.setDocumentIds(readingIds);

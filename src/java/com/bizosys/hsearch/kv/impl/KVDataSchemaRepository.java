@@ -19,6 +19,7 @@
 */
 package com.bizosys.hsearch.kv.impl;
 
+import java.io.IOException;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -38,7 +39,8 @@ public class KVDataSchemaRepository {
 		
 		public Map<String, Integer> nameToSeqMapping = new HashMap<String, Integer>(); 
 		public Map<Integer, String> seqToNameMapping = new HashMap<Integer, String>(); 
-		public Map<String, Integer> dataTypeMapping = new HashMap<String, Integer>(); 
+		public Map<String, Integer> fldWithDataTypeMapping = new HashMap<String, Integer>(); 
+		
 		public FieldMapping fm = null;
     	static Map<String, Character> dataTypesPrimitives = new HashMap<String, Character>();    	
     	static {
@@ -97,8 +99,13 @@ public class KVDataSchemaRepository {
 					break;
 				}
 				
-				dataTypeMapping.put(fld.name, dataTypeField);
+				fldWithDataTypeMapping.put(fld.name, dataTypeField);
 			}
+		}
+
+		public final boolean getRepetation(String fldName) throws IOException {
+			if ( null == this.fm ) throw new IOException("FieldMapping is not initialized"); 
+			return this.fm.nameSeqs.get(fldName).isRepeatable;
 		}
 	}
 	
@@ -113,4 +120,5 @@ public class KVDataSchemaRepository {
 	public final KVDataSchema get(final String repositoryName) {
 		return repositoryMap.get(repositoryName);
 	}
+	
 }

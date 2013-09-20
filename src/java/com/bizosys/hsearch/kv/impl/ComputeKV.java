@@ -74,6 +74,7 @@ public class ComputeKV implements ICompute {
 	}	
 	
 	public int kvType = 1;
+	public boolean kvRepeatation = false;
 	public int fieldSeq = 0;
 	public int totalFields = 0;
 

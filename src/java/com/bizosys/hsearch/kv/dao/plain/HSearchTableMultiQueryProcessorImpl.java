@@ -1,6 +1,6 @@
-package com.bizosys.hsearch.kv.dao.donotmodify;
+package com.bizosys.hsearch.kv.dao.plain;
 
-import com.bizosys.hsearch.kv.dao.donotmodify.HSearchTableCombinerImpl;
+import com.bizosys.hsearch.kv.dao.HSearchTableCombinerImpl;
 import com.bizosys.hsearch.treetable.client.HSearchTableMultiQueryProcessor;
 import com.bizosys.hsearch.treetable.client.IHSearchTableCombiner;
 

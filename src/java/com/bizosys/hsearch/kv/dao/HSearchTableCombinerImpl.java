@@ -1,15 +1,16 @@
-package com.bizosys.hsearch.kv.dao.donotmodify;
+package com.bizosys.hsearch.kv.dao;
 
 import java.io.IOException;
 
-import com.bizosys.hsearch.kv.dao.donotmodify.HSearchTableKVBoolean;
-import com.bizosys.hsearch.kv.dao.donotmodify.HSearchTableKVByte;
-import com.bizosys.hsearch.kv.dao.donotmodify.HSearchTableKVDouble;
-import com.bizosys.hsearch.kv.dao.donotmodify.HSearchTableKVFloat;
-import com.bizosys.hsearch.kv.dao.donotmodify.HSearchTableKVInteger;
-import com.bizosys.hsearch.kv.dao.donotmodify.HSearchTableKVLong;
-import com.bizosys.hsearch.kv.dao.donotmodify.HSearchTableKVShort;
-import com.bizosys.hsearch.kv.dao.donotmodify.HSearchTableKVString;
+import com.bizosys.hsearch.kv.dao.plain.HSearchTableKVBoolean;
+import com.bizosys.hsearch.kv.dao.plain.HSearchTableKVByte;
+import com.bizosys.hsearch.kv.dao.plain.HSearchTableKVDouble;
+import com.bizosys.hsearch.kv.dao.plain.HSearchTableKVFloat;
+import com.bizosys.hsearch.kv.dao.plain.HSearchTableKVIndex;
+import com.bizosys.hsearch.kv.dao.plain.HSearchTableKVInteger;
+import com.bizosys.hsearch.kv.dao.plain.HSearchTableKVLong;
+import com.bizosys.hsearch.kv.dao.plain.HSearchTableKVShort;
+import com.bizosys.hsearch.kv.dao.plain.HSearchTableKVString;
 import com.bizosys.hsearch.treetable.client.HSearchTableCombiner;
 import com.bizosys.hsearch.treetable.client.IHSearchTable;
 

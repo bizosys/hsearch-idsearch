@@ -35,9 +35,11 @@ public class KVRowReader {
 
 	
 	public static final String COL_FAM = "1";
-	public static final String INSTRUCTION = "kv";
 	
-	public static final byte[] getAllValues(final String tableName, final byte[] row, final String query, final int callBackType,  final int outputType) throws IOException {
+	public KVRowReader() {
+	}
+	
+	public static final byte[] getAllValues(final String tableName, final byte[] row, final String query, final int callBackType,  final int outputType, final Boolean repetation) throws IOException {
 		
 		HBaseFacade facade = null;
 		ResultScanner scanner = null;
@@ -49,19 +51,20 @@ public class KVRowReader {
 			
 			Scan scan = new Scan();
 			scan.setCacheBlocks(true);
-			scan.setCaching(500);
+			scan.setCaching(1);
 			scan.setMaxVersions(1);
 			
 			scan.setStartRow(row);
 			scan.setStopRow(row);
 
-			HSearchProcessingInstruction outputTypeCode = new HSearchProcessingInstruction(callBackType, outputType, INSTRUCTION);
+			HSearchProcessingInstruction outputTypeCode = new HSearchProcessingInstruction(callBackType, outputType, repetation.toString());
 			ScalarFilter sf = new ScalarFilter(outputTypeCode, query);
 	    	scan.setFilter(sf);
 	    	
 			scanner = table.getScanner(scan);
 			Result r = scanner.iterator().next();
 			storedBytes = (null == r) ? null : r.getValue(COL_FAM.getBytes(), new byte[]{0});
+			
 			return storedBytes;
 		} catch ( IOException ex) {
 			throw ex;

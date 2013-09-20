@@ -1,19 +1,19 @@
-package com.bizosys.hsearch.kv.dao.donotmodify;
+package com.bizosys.hsearch.kv.dao.plain;
 
 import java.io.IOException;
 
+import com.bizosys.hsearch.byteutils.SortedBytesChar;
 import com.bizosys.hsearch.byteutils.SortedBytesInteger;
-import com.bizosys.hsearch.byteutils.SortedBytesLong;
 import com.bizosys.hsearch.kv.MapperKVBase;
 import com.bizosys.hsearch.treetable.BytesSection;
 import com.bizosys.hsearch.treetable.Cell2;
 import com.bizosys.hsearch.treetable.Cell2Visitor;
-import com.bizosys.hsearch.treetable.CellComparator.LongComparator;
+import com.bizosys.hsearch.treetable.CellComparator.ByteComparator;
 import com.bizosys.hsearch.treetable.client.HSearchQuery;
 import com.bizosys.hsearch.treetable.client.IHSearchPlugin;
 import com.bizosys.hsearch.treetable.client.IHSearchTable;
 
-public class HSearchTableKVLong implements IHSearchTable {
+public class HSearchTableKVByte implements IHSearchTable {
 
     public static boolean DEBUG_ENABLED = false;
     
@@ -22,7 +22,7 @@ public class HSearchTableKVLong implements IHSearchTable {
     public static final int MODE_VAL = 2;
     public static final int MODE_KEYVAL = 3;
 
-    public static final class Cell2FilterVisitor implements Cell2Visitor<Integer, Long> {
+    public static final class Cell2FilterVisitor implements Cell2Visitor<Integer, Byte> {
 
         public HSearchQuery query;
         public IHSearchPlugin plugin;
@@ -55,7 +55,7 @@ public class HSearchTableKVLong implements IHSearchTable {
         }
 
         @Override
-        public final void visit(Integer cell1Key, Long cell1Val) {
+        public final void visit(Integer cell1Key, Byte cell1Val) {
             			//Is it all or not.
 			if (query.filterCells[0]) {
 				
@@ -115,25 +115,25 @@ public class HSearchTableKVLong implements IHSearchTable {
         }
     }
     ///////////////////////////////////////////////////////////////////	
-    Cell2<Integer,Long> table = createBlankTable();
+    Cell2<Integer,Byte> table = createBlankTable();
 
-    public HSearchTableKVLong() {
+    public HSearchTableKVByte() {
     }
 
-    public Cell2<Integer,Long> createBlankTable() {
-        return new Cell2<Integer,Long>(SortedBytesInteger.getInstance(),
-				SortedBytesLong.getInstance());
+    public Cell2<Integer,Byte> createBlankTable() {
+        return new Cell2<Integer,Byte>(SortedBytesInteger.getInstance(),
+				SortedBytesChar.getInstance());
     }
 
     public byte[] toBytes() throws IOException {
         if (null == table) {
             return null;
         }
-        table.sort(new LongComparator<Integer>());
+        table.sort(new ByteComparator<Integer>());
         return table.toBytesOnSortedData();
     }
 
-    public void put(Integer key, Long value) {
+    public void put(Integer key, Byte value) {
         table.add(key, value);
     }
 
@@ -162,22 +162,22 @@ public class HSearchTableKVLong implements IHSearchTable {
 
         Cell2FilterVisitor cell2Visitor = new Cell2FilterVisitor(query, pluginI, callback, mode);
 
-        query.parseValuesConcurrent(new String[]{"Integer", "Long"});
+        query.parseValuesConcurrent(new String[]{"Integer", "Byte"});
 
 		cell2Visitor.matchingCell0 = ( query.filterCells[0] ) ? (Integer) query.exactValCellsO[0]: null;
-		Long matchingCell1 = ( query.filterCells[1] ) ? (Long) query.exactValCellsO[1]: null;
+		Byte matchingCell1 = ( query.filterCells[1] ) ? (Byte) query.exactValCellsO[1]: null;
 
 
 		cell2Visitor.cellMin0 = ( query.minValCells[0] == HSearchQuery.DOUBLE_MIN_VALUE) ? null : new Double(query.minValCells[0]).intValue();
-		Long cellMin1 = ( query.minValCells[1] == HSearchQuery.DOUBLE_MIN_VALUE) ? null : new Double(query.minValCells[1]).longValue();
+		Byte cellMin1 = ( query.minValCells[1] == HSearchQuery.DOUBLE_MIN_VALUE) ? null : new Double(query.minValCells[1]).byteValue();
 
 
 		cell2Visitor.cellMax0 =  (query.maxValCells[0] == HSearchQuery.DOUBLE_MAX_VALUE) ? null : new Double(query.maxValCells[0]).intValue();
-		Long cellMax1 =  (query.maxValCells[1] == HSearchQuery.DOUBLE_MAX_VALUE) ? null : new Double(query.maxValCells[1]).longValue();
+		Byte cellMax1 =  (query.maxValCells[1] == HSearchQuery.DOUBLE_MAX_VALUE) ? null : new Double(query.maxValCells[1]).byteValue();
 
 
 		cell2Visitor.inValues0 =  (query.inValCells[0]) ? (Integer[])query.inValuesAO[0]: null;
-		Long[] inValues1 =  (query.inValCells[1]) ? (Long[])query.inValuesAO[1]: null;
+		Byte[] inValues1 =  (query.inValCells[1]) ? (Byte[])query.inValuesAO[1]: null;
 
 	
 		this.table.data = new BytesSection(input);

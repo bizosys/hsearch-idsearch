@@ -1,4 +1,4 @@
-package com.bizosys.hsearch.kv.dao.donotmodify;
+package com.bizosys.hsearch.kv.dao.plain;
 
 import java.io.IOException;
 import java.text.ParseException;
