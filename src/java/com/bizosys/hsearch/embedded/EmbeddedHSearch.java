@@ -36,6 +36,7 @@ import com.bizosys.hsearch.treetable.client.HSearchQuery;
 import com.bizosys.unstructured.AnalyzerFactory;
 import com.bizosys.unstructured.IndexSearcher;
 import com.bizosys.unstructured.IndexWriter;
+import com.sun.tools.corba.se.idl.InvalidArgument;
 
 public class EmbeddedHSearch {
 	
@@ -64,17 +65,16 @@ public class EmbeddedHSearch {
     	return analyzer;
     }
 
-    public void setAnalyzer(Analyzer analyzer) {
-    	this.analyzer = analyzer;
+    public void setAnalyzer(Analyzer analyzer) throws InvalidArgument {
+    	AnalyzerFactory.getInstance().setDefault(analyzer);
     }
 
     public void addToIndex(String docType, String fieldType, Map<Integer, String> docIdWithFieldValue) throws IOException, InstantiationException {
-    	AnalyzerFactory analyzers = new AnalyzerFactory(analyzer);
     	
 		for (Integer docId : docIdWithFieldValue.keySet()) {
 		    Document lucenDoc = new Document();
 		    lucenDoc.add(new Field(fieldType, docIdWithFieldValue.get(docId), Field.Store.YES, Field.Index.ANALYZED));
-		    writer.addDocument(docId, lucenDoc,docType, analyzers);
+		    writer.addDocument(docId, lucenDoc,docType, AnalyzerFactory.getInstance());
 		}
 	}
     

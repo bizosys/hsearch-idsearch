@@ -25,17 +25,17 @@ import java.util.Map;
 import java.util.Set;
 
 import org.apache.lucene.analysis.Analyzer;
-import org.apache.lucene.analysis.standard.StandardAnalyzer;
 import org.apache.lucene.index.Term;
 import org.apache.lucene.queryParser.QueryParser;
 import org.apache.lucene.search.Query;
 import org.apache.lucene.util.Version;
 
 import com.bizosys.hsearch.util.Hashing;
-import com.bizosys.unstructured.util.Constants;
 
 public class IndexSearcher {
 	SearchConfiguration sConf = null;
+	
+	
 	public IndexSearcher() throws InstantiationException {
 		this.sConf = SearchConfiguration.getInstance();
 	}
@@ -132,7 +132,7 @@ public class IndexSearcher {
 		String query, Map<String, String> multiQueryParts) throws Exception {
 		
 		return searchQueryPartsFill(indexName, docType, query, 
-			new StandardAnalyzer(Constants.LUCENE_VERSION), multiQueryParts );
+				AnalyzerFactory.getInstance().getDefault(), multiQueryParts );
 	}	
 	
 	

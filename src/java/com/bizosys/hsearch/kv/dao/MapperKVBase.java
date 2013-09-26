@@ -20,7 +20,6 @@
 
 package com.bizosys.hsearch.kv.dao;
 
-import java.io.IOException;
 import java.util.BitSet;
 
 import com.bizosys.hsearch.treetable.client.IHSearchPlugin;
@@ -28,10 +27,6 @@ import com.bizosys.hsearch.treetable.client.IHSearchPlugin;
 public abstract class MapperKVBase implements IHSearchPlugin {
     
     public abstract TablePartsCallback getPart();
-    
-	@Override
-	public final void setMergeId(final byte[] mergeId) throws IOException {
-	}
 	
     public interface TablePartsCallback {
 

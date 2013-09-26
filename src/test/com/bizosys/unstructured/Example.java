@@ -58,7 +58,7 @@ public class Example {
 		String INDEX_NAME = "Documents";
 
 		Analyzer analyzer = getAnalyzer();
-		AnalyzerFactory analyzers = new AnalyzerFactory(analyzer);
+		AnalyzerFactory analyzers = AnalyzerFactory.getInstance().setDefault(analyzer);
 
 		IndexWriter writer = new IndexWriter(new HSearchTableDocuments());
 		 try {

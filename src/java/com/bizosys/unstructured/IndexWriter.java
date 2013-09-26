@@ -366,9 +366,6 @@ public class IndexWriter {
 				throw new IOException("Unknown Index Type");
 		}
 		
-		if ( null != analyzers) {
-			analyzers.close();
-		}
 	}	
 	
 	public void addDocument(int docId, Document doc) throws IOException, InstantiationException {
@@ -376,9 +373,7 @@ public class IndexWriter {
 	}
 
 	public void addDocument(int docId, Document doc, String documentType) throws IOException, InstantiationException {
-		this.analyzers = new AnalyzerFactory();
-		this.analyzers.setDefault();
-		addDocument(docId, doc, documentType, analyzers);
+		addDocument(docId, doc, documentType, AnalyzerFactory.getInstance());
 	}
 
 	public void addDocument(int docId, Document doc, String documentType, AnalyzerFactory analyzer) throws CorruptIndexException, IOException, InstantiationException {

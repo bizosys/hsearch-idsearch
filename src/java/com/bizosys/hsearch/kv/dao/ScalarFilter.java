@@ -65,33 +65,40 @@ public class ScalarFilter extends HSearchScalarFilter {
 
 	@Override
 	public IHSearchTable createTable() {
-		int type = inputMapperInstructions.getOutputType();
-		boolean isRepeating = "true".equals(inputMapperInstructions.getProcessingHint());
+		return createTable(inputMapperInstructions);
+		
+	}
 
+	public static IHSearchTable createTable(HSearchProcessingInstruction inputMapperInstructions) {
+		int type = inputMapperInstructions.getOutputType();
+		String hint = inputMapperInstructions.getProcessingHint();
+		boolean isRepeating = hint.startsWith("true");
+		boolean isCompressed = hint.endsWith("true");
+		
 		switch ( type) {
 			case Datatype.BOOLEAN:
-				if ( isRepeating ) return new HSearchTableKVBooleanInverted();
+				if ( isRepeating ) return new HSearchTableKVBooleanInverted(isCompressed);
 				return new HSearchTableKVBoolean();
 			case Datatype.BYTE:
-				if ( isRepeating ) return new HSearchTableKVByteInverted();
+				if ( isRepeating ) return new HSearchTableKVByteInverted(isCompressed);
 				return new HSearchTableKVByte();
 			case Datatype.SHORT:
-				if ( isRepeating ) return new HSearchTableKVShortInverted();
+				if ( isRepeating ) return new HSearchTableKVShortInverted(isCompressed);
 				return new HSearchTableKVShort();
 			case Datatype.INTEGER:
-				if ( isRepeating ) return new HSearchTableKVIntegerInverted();
+				if ( isRepeating ) return new HSearchTableKVIntegerInverted(isCompressed);
 				return new HSearchTableKVInteger();
 			case Datatype.FLOAT:
-				if ( isRepeating ) return new HSearchTableKVFloatInverted();
+				if ( isRepeating ) return new HSearchTableKVFloatInverted(isCompressed);
 				return new HSearchTableKVFloat();
 			case Datatype.LONG:
-				if ( isRepeating ) return new HSearchTableKVLongInverted();
+				if ( isRepeating ) return new HSearchTableKVLongInverted(isCompressed);
 				return new HSearchTableKVLong();				
 			case Datatype.DOUBLE:
-				if ( isRepeating ) return new HSearchTableKVDoubleInverted();
+				if ( isRepeating ) return new HSearchTableKVDoubleInverted(isCompressed);
 				return new HSearchTableKVDouble();
 			case Datatype.STRING:
-				if ( isRepeating ) return new HSearchTableKVStringInverted();
+				if ( isRepeating ) return new HSearchTableKVStringInverted(isCompressed);
 				return new HSearchTableKVString();
 			case Datatype.FREQUENCY_INDEX:
 				return new HSearchTableKVIndex();
@@ -99,7 +106,6 @@ public class ScalarFilter extends HSearchScalarFilter {
 				IdSearchLog.l.error("ScalarFilter: Unknown Type : " + type);
 				return null;
 		}
-		
 	}
 	
 }

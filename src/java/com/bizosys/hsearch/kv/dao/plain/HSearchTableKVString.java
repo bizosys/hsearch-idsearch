@@ -75,7 +75,7 @@ public class HSearchTableKVString implements IHSearchTable {
 						boolean isMatched = false;
 						//LOOKING FOR ONE MATCHING
 						for ( Object obj : query.inValuesAO[0]) {
-							isMatched = cell1Key.equals(obj.toString());
+							isMatched = cell1Key.equals(obj);
 							
 							//ONE MATCHED, NO NEED TO PROCESS
 							if ( query.notValCells[0] ) { 

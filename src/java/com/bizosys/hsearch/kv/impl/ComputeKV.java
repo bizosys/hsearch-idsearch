@@ -32,20 +32,17 @@ import com.bizosys.hsearch.byteutils.SortedBytesInteger;
 import com.bizosys.hsearch.byteutils.SortedBytesLong;
 import com.bizosys.hsearch.byteutils.SortedBytesShort;
 import com.bizosys.hsearch.byteutils.SortedBytesString;
-import com.bizosys.hsearch.federate.BitSetOrSet;
 import com.bizosys.hsearch.treetable.Cell2;
 import com.bizosys.hsearch.util.HSearchLog;
 
 public class ComputeKV implements ICompute {
-
-	public BitSetOrSet matchIds = null;
 	
-	public ComputeKV(final BitSetOrSet matchIds) {
-		this.matchIds = matchIds;
+	public ComputeKV() {
 	}
 	
 	public int kvType = 1;
 	public boolean kvRepeatation = false;
+	public boolean isCompressed = false;
 	public int fieldSeq = 0;
 	public int totalFields = 0;
 
@@ -123,7 +120,7 @@ public class ComputeKV implements ICompute {
 	}
 	
 	public ComputeKV createNew() {
-		ComputeKV kv = new ComputeKV(this.matchIds);
+		ComputeKV kv = new ComputeKV();
 		kv.kvType = this.kvType;
 		return kv;
 	}
@@ -251,84 +248,89 @@ public class ComputeKV implements ICompute {
 	public void put(final byte[] data) throws IOException {
 
 		for (byte[] dataChunk : SortedBytesArray.getInstanceArr().parse(data).values()) {
-			switch (this.kvType) {
-				case Datatype.BOOLEAN:
-				{
-					System.out.println("Remote data Length :"  + data.length);
-					kv_boolean = new Cell2<Integer, Boolean>(
-							SortedBytesInteger.getInstance(), SortedBytesBoolean.getInstance(), dataChunk);
-					
-					ComputeKVRowVisitor<Boolean> visitor = new ComputeKVRowVisitor<Boolean>(
-						this.matchIds, this.fieldSeq, this.totalFields, rowContainer);
-					kv_boolean.process(visitor);
-					break;
-				}
-				case Datatype.BYTE:
-				{
-					kv_byte = new Cell2<Integer, Byte>(
-							SortedBytesInteger.getInstance(), SortedBytesChar.getInstance(), dataChunk);
-					
-					ComputeKVRowVisitor<Byte> visitor = new ComputeKVRowVisitor<Byte>(
-						this.matchIds, this.fieldSeq, this.totalFields, rowContainer);
-					kv_byte.process(visitor);
-					break;
-				}
-				case Datatype.SHORT:
-				{
-					kv_short = new Cell2<Integer, Short>(
-							SortedBytesInteger.getInstance(), SortedBytesShort.getInstance(), dataChunk);
-					ComputeKVRowVisitor<Short> visitor = new ComputeKVRowVisitor<Short>(
-							this.matchIds, this.fieldSeq, this.totalFields, rowContainer);
-					kv_short.process(visitor);
-					break;
-				}
-				case Datatype.INTEGER:
-				{
-					kv_integer = new Cell2<Integer, Integer>(
-							SortedBytesInteger.getInstance(), SortedBytesInteger.getInstance(), dataChunk);
-					ComputeKVRowVisitor<Integer> visitor = new ComputeKVRowVisitor<Integer>(
-							this.matchIds, this.fieldSeq, this.totalFields, rowContainer);
-					kv_integer.process(visitor);
-					break;
-				}
-				case Datatype.FLOAT:
-				{
-					kv_float = new Cell2<Integer, Float>(
-							SortedBytesInteger.getInstance(), SortedBytesFloat.getInstance(), dataChunk);
-					ComputeKVRowVisitor<Float> visitor = new ComputeKVRowVisitor<Float>(
-							this.matchIds, this.fieldSeq, this.totalFields, rowContainer);
-					kv_float.process(visitor);
-					break;
-				}
-				case Datatype.LONG:
-				{
-					kv_long = new Cell2<Integer, Long>(
-							SortedBytesInteger.getInstance(), SortedBytesLong.getInstance(), dataChunk);
-					ComputeKVRowVisitor<Long> visitor = new ComputeKVRowVisitor<Long>(
-							this.matchIds, this.fieldSeq, this.totalFields, rowContainer);
-					kv_long.process(visitor);
-					break;
-				}
-				case Datatype.DOUBLE:
-				{
-					kv_double = new Cell2<Integer, Double>(
-							SortedBytesInteger.getInstance(), SortedBytesDouble.getInstance(), dataChunk);
-					ComputeKVRowVisitor<Double> visitor = new ComputeKVRowVisitor<Double>(
-							this.matchIds, this.fieldSeq, this.totalFields, rowContainer);
-					kv_double.process(visitor);
-					break;
-				}
-				case Datatype.STRING:
-				{
-					kv_string = new Cell2<Integer, String>(
-							SortedBytesInteger.getInstance(), SortedBytesString.getInstance(), dataChunk);
-					ComputeKVRowVisitor<String> visitor = new ComputeKVRowVisitor<String>(
-							this.matchIds, this.fieldSeq, this.totalFields, rowContainer);
-					kv_string.process(visitor);
-					break;
-				}
-				default: break;
+			parse(dataChunk);
+		}
+		
+	}
+
+	public void parse(byte[] dataChunk) throws IOException {
+		switch (this.kvType) {
+			case Datatype.BOOLEAN:
+			{
+				System.out.println("Remote data Length :"  + dataChunk.length);
+				kv_boolean = new Cell2<Integer, Boolean>(
+						SortedBytesInteger.getInstance(), SortedBytesBoolean.getInstance(), dataChunk);
+				
+				ComputeKVRowVisitor<Boolean> visitor = new ComputeKVRowVisitor<Boolean>(
+						this.fieldSeq, this.totalFields, rowContainer);
+				kv_boolean.process(visitor);
+				break;
 			}
+			case Datatype.BYTE:
+			{
+				kv_byte = new Cell2<Integer, Byte>(
+						SortedBytesInteger.getInstance(), SortedBytesChar.getInstance(), dataChunk);
+				
+				ComputeKVRowVisitor<Byte> visitor = new ComputeKVRowVisitor<Byte>(
+					 this.fieldSeq, this.totalFields, rowContainer);
+				kv_byte.process(visitor);
+				break;
+			}
+			case Datatype.SHORT:
+			{
+				kv_short = new Cell2<Integer, Short>(
+						SortedBytesInteger.getInstance(), SortedBytesShort.getInstance(), dataChunk);
+				ComputeKVRowVisitor<Short> visitor = new ComputeKVRowVisitor<Short>(
+						 this.fieldSeq, this.totalFields, rowContainer);
+				kv_short.process(visitor);
+				break;
+			}
+			case Datatype.INTEGER:
+			{
+				kv_integer = new Cell2<Integer, Integer>(
+						SortedBytesInteger.getInstance(), SortedBytesInteger.getInstance(), dataChunk);
+				ComputeKVRowVisitor<Integer> visitor = new ComputeKVRowVisitor<Integer>(
+						 this.fieldSeq, this.totalFields, rowContainer);
+				kv_integer.process(visitor);
+				break;
+			}
+			case Datatype.FLOAT:
+			{
+				kv_float = new Cell2<Integer, Float>(
+						SortedBytesInteger.getInstance(), SortedBytesFloat.getInstance(), dataChunk);
+				ComputeKVRowVisitor<Float> visitor = new ComputeKVRowVisitor<Float>(
+						 this.fieldSeq, this.totalFields, rowContainer);
+				kv_float.process(visitor);
+				break;
+			}
+			case Datatype.LONG:
+			{
+				kv_long = new Cell2<Integer, Long>(
+						SortedBytesInteger.getInstance(), SortedBytesLong.getInstance(), dataChunk);
+				ComputeKVRowVisitor<Long> visitor = new ComputeKVRowVisitor<Long>(
+						 this.fieldSeq, this.totalFields, rowContainer);
+				kv_long.process(visitor);
+				break;
+			}
+			case Datatype.DOUBLE:
+			{
+				kv_double = new Cell2<Integer, Double>(
+						SortedBytesInteger.getInstance(), SortedBytesDouble.getInstance(), dataChunk);
+				ComputeKVRowVisitor<Double> visitor = new ComputeKVRowVisitor<Double>(
+						 this.fieldSeq, this.totalFields, rowContainer);
+				kv_double.process(visitor);
+				break;
+			}
+			case Datatype.STRING:
+			{
+				kv_string = new Cell2<Integer, String>(
+						SortedBytesInteger.getInstance(), SortedBytesString.getInstance(), dataChunk);
+				ComputeKVRowVisitor<String> visitor = new ComputeKVRowVisitor<String>(
+						 this.fieldSeq, this.totalFields, rowContainer);
+				kv_string.process(visitor);
+				break;
+			}
+			default: break;
 		}
 	}
 

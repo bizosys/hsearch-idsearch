@@ -64,16 +64,16 @@ public class ColGenerator {
 		String byteSequencer = "";
 		String booleanSequencer = "";
 		String shortSequencer = "";
-		String setId = "";
 		
-		for (Map.Entry<String, Field> entry : fm.nameSeqs.entrySet()) {
+		for (Map.Entry<String, Field> entry : fm.nameWithField.entrySet()) {
 			FieldMapping.Field fld = entry.getValue();
 			if(!fld.isStored)
 				continue;
 			String casted ="";
 			String fieldValue = "";
 			
-			char dataTypeChar = dataTypesPrimitives.get(fld.fieldType.toLowerCase());
+			String dataType = fld.getDataType().toLowerCase();
+			char dataTypeChar = dataTypesPrimitives.get(dataType);
 
 			switch (dataTypeChar) {
 				case 't':
@@ -134,14 +134,11 @@ public class ColGenerator {
 				break;
 			}
 
-			params += "\tpublic " + fld.fieldType + " " + fld.sourceName.toLowerCase() + fieldValue +";\n";
+			params += "\tpublic " + fld.getDataType() + " " + fld.sourceName.toLowerCase() + fieldValue +";\n";
 			setters += "\t\tcase "+ fld.sourceSeq + ":\n\t\t\t this."+fld.sourceName.toLowerCase()+" = " + casted + ";\n\t\t break;\n";
 			getters += "\t\tcase "+ fld.sourceSeq + ":\n\t\t\t return this."+fld.sourceName.toLowerCase()+";\n";
 			gettersNative += "\t\tcase "+ fld.sourceSeq + ":\n\t\t\t return new TypedObject(this."+fld.sourceName.toLowerCase()+");\n";
 			
-			if(fld.isJoinKey){
-				setId = "this."+fld.sourceName.toLowerCase();
-			}
 		}
 		
 		int index = completeClassName.lastIndexOf('.');
@@ -169,7 +166,6 @@ public class ColGenerator {
 		template = template.replace("--BOOLEAN_SEQUENCER--", booleanSequencer);
 		template = template.replace("--SHORT_SEQUENCER--", shortSequencer);
 		template = template.replace("--BYTE_SEQUENCER--", byteSequencer);
-		template = template.replace("--SET_ID--", setId);
 		
 		//System.out.println(template);
 		FileWriterUtil.downloadToFile(template.getBytes(),new File(path + className + ".java") );

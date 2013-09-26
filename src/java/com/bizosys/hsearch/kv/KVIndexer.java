@@ -40,6 +40,8 @@ import com.bizosys.hsearch.kv.impl.KVReducer;
 public class KVIndexer {
 
 	public static String XML_FILE_PATH = "CONFIG_XMLFILE_LOCATION";
+	public static String TABLE_NAME = "Table";
+	public static final String INCREMENTAL_ROW = "auto";
 	public static char FIELD_SEPARATOR = '|';
 	public static byte[] FAM_NAME = "1".getBytes();
 	public static byte[] COL_NAME = new byte[]{0};
@@ -89,6 +91,7 @@ public class KVIndexer {
  
 		Configuration conf = HBaseConfiguration.create();
 		conf.set(XML_FILE_PATH, args[1]);
+		conf.set(TABLE_NAME, args[2]);
 		
         Job job = new Job(conf, "HSearch Key Value indexer");
         job.setJarByClass(this.getClass());

@@ -1,20 +1,25 @@
 package com.bizosys.hsearch.kv.impl;
 
+import java.io.BufferedReader;
 import java.io.IOException;
+import java.io.InputStreamReader;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Set;
 
+import org.apache.hadoop.conf.Configuration;
+import org.apache.hadoop.fs.FileSystem;
+import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.hbase.client.Put;
 import org.apache.hadoop.hbase.io.ImmutableBytesWritable;
 import org.apache.hadoop.hbase.mapreduce.TableReducer;
 import org.apache.hadoop.io.Text;
 import org.apache.lucene.analysis.Analyzer;
-import org.apache.lucene.analysis.standard.StandardAnalyzer;
-import org.apache.lucene.util.Version;
 
 import com.bizosys.hsearch.kv.KVIndexer;
 import com.bizosys.hsearch.kv.KVIndexer.KV;
+import com.bizosys.hsearch.kv.impl.FieldMapping.Field;
 import com.bizosys.hsearch.kv.impl.bytescooker.IndexFieldBoolean;
 import com.bizosys.hsearch.kv.impl.bytescooker.IndexFieldByte;
 import com.bizosys.hsearch.kv.impl.bytescooker.IndexFieldDouble;
@@ -23,32 +28,60 @@ import com.bizosys.hsearch.kv.impl.bytescooker.IndexFieldInteger;
 import com.bizosys.hsearch.kv.impl.bytescooker.IndexFieldLong;
 import com.bizosys.hsearch.kv.impl.bytescooker.IndexFieldString;
 import com.bizosys.hsearch.util.LineReaderUtil;
+import com.bizosys.unstructured.AnalyzerFactory;
 
 public class KVReducer extends TableReducer<Text, Text, ImmutableBytesWritable> {
 
 	public KV onReduce(KV kv ) {
 		return kv;
 	}
+	
+	Set<Integer> neededPositions = null; 
+	FieldMapping fm = null;
+
+	@Override
+	protected void setup(Context context)
+			throws IOException, InterruptedException {
+		
+		Configuration conf = context.getConfiguration();
+		String path = conf.get(KVIndexer.XML_FILE_PATH);
+		try {
+			Path hadoopPath = new Path(path);
+			FileSystem fs = FileSystem.get(new Configuration());
+			BufferedReader br = new BufferedReader(new InputStreamReader(fs.open(hadoopPath)));
+			String line = null;
+			StringBuilder sb = new StringBuilder();
+			while((line = br.readLine())!=null) {
+				sb.append(line);
+			}
+
+			fm = FieldMapping.getInstance();
+			fm.parseXMLString(sb.toString());
+			neededPositions = fm.sourceSeqWithField.keySet();
+			KVIndexer.FIELD_SEPARATOR = fm.fieldSeparator;
+			conf.set(KVIndexer.TABLE_NAME, fm.tableName);
+			
+		} catch (Exception e) {
+			System.err.println("Cannot read from path " + path);
+			throw new IOException("Cannot read from path " + path);
+		}
+	}	
 
 	@Override
     protected void reduce(Text key, Iterable<Text> values, Context context) throws IOException, InterruptedException {
-    	String keyData = key.toString();
-    	String[] resultKey = new String[5];
+		String keyData = key.toString();
+    	String[] resultKey = new String[3];
 		
     	LineReaderUtil.fastSplit(resultKey, keyData, KVIndexer.FIELD_SEPARATOR);
 		
     	String rowKey = resultKey[0];
-		String dataType = resultKey[1].toLowerCase();
-		String fieldName = resultKey[2];
-		boolean isAnalyzed = resultKey[3].equalsIgnoreCase("true") ? true : false;
-		boolean isRepetable = resultKey[4].equalsIgnoreCase("true") ? true : false;
-		
-		
+    	String dataType = resultKey[1].toLowerCase();
+    	int sourceSeq = Integer.parseInt(resultKey[2]);
+    	
+    	Field fld = fm.sourceSeqWithField.get(sourceSeq);
 		char dataTypeChar = KVIndexer.dataTypesPrimitives.get(dataType);
 		
-		//TODO:call onReduce method to modify key and value if needed
-
-		byte[] finalData = cookBytes(values, fieldName, isAnalyzed, isRepetable, dataTypeChar);
+		byte[] finalData = cookBytes(values, fld.name, fld.isAnalyzed, fld.isRepeatable, fm.isCompressed, dataTypeChar);
 		
 		if(null == finalData)return;
 		Put put = new Put(rowKey.getBytes());
@@ -58,13 +91,13 @@ public class KVReducer extends TableReducer<Text, Text, ImmutableBytesWritable> 
 	}
 
 	public byte[] cookBytes(Iterable<Text> values, String fieldName,
-			boolean isAnalyzed, boolean isRepetable, char dataTypeChar) throws IOException {
+			boolean isAnalyzed, boolean isRepetable, boolean isCompressed, char dataTypeChar) throws IOException {
 		
 		byte[] finalData = null;
 		switch (dataTypeChar) {
 
 			case 't':
-				finalData = IndexFieldString.cook(values, isRepetable);
+				finalData = IndexFieldString.cook(values, isRepetable, isCompressed);
 				break;
 
 			case 'e':
@@ -72,27 +105,27 @@ public class KVReducer extends TableReducer<Text, Text, ImmutableBytesWritable> 
 				break;
 
 			case 'i':
-				finalData = IndexFieldInteger.cook(values, isRepetable);
+				finalData = IndexFieldInteger.cook(values, isRepetable, isCompressed);
 				break;
 
 			case 'f':
-				finalData = IndexFieldFloat.cook(values, isRepetable);
+				finalData = IndexFieldFloat.cook(values, isRepetable, isCompressed);
 				break;
 
 			case 'd':
-				finalData = IndexFieldDouble.cook(values, isRepetable);
+				finalData = IndexFieldDouble.cook(values, isRepetable, isCompressed);
 				break;
 
 			case 'l':
-				finalData = IndexFieldLong.cook(values, isRepetable);
+				finalData = IndexFieldLong.cook(values, isRepetable, isCompressed);
 				break;
 			
 			case 'b':
-				finalData = IndexFieldBoolean.cook(values, isRepetable);
+				finalData = IndexFieldBoolean.cook(values, isRepetable, isCompressed);
 				break;
 
 			case 'c':
-				finalData = IndexFieldByte.cook(values, isRepetable);
+				finalData = IndexFieldByte.cook(values, isRepetable, isCompressed);
 				break;
 
 			default:
@@ -109,7 +142,7 @@ public class KVReducer extends TableReducer<Text, Text, ImmutableBytesWritable> 
 		String containervalue = null;
     	String[] resultValue = new String[2];
 
-		Analyzer analyzer = new StandardAnalyzer(Version.LUCENE_36);
+		Analyzer analyzer = AnalyzerFactory.getInstance().getDefault();
     	Map<String, Integer> docTypes = new HashMap<String, Integer>(1);
 		Map<String, Integer> fldTypes = new HashMap<String, Integer>(1);
 

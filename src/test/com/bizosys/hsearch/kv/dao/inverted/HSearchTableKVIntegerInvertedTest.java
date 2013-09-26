@@ -12,13 +12,13 @@ import com.bizosys.hsearch.kv.impl.FieldMapping;
 import com.bizosys.hsearch.treetable.client.HSearchQuery;
 import com.oneline.ferrari.TestAll;
 
-public class HSearchTableKVBooleanInvertedTest extends TestCase {
+public class HSearchTableKVIntegerInvertedTest extends TestCase {
 
 	public static String[] modes = new String[] { "all", "random", "method"};
 	public static String mode = modes[1];
 	public FieldMapping fm = null;
 	public static void main(String[] args) throws Exception {
-		HSearchTableKVBooleanInvertedTest t = new HSearchTableKVBooleanInvertedTest();
+		HSearchTableKVIntegerInvertedTest t = new HSearchTableKVIntegerInvertedTest();
 
 		if ( modes[0].equals(mode) ) {
 			TestAll.run(new TestCase[]{t});
@@ -45,17 +45,18 @@ public class HSearchTableKVBooleanInvertedTest extends TestCase {
 	}
 
 	public void sanityTest() throws Exception {
-		HSearchTableKVBooleanInverted table = new HSearchTableKVBooleanInverted(false);
+		boolean isEncrypted = true;
 		
-		for ( int i=0; i<100000000; i++) {
-			if ( i == 100) table.put(i, true);
-			else table.put(i, false);
+		HSearchTableKVIntegerInverted table = new HSearchTableKVIntegerInverted(isEncrypted);
+		
+		for ( int i=0; i<1000000; i++) {
+			table.put(i%100, i);
 		}
 		byte[] ser = table.toBytes();
 		float size = ser.length/1024/1024;
 		System.out.println("Data Size :" + size + " MB" + " or " + ser.length + " bytes");
 		
-		HSearchTableKVBooleanInverted deserTable = new HSearchTableKVBooleanInverted(true);
+		HSearchTableKVIntegerInverted deserTable = new HSearchTableKVIntegerInverted(isEncrypted);
 		MapperKVBase base = new MapperKVBaseEmpty() {
 			
 			@Override
@@ -82,13 +83,13 @@ public class HSearchTableKVBooleanInvertedTest extends TestCase {
 
 			@Override
 			public void setMergeId(byte[] mergeId) throws IOException {
-				// TODO Auto-generated method stub
 				
 			}
 		};
 		
 		long s = System.currentTimeMillis();
-		deserTable.get(ser, new HSearchQuery("*|true"), base);		
+		deserTable.get(ser, new HSearchQuery("*|23"), base);		
+		deserTable.get(ser, new HSearchQuery("*|[23:45]"), base);		
 		long e = System.currentTimeMillis();
 		System.out.println("Time taken :" + + (e - s));
 			

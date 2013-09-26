@@ -1,35 +1,16 @@
-/*
-* Copyright 2013 Bizosys Technologies Limited
-*
-* Licensed to the Bizosys Technologies Limited (Bizosys) under one
-* or more contributor license agreements.  See the NOTICE file
-* distributed with this work for additional information
-* regarding copyright ownership.  The Bizosys licenses this file
-* to you under the Apache License, Version 2.0 (the
-* "License"); you may not use this file except in compliance
-* with the License.  You may obtain a copy of the License at
-*
-*     http://www.apache.org/licenses/LICENSE-2.0
-*
-* Unless required by applicable law or agreed to in writing, software
-* distributed under the License is distributed on an "AS IS" BASIS,
-* WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-* See the License for the specific language governing permissions and
-* limitations under the License.
-*/
-
 package com.bizosys.hsearch.kv;
 
 import com.bizosys.hsearch.functions.GroupSortedObject;
 import com.bizosys.hsearch.kv.impl.KVDataSchemaRepository.KVDataSchema;
-import com.bizosys.hsearch.kv.impl.KVRowI;
-import com.bizosys.hsearch.kv.TypedObject;
+import com.bizosys.hsearch.kv.impl.TypedObject;
+import com.bizosys.hsearch.kv.KVRowI;
 
 public class ExamResult extends GroupSortedObject implements KVRowI{
 	
 	public String mergeId = null;
+	public int id = -1;
 	public int empid = 0;
-	public boolean sex = false;
+	public String sex = null;
 	public String classz = null;
 	public float marks = 0.0f;
 	public String location = null;
@@ -52,7 +33,7 @@ public class ExamResult extends GroupSortedObject implements KVRowI{
 			 this.empid = (Integer)value;
 		 break;
 		case 8:
-			 this.sex = (Boolean)value;
+			 this.sex = value.toString();
 		 break;
 		case 0:
 			 this.classz = value.toString();
@@ -129,8 +110,6 @@ public class ExamResult extends GroupSortedObject implements KVRowI{
 	@Override
 	public final boolean getBooleanField(final int fldSequence) {
 		switch ( fldSequence ) {
-	case 8:
-		 return this.sex;
 
 		}
 		return false;
@@ -193,6 +172,8 @@ public class ExamResult extends GroupSortedObject implements KVRowI{
 	@Override
 	public final String getStringField(final int fldSequence) {
 		switch ( fldSequence ) {
+	case 8:
+		 return this.sex;
 	case 0:
 		 return this.classz;
 	case 4:
@@ -229,12 +210,12 @@ public class ExamResult extends GroupSortedObject implements KVRowI{
 	
 	@Override
 	public final void setId(final Integer id) {
-		this.empid = id;
+		this.id = id;
 	}
 
 	@Override
 	public final int getId() {
-		return this.empid;
+		return this.id;
 	}
 
 	@Override

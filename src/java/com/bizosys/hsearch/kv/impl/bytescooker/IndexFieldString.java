@@ -8,11 +8,11 @@ import com.bizosys.hsearch.kv.dao.inverted.HSearchTableKVStringInverted;
 import com.bizosys.hsearch.kv.dao.plain.HSearchTableKVString;
 
 public class IndexFieldString {
-	public static byte[] cook(Iterable<Text> values, boolean isRepetable) throws IOException {
+	public static byte[] cook(Iterable<Text> values, final boolean isRepetable, final boolean isCompressed) throws IOException {
 		IndexField fld = null;
 		if ( isRepetable ) {
 			fld = new IndexField() {
-				HSearchTableKVStringInverted table = new HSearchTableKVStringInverted();
+				HSearchTableKVStringInverted table = new HSearchTableKVStringInverted(isCompressed);
 
 				@Override
 				public void add(int key, String val) {
@@ -23,7 +23,9 @@ public class IndexFieldString {
 				public byte[] getBytes() throws IOException  {
 					return table.toBytes();
 				}
-			};			
+			};	
+			
+			
 		} else {
 				fld = new IndexField() {
 				HSearchTableKVString table = new HSearchTableKVString();

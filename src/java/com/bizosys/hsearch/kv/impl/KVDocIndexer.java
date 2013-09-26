@@ -29,7 +29,6 @@ import java.util.Map;
 import java.util.Set;
 
 import org.apache.lucene.analysis.Analyzer;
-import org.apache.lucene.analysis.standard.StandardAnalyzer;
 import org.apache.lucene.document.Document;
 import org.apache.lucene.document.Field;
 import org.apache.lucene.index.Term;
@@ -55,12 +54,11 @@ public class KVDocIndexer {
 
 	public void addToIndex(Analyzer analyzer, String docType, String fieldType, Map<Integer, String> docIdWithFieldValue, boolean isAnalyzed) throws IOException, InstantiationException {
 		if ( null == writer) writer = new IndexWriter(new HSearchTableKVIndex());
-    	AnalyzerFactory analyzers = new AnalyzerFactory(analyzer);
     	Field.Index index = isAnalyzed ? Field.Index.ANALYZED : Field.Index.NOT_ANALYZED;
 		for (Integer docId : docIdWithFieldValue.keySet()) {
 		    Document lucenDoc = new Document();
 		    lucenDoc.add(new Field(fieldType, docIdWithFieldValue.get(docId), Field.Store.YES, index));
-		    writer.addDocument(docId, lucenDoc,docType, analyzers);
+		    writer.addDocument(docId, lucenDoc,docType, AnalyzerFactory.getInstance());
 		}
 	}
     
@@ -171,12 +169,12 @@ public class KVDocIndexer {
 		ftypes.put("lname", 2);
 		indexer.addFieldTypes(ftypes);
 
-    	indexer.addToIndex(new StandardAnalyzer(Version.LUCENE_36), "emp", "fname", docIdWithFieldValue1, true);
-    	indexer.addToIndex(new StandardAnalyzer(Version.LUCENE_36), "emp", "lname", docIdWithFieldValue2, true);
+    	indexer.addToIndex(AnalyzerFactory.getInstance().getDefault(), "emp", "fname", docIdWithFieldValue1, true);
+    	indexer.addToIndex(AnalyzerFactory.getInstance().getDefault(), "emp", "lname", docIdWithFieldValue2, true);
     	
     	byte[] ser = indexer.toBytes();
     	    	
-    	BitSetOrSet ids2 = indexer.search(ser, new StandardAnalyzer(Version.LUCENE_36), "emp", "fname", "Subhendu Abinash");
+    	BitSetOrSet ids2 = indexer.search(ser, AnalyzerFactory.getInstance().getDefault(), "emp", "fname", "Subhendu Abinash");
     	for (Object a : ids2.getDocumentIds()) {
 			System.out.println("p " + a.toString());
 		}    	

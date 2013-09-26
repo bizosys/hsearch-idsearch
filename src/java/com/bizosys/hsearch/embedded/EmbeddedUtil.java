@@ -43,15 +43,16 @@ import com.bizosys.hsearch.treetable.client.HSearchQuery;
 import com.bizosys.hsearch.util.Hashing;
 import com.bizosys.unstructured.AnalyzerFactory;
 import com.bizosys.unstructured.IndexWriter;
+import com.sun.tools.corba.se.idl.InvalidArgument;
 
 public class EmbeddedUtil {
 	
 	IndexWriter writer = null;
 
-	public void addToIndex(Analyzer analyzer, String docType, String fieldType, Map<Integer, String> docIdWithFieldValue) throws IOException, InstantiationException {
+	public void addToIndex(Analyzer analyzer, String docType, String fieldType, Map<Integer, String> docIdWithFieldValue) throws IOException, InstantiationException, InvalidArgument {
 		
 		if ( null == writer) writer = new IndexWriter(new HSearchTableDocuments());
-    	AnalyzerFactory analyzers = new AnalyzerFactory(analyzer);
+    	AnalyzerFactory analyzers = AnalyzerFactory.getInstance().setDefault(analyzer);
     	
 		for (Integer docId : docIdWithFieldValue.keySet()) {
 		    Document lucenDoc = new Document();
@@ -128,7 +129,7 @@ public class EmbeddedUtil {
     	if ( null != this.writer ) this.writer.close();
     }
 
-    public static void main(String[] args) throws IOException, InstantiationException, ParseException {
+    public static void main(String[] args) throws IOException, InstantiationException, ParseException, InvalidArgument {
 
 		EmbeddedUtil indexer = new EmbeddedUtil();
     	

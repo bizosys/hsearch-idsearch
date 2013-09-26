@@ -6,6 +6,7 @@ import java.util.HashMap;
 import java.util.Map;
 
 import com.bizosys.hsearch.byteutils.SortedBytesBitset;
+import com.bizosys.hsearch.byteutils.SortedBytesBitsetCompressed;
 import com.bizosys.hsearch.byteutils.SortedBytesInteger;
 import com.bizosys.hsearch.kv.dao.MapperKVBase;
 import com.bizosys.hsearch.treetable.BytesSection;
@@ -25,6 +26,8 @@ public class HSearchTableKVIntegerInverted implements IHSearchTable {
     public static final int MODE_VAL = 2;
     public static final int MODE_KEYVAL = 3;
 
+    private boolean isCompressed  = false;
+    
     public static final class Cell2FilterVisitor implements Cell2Visitor<BitSet, Integer> {
 
         public HSearchQuery query;
@@ -78,15 +81,15 @@ public class HSearchTableKVIntegerInverted implements IHSearchTable {
     ///////////////////////////////////////////////////////////////////	
     Map<Integer,BitSet> table = new HashMap<Integer, BitSet>();
 
-    public HSearchTableKVIntegerInverted() {
+    public HSearchTableKVIntegerInverted(boolean isCompressed) {
+    	this.isCompressed = isCompressed;
     }
 
     public byte[] toBytes() throws IOException {
         if (null == table) {
             return null;
         }
-        Cell2<BitSet, Integer> cell2 = new Cell2<BitSet, Integer>(
-        		SortedBytesBitset.getInstance(), SortedBytesInteger.getInstance());
+        Cell2<BitSet, Integer> cell2 = createCell2();
         for (Map.Entry<Integer, BitSet> entry: table.entrySet()) {
 			cell2.add(entry.getValue(),entry.getKey());
 		}
@@ -147,8 +150,7 @@ public class HSearchTableKVIntegerInverted implements IHSearchTable {
 		Integer[] inValues1 =  (query.inValCells[1]) ? (Integer[])query.inValuesAO[1]: null;
 
 	
-		Cell2<BitSet, Integer> cell2 = new Cell2<BitSet, Integer>(
-	        		SortedBytesBitset.getInstance(), SortedBytesInteger.getInstance());
+		Cell2<BitSet, Integer> cell2 = createCell2();
 	    cell2.data = new BytesSection(input);
 	        
 		if (query.filterCells[1]) {
@@ -190,4 +192,13 @@ public class HSearchTableKVIntegerInverted implements IHSearchTable {
     public void clear() throws IOException {
         table.clear();
     }
+    
+    private final Cell2<BitSet, Integer> createCell2() {
+
+		return   (isCompressed) ? new Cell2<BitSet, Integer>(
+				SortedBytesBitsetCompressed.getInstance(), SortedBytesInteger.getInstance()) 
+				:
+					new Cell2<BitSet, Integer>(
+							SortedBytesBitset.getInstance(), SortedBytesInteger.getInstance()); 
+	}
 }

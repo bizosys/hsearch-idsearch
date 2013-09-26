@@ -21,12 +21,12 @@
 package com.bizosys.hsearch.kv.dao;
 
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.BitSet;
 import java.util.Collection;
-import java.util.HashSet;
-import java.util.Set;
+import java.util.List;
 
-import com.bizosys.hsearch.byteutils.SortedBytesInteger;
+import com.bizosys.hsearch.byteutils.SortedBytesBitset;
 import com.bizosys.hsearch.byteutils.Storable;
 import com.bizosys.hsearch.federate.BitSetOrSet;
 import com.bizosys.hsearch.kv.impl.ComputeFactory;
@@ -42,7 +42,8 @@ public final class MapperKV extends MapperKVBase {
     HSearchProcessingInstruction instruction = null;
 
     public ICompute compute = null;
-    public Set<Integer> ids = new HashSet<Integer>();
+    public BitSet matchingIds = null;
+    public BitSet returnIds = new BitSet();
     
     @Override
     public final void setOutputType(final HSearchProcessingInstruction outputTypeCode) {
@@ -51,6 +52,13 @@ public final class MapperKV extends MapperKVBase {
     	this.compute.setCallBackType(this.instruction.getOutputType());
     }
 
+	@Override
+	public final void setMergeId(final byte[] matchingIds) throws IOException {
+		Collection<BitSet> matches = SortedBytesBitset.getInstance().parse(matchingIds).values(); 
+		this.matchingIds = matches.iterator().next();
+	}
+	
+	
     /**
      * When all parts are completed, finally it is called.
      * By this time, the result of all parts is available for final processing.
@@ -84,7 +92,9 @@ public final class MapperKV extends MapperKVBase {
     		if(null != result)container.add(result);    		
     	}
     	else{
-    		result = SortedBytesInteger.getInstance().toBytes(this.ids);
+    		List<BitSet> idsL = new ArrayList<BitSet>(1);
+    		idsL.add(returnIds);
+    		result = SortedBytesBitset.getInstance().toBytes(idsL);
     		if(null != result)container.add(result);
     	}
     }
@@ -124,36 +134,35 @@ public final class MapperKV extends MapperKVBase {
         }
 
         public final boolean onRowCols( final int key,  final Object value) {
-        	computation.put(key, value);
+        	if(this.whole.matchingIds.get(key))
+        		computation.put(key, value);
             return true;
         }
 
 		@Override
 		public boolean onRowKey(int id) {
-			this.whole.ids.add(id);
+			this.whole.returnIds.set(id);
+			return true;
+		}
+
+        @Override
+		public boolean onRowKey(BitSet ids) {
+        	this.whole.returnIds.or(ids);
+			return true;
+		}
+
+		@Override
+		public boolean onRowCols(BitSet ids, Object value) {
+			ids.and(this.whole.matchingIds);
+        	for (int id = ids.nextSetBit(0); id >= 0; id = ids.nextSetBit(id+1)) {
+        		computation.put(id, value);
+        	}
 			return true;
 		}
 
         @Override
         public final void onReadComplete() {
         }
-
-
-        @Override
-		public boolean onRowKey(BitSet ids) {
-        	for (int id = ids.nextSetBit(0); id >= 0; id = ids.nextSetBit(id+1)) {
-        		this.whole.ids.add(id);
-        	}
-			return true;
-		}
-
-		@Override
-		public boolean onRowCols(BitSet ids, Object value) {
-        	for (int id = ids.nextSetBit(0); id >= 0; id = ids.nextSetBit(id+1)) {
-        		computation.put(id, value);
-        	}
-			return true;
-		}
     }
 
     @Override

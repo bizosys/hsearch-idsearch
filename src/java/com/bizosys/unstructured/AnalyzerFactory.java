@@ -27,28 +27,49 @@ import org.apache.lucene.analysis.standard.StandardAnalyzer;
 
 import com.bizosys.unstructured.util.Constants;
 import com.bizosys.unstructured.util.IdSearchLog;
+import com.sun.tools.corba.se.idl.InvalidArgument;
 
 public class AnalyzerFactory {
 	
+	private static AnalyzerFactory singleton = null;
+	
+	public static AnalyzerFactory getInstance() {
+		if ( null != singleton) return singleton;
+		
+		synchronized (AnalyzerFactory.class.getName()) {
+			if ( null != singleton) return singleton;
+			singleton = new AnalyzerFactory();
+		}
+		 return singleton;
+	}
+	
 	Map<String, Analyzer> analyzerTypes = new HashMap<String, Analyzer>();
-	Analyzer defaultAnalyzer = null;
+	private Analyzer defaultAnalyzer = null;
 
-	public AnalyzerFactory() {
+	private AnalyzerFactory() {
+		this.defaultAnalyzer =  new StandardAnalyzer(Constants.LUCENE_VERSION);
 	}
-	
-	public AnalyzerFactory (Analyzer analyzer)  {
+
+	public AnalyzerFactory setDefault(Analyzer analyzer) throws InvalidArgument{
+		if ( null == analyzer) throw new InvalidArgument("Default Analyzer can not be null.");
 		this.defaultAnalyzer = analyzer;
-	}
-
-	public void setDefault() {
-		defaultAnalyzer = new StandardAnalyzer(Constants.LUCENE_VERSION);
+		return this;
 	}
 	
+	public Analyzer getDefault() {
+		return this.defaultAnalyzer;
+	}
+	
+	public AnalyzerFactory creareBlankFactory() {
+		return new AnalyzerFactory();
+	}
+
 	public Analyzer getAnalyzer(String docType, String fieldType) throws InstantiationException{
 		if ( null == fieldType) fieldType = "";
 		Analyzer analyzer = analyzerTypes.get(docType + "\t" + fieldType);
-		if ( null == analyzer) analyzer = defaultAnalyzer;
-		if ( null == analyzer)  throw new InstantiationException(
+		if ( null == analyzer) analyzer = this.defaultAnalyzer;
+		if ( null == analyzer) 
+			throw new InstantiationException(
 			"Analyzer not found for docType" + "\t" + fieldType);
 		return analyzer;
 	}
@@ -77,5 +98,15 @@ public class AnalyzerFactory {
 			this.defaultAnalyzer = null;
 		}
 	}
+	
+	public void close(Analyzer analyzer) {
+		if ( null != analyzer ) {
+			try { analyzer.close(); 
+			} catch (Exception ex) {
+				IdSearchLog.l.warn("AnalyzerFactory closing:" + ex.getMessage());
+			}
+		}
+
+	}	
 
 }

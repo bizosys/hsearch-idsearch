@@ -23,8 +23,10 @@ package com.bizosys.hsearch.kv;
 import java.io.IOException;
 import java.text.ParseException;
 import java.util.ArrayList;
+import java.util.BitSet;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -48,11 +50,11 @@ import com.bizosys.hsearch.functions.GroupSorter.GroupSorterSequencer;
 import com.bizosys.hsearch.hbase.HReader;
 import com.bizosys.hsearch.kv.impl.Datatype;
 import com.bizosys.hsearch.kv.impl.FieldMapping;
+import com.bizosys.hsearch.kv.impl.FieldMapping.Field;
 import com.bizosys.hsearch.kv.impl.KVDataSchemaRepository;
+import com.bizosys.hsearch.kv.impl.KVDataSchemaRepository.KVDataSchema;
 import com.bizosys.hsearch.kv.impl.StorageReader;
 import com.bizosys.hsearch.kv.impl.TypedObject;
-import com.bizosys.hsearch.kv.impl.KVDataSchemaRepository.KVDataSchema;
-import com.bizosys.hsearch.kv.impl.KVDocIndexer;
 import com.bizosys.hsearch.treetable.client.HSearchProcessingInstruction;
 import com.bizosys.hsearch.util.HSearchLog;
 import com.bizosys.hsearch.util.LineReaderUtil;
@@ -74,7 +76,6 @@ public class Searcher {
 	private Map<String, Set<Object>> facetsMap = null;
 	private Map<String, List<HsearchFacet>> pivotFacetsMap = null;
 	public KVDataSchemaRepository repository = KVDataSchemaRepository.getInstance();
-	public KVDocIndexer indexer = new KVDocIndexer();
 	public Analyzer analyzer = null;
 	
 	public static boolean DEBUG_ENABLED = HSearchLog.l.isDebugEnabled();
@@ -130,8 +131,8 @@ public class Searcher {
 		this.dataRepository = dataRepository;
 		boolean isWhereQueryEmpty = ( null == whereQuery) ? true : (whereQuery.length() == 0);
 		BitSetOrSet matchIds = ( isWhereQueryEmpty) ? null : getIds(mergeId, whereQuery);
-		getValues(dataRepository, mergeId,matchIds,
-			selectQuery, whereQuery, blankRow, enrichers);
+		//System.out.println(matchIds.getDocumentSequences().toString());
+		getValues(dataRepository, mergeId,matchIds, selectQuery, whereQuery, blankRow, enrichers);
 	}
 	
 	@SuppressWarnings("unchecked")
@@ -140,14 +141,12 @@ public class Searcher {
 			KVRowI blankRow, IEnricher... enrichers) throws IOException, InterruptedException, ExecutionException, FederatedSearchException {
 
 		Map<String, Object> foundResults = null;
-		BitSetOrSet foundValues = null;
 		Set<Integer> documentIds = null;
 		Set<String> fields = null;
 		Map<Integer, Object> result = null;
 		Map<Integer,KVRowI> mergedResult = new HashMap<Integer, KVRowI>();
 
 		this.dataRepository = dataRepository;
-		boolean isWhereQueryEmpty = ( null == whereQuery) ? true : (whereQuery.length() == 0);
 
 		boolean isSelectQueryEmpty = ( null == selectQuery) ? true : (selectQuery.length() == 0);
 		if(!isSelectQueryEmpty) foundResults = getAllSelectFieldValues(mergeId, matchIds, selectQuery);
@@ -158,17 +157,10 @@ public class Searcher {
 		for (String field : fields) {
 
 			result = (Map<Integer, Object>) foundResults.get(field);
-			documentIds = new HashSet<Integer>(result.keySet());
-			
-			//if where query is not empty do the intersection
-			if(!isWhereQueryEmpty){
-				foundValues = new BitSetOrSet();
-				foundValues.setDocumentIds(documentIds);
-				foundValues.and(matchIds);
-				documentIds = foundValues.getDocumentIds();
-			}
+			documentIds = result.keySet();
 
 			for (Integer id : documentIds) {
+				
 				if (mergedResult.containsKey(id)){
 					KVRowI aRow = mergedResult.get(id);
 					aRow.setValue(field, result.get(id));
@@ -224,7 +216,7 @@ public class Searcher {
 				qpart.setParam("query", fieldQuery);
 				queryDetails.put(queryId, qpart);
 			}
-			
+
 			FederatedSearch ff = createFederatedSearch();
 			BitSetOrSet mixedQueryMatchedIds = ff.execute(whereQuery, queryDetails);
 
@@ -256,21 +248,37 @@ public class Searcher {
 	private final Map<String, Object> getAllSelectFieldValues(final String mergeId, 
 			final BitSetOrSet matchIds, final String selectFields) throws IOException, InterruptedException, ExecutionException {
 		
-		String filterQuery = "*|*";
 		String rowId = null;
 		Map<String, Object> individualResults = new HashMap<String, Object>();
 
 		String[] selectFieldsA = patternComma.split(selectFields);
-		Map<String, Future<Object>> fieldWithfuture = new HashMap<String, Future<Object>>();
+		Map<String, Future<Map<Integer, Object>>> fieldWithfuture = new HashMap<String, Future<Map<Integer, Object>>>();
+		KVDataSchema dataScheme =  repository.get(schemaRepositoryName);;
+		Field fld = null;
+		int outputType = -1;
+		String isRepeatable = null;
+
 		init();
 		for (String field : selectFieldsA) {
 			rowId = mergeId + "_" + field;
-			StorageReader reader = new StorageReader(repository, matchIds, schemaRepositoryName, indexer, analyzer, dataRepository, rowId, filterQuery, HSearchProcessingInstruction.PLUGIN_CALLBACK_COLS);
-			Future<Object> future = ES.submit(reader);
+			outputType = dataScheme.fldWithDataTypeMapping.get(field);
+			outputType = (outputType == Datatype.FREQUENCY_INDEX) ? Datatype.STRING : outputType;
+			fld = dataScheme.fm.nameWithField.get(field);
+			isRepeatable = fld.isRepeatable ? "true" : "false";
+			String isCompressed = dataScheme.fm.isCompressed ? "true" : "false";
+
+			HSearchProcessingInstruction instruction = new HSearchProcessingInstruction(
+				HSearchProcessingInstruction.PLUGIN_CALLBACK_COLS, outputType,
+				isRepeatable + "\t" + isCompressed);
+			
+			String filterQuery = "*|*";
+			StorageReader reader = new StorageReader(dataRepository, rowId, matchIds, filterQuery, instruction, analyzer);
+			Future<Map<Integer, Object>> future = ES.submit(reader);
+
 			fieldWithfuture.put(field, future);
 		}
 		Set<String> fields = fieldWithfuture.keySet();
-		Future<Object> future = null;
+		Future<Map<Integer, Object>> future = null;
 		for (String field : fields){
 			future = fieldWithfuture.get(field);
 			individualResults.put(field, future.get());
@@ -322,7 +330,7 @@ public class Searcher {
 		GroupSortedObject[] sortedContainer = new GroupSortedObject[resultsetT];
 		resultset.toArray(sortedContainer);
 		gs.sort(sortedContainer);
-		resultset = new HashSet<KVRowI>();
+		resultset = new LinkedHashSet<KVRowI>();
 		for (int j=0; j < resultsetT; j++) {
 			resultset.add((KVRowI)sortedContainer[j]);
 		}
@@ -339,7 +347,6 @@ public class Searcher {
 		 
 		this.dataRepository = dataRepository;
 		Map<Integer, Object> foundResults = null;
-		BitSetOrSet foundValues = null;
 		BitSetOrSet foundIds = null;
 		Set<Integer> documentIds = null;
 		facetsMap = new HashMap<String, Set<Object>>();
@@ -350,15 +357,7 @@ public class Searcher {
 
 		for (String field : individualResults.keySet()) {
 			foundResults = (Map<Integer, Object>) individualResults.get(field);
-			documentIds = new HashSet<Integer>(foundResults.keySet());
-			
-			//if where query is not empty do the intersection
-			if(!isWhereQueryEmpty){
-				foundValues = new BitSetOrSet();
-				foundValues.setDocumentIds(documentIds);
-				foundValues.and(foundIds);
-				documentIds = foundValues.getDocumentIds();
-			}
+			documentIds = foundResults.keySet();
 			
 			Set<Object> facets = new TreeSet<Object>(); 
 
@@ -387,12 +386,13 @@ public class Searcher {
 		        current = root;			
 			}
 			this.pivotFacetsMap.put(aPivotFacet, root.getinternalFacets());
+			resultset.clear();
 		}
 		
 		return pivotFacetsMap;
 	}
 	
-	public Map<String, Map<Object, FacetCount>> createFacetCount(String facetFields) {
+	public Map<String, Map<Object, FacetCount>> createFacetCount(final String facetFields) {
 		Set<KVRowI> mergedResult = this.getResult();
 		
 		List<String> facetFieldLst = new ArrayList<String>(4);
@@ -432,22 +432,35 @@ public class Searcher {
 		
 		FederatedSearch ff = new FederatedSearch(2) {
 
-			@SuppressWarnings("unchecked")
 			@Override
-			public BitSetOrSet populate(String type, String queryId,
-					String rowId, Map<String, Object> filterValues) throws IOException {
+			public BitSetOrSet populate(final String type, final String queryId,
+					final String rowId, final Map<String, Object> filterValues) throws IOException {
 				
 				String filterQuery = filterValues.values().iterator().next().toString();
 				int tableNameLen = ( null == dataRepository) ? 0 : dataRepository.trim().length();
+				
 				if ( 0 == tableNameLen) {
 					IdSearchLog.l.fatal("Unknown data repository for query " + queryId);
 					throw new IOException("Unknown data repository for query " + queryId);
 				}
-				StorageReader reader = new StorageReader(repository, null, schemaRepositoryName, indexer, analyzer, dataRepository, rowId, filterQuery, HSearchProcessingInstruction.PLUGIN_CALLBACK_ID);
 				
-				Set<Integer> readingIds = (Set<Integer>) reader.readStorage();
+				KVDataSchema dataScheme = repository.get(schemaRepositoryName);;
+				String field = rowId.substring(rowId.lastIndexOf('_') + 1);
+				int outputType = dataScheme.fldWithDataTypeMapping.get(field);
+				Field fld = dataScheme.fm.nameWithField.get(field);
+				String isRepeatable = fld.isRepeatable ? "true" : "false";
+				String isCompressed = dataScheme.fm.isCompressed ? "true" : "false";
+				boolean isTextSearch = fld.isDocIndex;
+				HSearchProcessingInstruction instruction = new HSearchProcessingInstruction(HSearchProcessingInstruction.PLUGIN_CALLBACK_ID, outputType, 
+					isRepeatable + "\t" + isCompressed);
+				
+				StorageReader reader = new StorageReader(dataRepository, rowId, null, filterQuery, instruction, analyzer);
+				BitSet readingIds = null;
+				
+				readingIds = isTextSearch ? reader.readStorageTextIds(field) : reader.readStorageIds();
+
 				BitSetOrSet rows = new BitSetOrSet();
-				rows.setDocumentIds(readingIds);
+				rows.setDocumentSequences(readingIds);
 				return rows;
 			}
 		};

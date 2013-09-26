@@ -28,6 +28,6 @@ public class ComputeFactory {
 	}
 	
 	public final ICompute getCompute(final String type) throws NullPointerException {
-    	return new ComputeKV(null);
+    	return new ComputeKV();
     }
 }

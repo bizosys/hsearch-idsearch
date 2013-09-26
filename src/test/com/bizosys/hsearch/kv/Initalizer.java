@@ -1,67 +1,35 @@
 package com.bizosys.hsearch.kv;
 
 import java.io.IOException;
-import java.util.ArrayList;
-import java.util.List;
-
-import org.apache.hadoop.hbase.HColumnDescriptor;
-import org.apache.hadoop.hbase.client.HBaseAdmin;
+import java.text.ParseException;
 
 import com.bizosys.hsearch.admin.ColGenerator;
-import com.bizosys.hsearch.hbase.HBaseException;
-import com.bizosys.hsearch.hbase.HBaseFacade;
-import com.bizosys.hsearch.hbase.HDML;
 import com.bizosys.hsearch.kv.impl.FieldMapping;
 
 public class Initalizer {
 
-	public static final char RECORD_SEPARATOR = '\n';
-	public static final char FIELD_SEPARATOR = '|';
-	
 	public static void main(String[] args) throws Exception {
     	
-		StandaloneKVMapReduce.RECORD_SEPARATOR = RECORD_SEPARATOR;
-		StandaloneKVMapReduce.FIELD_SEPARATOR = FIELD_SEPARATOR;
-		
     	String schemaPath = "src/test/com/bizosys/hsearch/kv/examresult.xml";
     	String valueObjectPath = "src/test/com/bizosys/hsearch/kv/";
     	String valueObjectClassName = "com.bizosys.hsearch.kv.ExamResult";
-    	FieldMapping fm = FieldMapping.getInstance();
-		//parse the xml file
-		fm.parseXML(schemaPath);
+    	FieldMapping fm = FieldMapping.getInstance(schemaPath);
 		//initalize( create hbase table,create data and index)
-    	initalize(fm);
+    	initalize(fm, schemaPath);
     	//create VO(Value Object) for the schema.
     	ColGenerator.createVO(fm, valueObjectPath, valueObjectClassName);
     }
 	
-	public static void initalize(final FieldMapping fm){
+	public static void initalize(final FieldMapping fm, final String schemaPath){
     	try {
-			//create table in hbase
-			HBaseAdmin admin =  HBaseFacade.getInstance().getAdmin();
-	    	if ( !admin.tableExists(fm.tableName))
-	    		createTable(fm.tableName, fm.familyName);
-	    	//load and index data in hbase
-	    	loadNindex(fm);
-	    	
+	    	loadNindex(fm, schemaPath);
 		} catch (Exception e) {
 			e.printStackTrace(System.err);
 			System.err.println("Error initalizing " + e.getMessage());
 		}
 	}
     
-    public static void createTable(final String tableName, final String family){
-		try {
-			List<HColumnDescriptor> colFamilies = new ArrayList<HColumnDescriptor>();
-			HColumnDescriptor cols = new HColumnDescriptor(family.getBytes());
-			colFamilies.add(cols);
-			HDML.create(tableName, colFamilies);
-		} catch (HBaseException e) {
-			e.printStackTrace();
-		}
-    }
-    
-    public static void loadNindex(final FieldMapping fm){
+    public static void loadNindex(final FieldMapping fm, final String schemaPath) throws InterruptedException, ParseException{
     	
     	String [] classz = new String[] {"A","B"};
 		int classzCounter = 0;
@@ -81,15 +49,19 @@ public class Initalizer {
 		String [] comments = new String[] {"He is a good boy and very authentic","Tremendous boy","blazing performance in this test"};
 		int commentsCounter = 0;
 
-
+		String sex = null;
 		StringBuilder sb = new StringBuilder(65535);
+		
+		char FIELD_SEPARATOR = fm.fieldSeparator;
+		char RECORD_SEPARATOR = '\n';
+		
 		for ( int i=0; i<100; i++) {
 			
-			Boolean isMale = ( i%2 == 0);
+			 sex = ( i%2 == 0) ? "Male" : "Female";
 	    	sb.append(classz[classzCounter]).append(FIELD_SEPARATOR).append(i).append(FIELD_SEPARATOR).append(ages[agesCounter])
 	    	.append(FIELD_SEPARATOR).append(role[roleCounter]).append(FIELD_SEPARATOR).append(location[locationCounter])
 	    	.append(FIELD_SEPARATOR).append((float)i/10).append(FIELD_SEPARATOR).append(remarks[remarksCounter])
-	    	.append(FIELD_SEPARATOR).append(comments[commentsCounter]).append(FIELD_SEPARATOR).append(isMale.toString()).append(RECORD_SEPARATOR);
+	    	.append(FIELD_SEPARATOR).append(comments[commentsCounter]).append(FIELD_SEPARATOR).append(sex.toString()).append(RECORD_SEPARATOR);
 
 	    	classzCounter++;
 	    	if ( classzCounter > 1) classzCounter = 0;
@@ -112,12 +84,13 @@ public class Initalizer {
 	    	if ( locationCounter > 3) locationCounter = 0;
 		}
 		
-		StandaloneKVMapReduce indexer = new StandaloneKVMapReduce();
+		KVIndexerLocal indexer = new KVIndexerLocal();
 		try {
-			indexer.indexData(sb.toString(), fm, false);
+			indexer.index(sb.toString(), schemaPath, false);
 		} catch (IOException e) {
 			e.printStackTrace(System.err);
 			System.err.println("Problem in indexing " + e.getMessage());
 		}
+		
 	}
 }

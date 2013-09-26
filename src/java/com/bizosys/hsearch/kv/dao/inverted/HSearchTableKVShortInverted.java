@@ -6,6 +6,8 @@ import java.util.HashMap;
 import java.util.Map;
 
 import com.bizosys.hsearch.byteutils.SortedBytesBitset;
+import com.bizosys.hsearch.byteutils.SortedBytesBitsetCompressed;
+import com.bizosys.hsearch.byteutils.SortedBytesInteger;
 import com.bizosys.hsearch.byteutils.SortedBytesUnsignedShort;
 import com.bizosys.hsearch.kv.dao.MapperKVBase;
 import com.bizosys.hsearch.treetable.BytesSection;
@@ -24,6 +26,8 @@ public class HSearchTableKVShortInverted implements IHSearchTable {
     public static final int MODE_KEY = 1;
     public static final int MODE_VAL = 2;
     public static final int MODE_KEYVAL = 3;
+    
+    private boolean isCompressed = false;
 
     public static final class Cell2FilterVisitor implements Cell2Visitor<BitSet, Integer> {
 
@@ -39,7 +43,7 @@ public class HSearchTableKVShortInverted implements IHSearchTable {
         public int cellFoundKey;
 
         public int mode = MODE_COLS;
-
+        
         public Cell2FilterVisitor(HSearchQuery query,
                 IHSearchPlugin plugin, MapperKVBase.TablePartsCallback tablePartsCallback, int mode) {
 
@@ -78,9 +82,10 @@ public class HSearchTableKVShortInverted implements IHSearchTable {
     ///////////////////////////////////////////////////////////////////	
     Map<Integer,BitSet> table = new HashMap<Integer, BitSet>();
 
-    public HSearchTableKVShortInverted() {
+    public HSearchTableKVShortInverted(boolean isCompressed) {
+    	this.isCompressed = isCompressed;
     }
-
+    
     public byte[] toBytes() throws IOException {
     	 if (null == table) return null;
          Cell2<BitSet, Integer> cell2 = new Cell2<BitSet, Integer>(
@@ -190,6 +195,13 @@ public class HSearchTableKVShortInverted implements IHSearchTable {
     public void clear() throws IOException {
         table.clear();
     }
+    private final Cell2<BitSet, Integer> createCell2() {
 
+		return   (isCompressed) ? new Cell2<BitSet, Integer>(
+				SortedBytesBitsetCompressed.getInstance(), SortedBytesInteger.getInstance()) 
+				:
+					new Cell2<BitSet, Integer>(
+							SortedBytesBitset.getInstance(), SortedBytesInteger.getInstance()); 
+	}
     
 }

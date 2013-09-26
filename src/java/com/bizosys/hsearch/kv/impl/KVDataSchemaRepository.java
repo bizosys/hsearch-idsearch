@@ -56,14 +56,14 @@ public class KVDataSchemaRepository {
 
 		public KVDataSchema(final FieldMapping fm) {
 			this.fm = fm;
-			Map<Integer,Field> seqFields = fm.fieldSeqs;
+			Map<Integer,Field> seqFields = fm.sourceSeqWithField;
 			String dataType = ""; 
 			for (Integer seq : seqFields.keySet()) {
 				Field fld = seqFields.get(seq);
 				nameToSeqMapping.put(fld.name, fld.sourceSeq);
 				seqToNameMapping.put(fld.sourceSeq, fld.name);
 				
-				dataType = fld.fieldType.toLowerCase();
+				dataType = fld.getDataType().toLowerCase();
 				char dataTypeChar = dataTypesPrimitives.get(dataType);
 				int dataTypeField = -1;
 				switch (dataTypeChar) {
@@ -105,8 +105,14 @@ public class KVDataSchemaRepository {
 
 		public final boolean getRepetation(String fldName) throws IOException {
 			if ( null == this.fm ) throw new IOException("FieldMapping is not initialized"); 
-			return this.fm.nameSeqs.get(fldName).isRepeatable;
+			return this.fm.nameWithField.get(fldName).isRepeatable;
 		}
+		
+		public final boolean getCompression(String fldName) throws IOException {
+			if ( null == this.fm ) throw new IOException("FieldMapping is not initialized"); 
+			return this.fm.isCompressed;
+		}
+		
 	}
 	
 	Map<String, KVDataSchema> repositoryMap = new HashMap<String, KVDataSchemaRepository.KVDataSchema>();

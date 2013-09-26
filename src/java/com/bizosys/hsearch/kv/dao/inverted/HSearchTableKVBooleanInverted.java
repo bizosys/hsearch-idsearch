@@ -6,6 +6,7 @@ import java.util.HashMap;
 import java.util.Map;
 
 import com.bizosys.hsearch.byteutils.SortedBytesBitset;
+import com.bizosys.hsearch.byteutils.SortedBytesBitsetCompressed;
 import com.bizosys.hsearch.byteutils.SortedBytesBoolean;
 import com.bizosys.hsearch.kv.dao.MapperKVBase;
 import com.bizosys.hsearch.treetable.BytesSection;
@@ -24,6 +25,8 @@ public final class HSearchTableKVBooleanInverted implements IHSearchTable {
     public static final int MODE_KEY = 1;
     public static final int MODE_VAL = 2;
     public static final int MODE_KEYVAL = 3;
+    
+    private boolean isCompressed  = false;
 
     public static final class Cell2FilterVisitor implements Cell2Visitor<BitSet, Boolean> {
 
@@ -78,13 +81,15 @@ public final class HSearchTableKVBooleanInverted implements IHSearchTable {
     ///////////////////////////////////////////////////////////////////	
     Map<Boolean,BitSet> table = new HashMap<Boolean, BitSet>();
 
-    public HSearchTableKVBooleanInverted() {
+    public HSearchTableKVBooleanInverted(boolean isCompressed) {
+    	this.isCompressed = isCompressed;
     }
 
     public final byte[] toBytes() throws IOException {
         if (null == table) return null;
-        Cell2<BitSet, Boolean> cell2 = new Cell2<BitSet, Boolean>(
-        		SortedBytesBitset.getInstance(), SortedBytesBoolean.getInstance());
+        Cell2<BitSet, Boolean> cell2 = createCell2();
+        		
+        		
         for (Map.Entry<Boolean, BitSet> entry: table.entrySet()) {
 			cell2.add(entry.getValue(),entry.getKey());
 		}
@@ -144,8 +149,8 @@ public final class HSearchTableKVBooleanInverted implements IHSearchTable {
 		cell2Visitor.inValues0 =  (query.inValCells[0]) ? (Integer[])query.inValuesAO[0]: null;
 		Boolean[] inValues1 =  (query.inValCells[1]) ? (Boolean[])query.inValuesAO[1]: null;
 
-        Cell2<BitSet, Boolean> cell2 = new Cell2<BitSet, Boolean>(
-        		SortedBytesBitset.getInstance(), SortedBytesBoolean.getInstance());
+        Cell2<BitSet, Boolean> cell2 =  createCell2();
+        		
         cell2.data = new BytesSection(input);
 	
 		if (query.filterCells[1]) {
@@ -187,5 +192,14 @@ public final class HSearchTableKVBooleanInverted implements IHSearchTable {
     public void clear() throws IOException {
         table.clear();
     }
+    
+    private final Cell2<BitSet, Boolean> createCell2() {
+    
+  		return   (isCompressed) ? new Cell2<BitSet, Boolean>(
+        		SortedBytesBitsetCompressed.getInstance(), SortedBytesBoolean.getInstance()) 
+        		:
+        		new Cell2<BitSet, Boolean>(
+        		SortedBytesBitset.getInstance(), SortedBytesBoolean.getInstance()); 
+	}   
 
 }

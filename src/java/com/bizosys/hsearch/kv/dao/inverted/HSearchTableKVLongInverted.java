@@ -6,6 +6,7 @@ import java.util.HashMap;
 import java.util.Map;
 
 import com.bizosys.hsearch.byteutils.SortedBytesBitset;
+import com.bizosys.hsearch.byteutils.SortedBytesBitsetCompressed;
 import com.bizosys.hsearch.byteutils.SortedBytesLong;
 import com.bizosys.hsearch.kv.dao.MapperKVBase;
 import com.bizosys.hsearch.treetable.BytesSection;
@@ -24,7 +25,9 @@ public class HSearchTableKVLongInverted implements IHSearchTable {
     public static final int MODE_KEY = 1;
     public static final int MODE_VAL = 2;
     public static final int MODE_KEYVAL = 3;
-
+    
+    private boolean isCompressed  = false;
+    
     public static final class Cell2FilterVisitor implements Cell2Visitor<BitSet, Long> {
 
         public HSearchQuery query;
@@ -78,14 +81,14 @@ public class HSearchTableKVLongInverted implements IHSearchTable {
     ///////////////////////////////////////////////////////////////////	
     Map<Long,BitSet> table = new HashMap<Long, BitSet>();
 
-    public HSearchTableKVLongInverted() {
+    public HSearchTableKVLongInverted(boolean isCompressed) {
+    	this.isCompressed = isCompressed;
     }
 
 
     public byte[] toBytes() throws IOException {
     	 if (null == table) return null;
-         Cell2<BitSet, Long> cell2 = new Cell2<BitSet, Long>(
-         		SortedBytesBitset.getInstance(), SortedBytesLong.getInstance());
+         Cell2<BitSet, Long> cell2 = createCell2();
          for (Map.Entry<Long, BitSet> entry: table.entrySet()) {
  			cell2.add(entry.getValue(),entry.getKey());
  		}
@@ -146,8 +149,7 @@ public class HSearchTableKVLongInverted implements IHSearchTable {
 		Long[] inValues1 =  (query.inValCells[1]) ? (Long[])query.inValuesAO[1]: null;
 
 	
-		Cell2<BitSet, Long> cell2 = new Cell2<BitSet, Long>(
-	        		SortedBytesBitset.getInstance(), SortedBytesLong.getInstance());
+		Cell2<BitSet, Long> cell2 = createCell2();
 	    cell2.data = new BytesSection(input);
 	        
 		if (query.filterCells[1]) {
@@ -189,5 +191,12 @@ public class HSearchTableKVLongInverted implements IHSearchTable {
     public void clear() throws IOException {
         table.clear();
     }
+    private final Cell2<BitSet, Long> createCell2() {
 
+		return   (isCompressed) ? new Cell2<BitSet, Long>(
+				SortedBytesBitsetCompressed.getInstance(), SortedBytesLong.getInstance()) 
+				:
+					new Cell2<BitSet, Long>(
+							SortedBytesBitset.getInstance(), SortedBytesLong.getInstance()); 
+	}
 }
