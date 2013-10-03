@@ -19,6 +19,7 @@
 */
 package com.bizosys.unstructured;
 
+import java.io.IOException;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -27,7 +28,6 @@ import org.apache.lucene.analysis.standard.StandardAnalyzer;
 
 import com.bizosys.unstructured.util.Constants;
 import com.bizosys.unstructured.util.IdSearchLog;
-import com.sun.tools.corba.se.idl.InvalidArgument;
 
 public class AnalyzerFactory {
 	
@@ -50,8 +50,8 @@ public class AnalyzerFactory {
 		this.defaultAnalyzer =  new StandardAnalyzer(Constants.LUCENE_VERSION);
 	}
 
-	public AnalyzerFactory setDefault(Analyzer analyzer) throws InvalidArgument{
-		if ( null == analyzer) throw new InvalidArgument("Default Analyzer can not be null.");
+	public AnalyzerFactory setDefault(Analyzer analyzer) throws IOException {
+		if ( null == analyzer) throw new IOException("Default Analyzer can not be null.");
 		this.defaultAnalyzer = analyzer;
 		return this;
 	}

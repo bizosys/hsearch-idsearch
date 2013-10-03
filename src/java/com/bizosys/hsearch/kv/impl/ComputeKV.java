@@ -35,7 +35,7 @@ import com.bizosys.hsearch.byteutils.SortedBytesString;
 import com.bizosys.hsearch.treetable.Cell2;
 import com.bizosys.hsearch.util.HSearchLog;
 
-public class ComputeKV implements ICompute {
+public final class ComputeKV implements ICompute {
 	
 	public ComputeKV() {
 	}
@@ -119,14 +119,14 @@ public class ComputeKV implements ICompute {
 		}
 	}
 	
-	public ComputeKV createNew() {
+	public final ComputeKV createNew() {
 		ComputeKV kv = new ComputeKV();
 		kv.kvType = this.kvType;
 		return kv;
 	}
 	
 	
-	public void clear() {
+	public final void clear() {
 		
 		switch (this.kvType) {
 		
@@ -193,7 +193,7 @@ public class ComputeKV implements ICompute {
 		
 	}	
 	
-	public byte[] toBytes() throws IOException {
+	public final byte[] toBytes() throws IOException {
 		
 		byte[] data = null; 
 		switch (this.kvType) {
@@ -245,7 +245,7 @@ public class ComputeKV implements ICompute {
 	}
 	
 	@Override
-	public void put(final byte[] data) throws IOException {
+	public final void put(final byte[] data) throws IOException {
 
 		for (byte[] dataChunk : SortedBytesArray.getInstanceArr().parse(data).values()) {
 			parse(dataChunk);
@@ -253,16 +253,13 @@ public class ComputeKV implements ICompute {
 		
 	}
 
-	public void parse(byte[] dataChunk) throws IOException {
+	public final void parse(final byte[] dataChunk) throws IOException {
 		switch (this.kvType) {
 			case Datatype.BOOLEAN:
 			{
-				System.out.println("Remote data Length :"  + dataChunk.length);
-				kv_boolean = new Cell2<Integer, Boolean>(
-						SortedBytesInteger.getInstance(), SortedBytesBoolean.getInstance(), dataChunk);
+				kv_boolean = new Cell2<Integer, Boolean>(SortedBytesInteger.getInstance(), SortedBytesBoolean.getInstance(), dataChunk);
 				
-				ComputeKVRowVisitor<Boolean> visitor = new ComputeKVRowVisitor<Boolean>(
-						this.fieldSeq, this.totalFields, rowContainer);
+				ComputeKVRowVisitor<Boolean> visitor = new ComputeKVRowVisitor<Boolean>(rowContainer);
 				kv_boolean.process(visitor);
 				break;
 			}
@@ -271,8 +268,7 @@ public class ComputeKV implements ICompute {
 				kv_byte = new Cell2<Integer, Byte>(
 						SortedBytesInteger.getInstance(), SortedBytesChar.getInstance(), dataChunk);
 				
-				ComputeKVRowVisitor<Byte> visitor = new ComputeKVRowVisitor<Byte>(
-					 this.fieldSeq, this.totalFields, rowContainer);
+				ComputeKVRowVisitor<Byte> visitor = new ComputeKVRowVisitor<Byte>(rowContainer);
 				kv_byte.process(visitor);
 				break;
 			}
@@ -280,8 +276,7 @@ public class ComputeKV implements ICompute {
 			{
 				kv_short = new Cell2<Integer, Short>(
 						SortedBytesInteger.getInstance(), SortedBytesShort.getInstance(), dataChunk);
-				ComputeKVRowVisitor<Short> visitor = new ComputeKVRowVisitor<Short>(
-						 this.fieldSeq, this.totalFields, rowContainer);
+				ComputeKVRowVisitor<Short> visitor = new ComputeKVRowVisitor<Short>(rowContainer);
 				kv_short.process(visitor);
 				break;
 			}
@@ -289,8 +284,7 @@ public class ComputeKV implements ICompute {
 			{
 				kv_integer = new Cell2<Integer, Integer>(
 						SortedBytesInteger.getInstance(), SortedBytesInteger.getInstance(), dataChunk);
-				ComputeKVRowVisitor<Integer> visitor = new ComputeKVRowVisitor<Integer>(
-						 this.fieldSeq, this.totalFields, rowContainer);
+				ComputeKVRowVisitor<Integer> visitor = new ComputeKVRowVisitor<Integer>(rowContainer);
 				kv_integer.process(visitor);
 				break;
 			}
@@ -298,8 +292,7 @@ public class ComputeKV implements ICompute {
 			{
 				kv_float = new Cell2<Integer, Float>(
 						SortedBytesInteger.getInstance(), SortedBytesFloat.getInstance(), dataChunk);
-				ComputeKVRowVisitor<Float> visitor = new ComputeKVRowVisitor<Float>(
-						 this.fieldSeq, this.totalFields, rowContainer);
+				ComputeKVRowVisitor<Float> visitor = new ComputeKVRowVisitor<Float>(rowContainer);
 				kv_float.process(visitor);
 				break;
 			}
@@ -307,8 +300,7 @@ public class ComputeKV implements ICompute {
 			{
 				kv_long = new Cell2<Integer, Long>(
 						SortedBytesInteger.getInstance(), SortedBytesLong.getInstance(), dataChunk);
-				ComputeKVRowVisitor<Long> visitor = new ComputeKVRowVisitor<Long>(
-						 this.fieldSeq, this.totalFields, rowContainer);
+				ComputeKVRowVisitor<Long> visitor = new ComputeKVRowVisitor<Long>(rowContainer);
 				kv_long.process(visitor);
 				break;
 			}
@@ -316,8 +308,7 @@ public class ComputeKV implements ICompute {
 			{
 				kv_double = new Cell2<Integer, Double>(
 						SortedBytesInteger.getInstance(), SortedBytesDouble.getInstance(), dataChunk);
-				ComputeKVRowVisitor<Double> visitor = new ComputeKVRowVisitor<Double>(
-						 this.fieldSeq, this.totalFields, rowContainer);
+				ComputeKVRowVisitor<Double> visitor = new ComputeKVRowVisitor<Double>(rowContainer);
 				kv_double.process(visitor);
 				break;
 			}
@@ -325,8 +316,7 @@ public class ComputeKV implements ICompute {
 			{
 				kv_string = new Cell2<Integer, String>(
 						SortedBytesInteger.getInstance(), SortedBytesString.getInstance(), dataChunk);
-				ComputeKVRowVisitor<String> visitor = new ComputeKVRowVisitor<String>(
-						 this.fieldSeq, this.totalFields, rowContainer);
+				ComputeKVRowVisitor<String> visitor = new ComputeKVRowVisitor<String>(rowContainer);
 				kv_string.process(visitor);
 				break;
 			}
@@ -335,11 +325,11 @@ public class ComputeKV implements ICompute {
 	}
 
 	@Override
-	public void setStreamWriter(OutputStream out) {
+	public final void setStreamWriter(final OutputStream out) {
 	}
 	
 	@Override
-	public void onComplete() {
+	public final void onComplete() {
 		
 	}
 }

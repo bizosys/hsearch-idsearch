@@ -35,17 +35,27 @@ import com.bizosys.unstructured.AnalyzerFactory;
 public class KVMapperBase {
     	
 	private static final byte[] LONG_0 = Storable.putLong(0);
+	private static class Counter{
+		public long seekPointer = -1;
+		public long maxPointer = Long.MAX_VALUE;
+		
+		public Counter(long seekPointer, long maxPointer){
+			this.seekPointer = seekPointer;
+			this.maxPointer = maxPointer;
+		}
+	}
+
 	Set<Integer> neededPositions = null; 
-	FieldMapping fm = FieldMapping.getInstance();
+	FieldMapping fm = new FieldMapping();
 
 	Map<Integer,String> rowIdMap = new HashMap<Integer, String>();
 	StringBuilder appender = new StringBuilder();
 	String tableName = null;
 	NV kv = null;
 
-	long joinKeyMaxPoint = -1;
-	long joinKeySeekPoint = Long.MAX_VALUE;
-	final int joinKeyCacheSize = 100;
+	final int joinKeyCacheSize = 1000;
+	long joinKeySeekPoint = 0;
+	Map<String, Counter> ids = new HashMap<String, Counter>();
 	
 	String fldValue = null;
 	boolean isFieldNull = false;
@@ -65,6 +75,7 @@ public class KVMapperBase {
 		return kv;
 	}
 
+	@SuppressWarnings("rawtypes")
 	public void setup(Context context) throws IOException, InterruptedException {
 		Configuration conf = context.getConfiguration();
 		
@@ -77,10 +88,8 @@ public class KVMapperBase {
 		
 		try {
 			BufferedReader br = null;
-			System.out.println(path);
-			
 			Path hadoopPath = new Path(path);
-			FileSystem fs = FileSystem.get(new Configuration());
+			FileSystem fs = FileSystem.get(conf);
 			br = new BufferedReader(new InputStreamReader(fs.open(hadoopPath)));
 			String line = null;
 			while((line = br.readLine())!=null) {
@@ -100,20 +109,33 @@ public class KVMapperBase {
 		}
 	}
 	
-    protected void map(String[] result, Context context) throws IOException, InterruptedException {
+    @SuppressWarnings({ "rawtypes", "unchecked" })
+	protected void map(String[] result, Context context) throws IOException, InterruptedException {
     	
     	//get mergeId 
     	rowId = createMergeId(result);
     	
 		//get incremetal value for id
-    	if ( joinKeyMaxPoint < joinKeySeekPoint) {
-    		joinKeyMaxPoint = createIncrementalValue(rowId, joinKeyCacheSize);
-    		if(joinKeyMaxPoint > Integer.MAX_VALUE)
+		if(ids.containsKey(rowId)){
+			Counter c = ids.get(rowId);
+			if(c.maxPointer <= c.seekPointer){
+				c.maxPointer = createIncrementalValue(rowId, joinKeyCacheSize);
+        		if(c.maxPointer > Integer.MAX_VALUE)
+        			throw new IOException("Maximum limit reached please revisit your merge keys in the schema.");
+				c.seekPointer = c.maxPointer - joinKeyCacheSize;
+				joinKeySeekPoint = c.seekPointer++;
+			} else{
+				joinKeySeekPoint = c.seekPointer++;
+			}
+		} else {
+			long maxPointer = createIncrementalValue(rowId, joinKeyCacheSize);
+    		if(maxPointer > Integer.MAX_VALUE)
     			throw new IOException("Maximum limit reached please revisit your merge keys in the schema.");
-    		joinKeySeekPoint = joinKeyMaxPoint -  joinKeyCacheSize;
-    	} else {
-    		joinKeySeekPoint++;
-    	}
+			long seekPointer = maxPointer - joinKeyCacheSize;
+			Counter c = new Counter(seekPointer, maxPointer);
+			joinKeySeekPoint = c.seekPointer++;
+			ids.put(rowId, c);
+		}
 
 		for ( int neededIndex : neededPositions) {
 			if(neededIndex < 0)continue;
@@ -133,9 +155,8 @@ public class KVMapperBase {
     		//KV kv = onMap(new KVIndexer.KV(rowId, fldValue));
     		
     		//if free text index needs to be done
-    		if(fld.isDocIndex){
+    		if(fld.isDocIndex)
     			mapFreeText(fld, context);
-    		}
 
     		if(!fld.isStored)
     			continue;
@@ -181,7 +202,8 @@ public class KVMapperBase {
 		return rowId;
     }
     
-    public void mapFreeText(Field fld, Context context) throws IOException, InterruptedException{
+    @SuppressWarnings({ "rawtypes", "unchecked" })
+	public void mapFreeText(Field fld, Context context) throws IOException, InterruptedException{
 		try {
 			Set<Term> terms = new HashSet<Term>();
 			if( !isFieldNull){
@@ -203,7 +225,7 @@ public class KVMapperBase {
 								 .append( KVIndexer.FIELD_SEPARATOR ).append(fld.sourceSeq).toString();
 
     			appender.delete(0, appender.capacity());
-        		rowVal = appender.append(joinKeySeekPoint).append(KVIndexer.FIELD_SEPARATOR).append(term.text()).toString();
+        		rowVal = appender.append(joinKeySeekPoint).append(KVIndexer.FIELD_SEPARATOR).append(wordhash).toString();
     			
     			context.write(new Text(rowKey), new Text(rowVal));
 			}
@@ -214,22 +236,18 @@ public class KVMapperBase {
     
     public long createIncrementalValue(String mergeID, int cacheSize) throws IOException{
     	long id = 0;
-    	String row = mergeID + '_' + KVIndexer.INCREMENTAL_ROW;
+    	String row = mergeID + KVIndexer.INCREMENTAL_ROW;
     	
     	NV kvThisRow = new NV(kv.family, kv.name, LONG_0);
     	RecordScalar scalar = new RecordScalar(row.getBytes(), kvThisRow);
-    	if( HReader.exists(tableName, row.getBytes())) {
-        	id = HReader.idGenerationByAutoIncr(tableName, scalar, cacheSize);
-        	return id;
+    	if(! HReader.exists(tableName, row.getBytes())){
+        	synchronized (KVMapperBase.class.getName()) {
+            	if( ! HReader.exists(tableName, row.getBytes())) {
+            		HWriter.getInstance(false).insertScalar(tableName, scalar);
+            	}
+			}        		
     	}
-    	
-    	synchronized (KVMapper.class.getName()) {
-        	if( ! HReader.exists(tableName, row.getBytes())) {
-        		HWriter.getInstance(false).insertScalar(tableName, scalar);
-        	}
-		}
-    	
-    	id = HReader.idGenerationByAutoIncr(tableName, scalar, cacheSize);
+		id = HReader.idGenerationByAutoIncr(tableName, scalar, cacheSize);
     	return id;
     }
 }

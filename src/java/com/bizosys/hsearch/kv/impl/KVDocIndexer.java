@@ -55,10 +55,18 @@ public class KVDocIndexer {
 	public void addToIndex(Analyzer analyzer, String docType, String fieldType, Map<Integer, String> docIdWithFieldValue, boolean isAnalyzed) throws IOException, InstantiationException {
 		if ( null == writer) writer = new IndexWriter(new HSearchTableKVIndex());
     	Field.Index index = isAnalyzed ? Field.Index.ANALYZED : Field.Index.NOT_ANALYZED;
+    	AnalyzerFactory factory = AnalyzerFactory.getInstance();
+    	try {
+        	if(null != analyzer)
+        		factory.setDefault(analyzer);
+			
+		} catch (Exception e) {
+			e.printStackTrace();
+		}
 		for (Integer docId : docIdWithFieldValue.keySet()) {
 		    Document lucenDoc = new Document();
 		    lucenDoc.add(new Field(fieldType, docIdWithFieldValue.get(docId), Field.Store.YES, index));
-		    writer.addDocument(docId, lucenDoc,docType, AnalyzerFactory.getInstance());
+		    writer.addDocument(docId, lucenDoc,docType, factory);
 		}
 	}
     

@@ -4,8 +4,6 @@ import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.util.Arrays;
-import java.util.HashMap;
-import java.util.Map;
 import java.util.Set;
 
 import org.apache.hadoop.conf.Configuration;
@@ -15,10 +13,10 @@ import org.apache.hadoop.hbase.client.Put;
 import org.apache.hadoop.hbase.io.ImmutableBytesWritable;
 import org.apache.hadoop.hbase.mapreduce.TableReducer;
 import org.apache.hadoop.io.Text;
-import org.apache.lucene.analysis.Analyzer;
 
 import com.bizosys.hsearch.kv.KVIndexer;
 import com.bizosys.hsearch.kv.KVIndexer.KV;
+import com.bizosys.hsearch.kv.dao.plain.HSearchTableKVIndex;
 import com.bizosys.hsearch.kv.impl.FieldMapping.Field;
 import com.bizosys.hsearch.kv.impl.bytescooker.IndexFieldBoolean;
 import com.bizosys.hsearch.kv.impl.bytescooker.IndexFieldByte;
@@ -28,7 +26,6 @@ import com.bizosys.hsearch.kv.impl.bytescooker.IndexFieldInteger;
 import com.bizosys.hsearch.kv.impl.bytescooker.IndexFieldLong;
 import com.bizosys.hsearch.kv.impl.bytescooker.IndexFieldString;
 import com.bizosys.hsearch.util.LineReaderUtil;
-import com.bizosys.unstructured.AnalyzerFactory;
 
 public class KVReducer extends TableReducer<Text, Text, ImmutableBytesWritable> {
 
@@ -47,7 +44,7 @@ public class KVReducer extends TableReducer<Text, Text, ImmutableBytesWritable> 
 		String path = conf.get(KVIndexer.XML_FILE_PATH);
 		try {
 			Path hadoopPath = new Path(path);
-			FileSystem fs = FileSystem.get(new Configuration());
+			FileSystem fs = FileSystem.get(conf);
 			BufferedReader br = new BufferedReader(new InputStreamReader(fs.open(hadoopPath)));
 			String line = null;
 			StringBuilder sb = new StringBuilder();
@@ -55,7 +52,7 @@ public class KVReducer extends TableReducer<Text, Text, ImmutableBytesWritable> 
 				sb.append(line);
 			}
 
-			fm = FieldMapping.getInstance();
+			fm = new FieldMapping();
 			fm.parseXMLString(sb.toString());
 			neededPositions = fm.sourceSeqWithField.keySet();
 			KVIndexer.FIELD_SEPARATOR = fm.fieldSeparator;
@@ -137,53 +134,34 @@ public class KVReducer extends TableReducer<Text, Text, ImmutableBytesWritable> 
 	public byte[] indexText(Iterable<Text> values, boolean isAnalyzed, String fieldName) throws IOException {
 		
 		byte[] finalData = null;
-		boolean hasValue = false;
 		int containerKey = 0;
-		String containervalue = null;
-    	String[] resultValue = new String[2];
-
-		Analyzer analyzer = AnalyzerFactory.getInstance().getDefault();
-    	Map<String, Integer> docTypes = new HashMap<String, Integer>(1);
-		Map<String, Integer> fldTypes = new HashMap<String, Integer>(1);
-
-		String docTypeName = "*";
-		String fieldTypeName = fieldName;
-		docTypes.put(docTypeName, 1);
-		fldTypes.put(fieldTypeName, 1);
-
-		KVDocIndexer indexer = new KVDocIndexer();
+		int containervalue = 0;
+		String[] resultValue = new String[2];
+		HSearchTableKVIndex table = new HSearchTableKVIndex();
 		String line = null;
 		
-		Map<Integer, String> docIdWithFieldValue = new HashMap<Integer, String>();
+		int docType = 1;
+		int fieldType = 1;
+		String metaDoc = "-";
+		boolean flag = true;
 		
 		for (Text text : values) {
-			
+
 			if ( null == text) continue;
 			Arrays.fill(resultValue, null);
 
 			line = text.toString();
 
 			LineReaderUtil.fastSplit(resultValue, line, KVIndexer.FIELD_SEPARATOR);
-			
-			containerKey = (null == resultValue[0]) ? Integer.MAX_VALUE : Integer.parseInt(resultValue[0]);
-			containervalue = (null == resultValue[1]) ? "" : resultValue[1];
-			hasValue = true;
-			docIdWithFieldValue.put(containerKey, containervalue);
+
+			containerKey = Integer.parseInt(resultValue[0]);
+			if(null == resultValue[1])
+				continue;
+			containervalue = Integer.parseInt(resultValue[1]);
+			table.put(docType, fieldType, metaDoc, containervalue, containerKey, flag);
 		}
-		
-		if(hasValue){
-			try {
-				indexer.addDoumentTypes(docTypes);
-				indexer.addFieldTypes(fldTypes);
-				indexer.addToIndex(analyzer, docTypeName, fieldTypeName, docIdWithFieldValue, isAnalyzed);
-				finalData = indexer.toBytes();
-				indexer.close();
-				
-			} catch (InstantiationException e) {
-				e.printStackTrace(System.err);
-				System.err.println("InstantiationException for docType and fieldType " + e.getMessage());
-			}
-		}
+
+		finalData = table.toBytes();		
 		return finalData;
 	}
 	

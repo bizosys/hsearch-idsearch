@@ -21,13 +21,10 @@
 package com.bizosys.hsearch.kv.dao;
 
 import java.io.IOException;
-import java.util.ArrayList;
 import java.util.BitSet;
 import java.util.Collection;
-import java.util.List;
 
 import com.bizosys.hsearch.byteutils.SortedBytesBitset;
-import com.bizosys.hsearch.byteutils.Storable;
 import com.bizosys.hsearch.federate.BitSetOrSet;
 import com.bizosys.hsearch.kv.impl.ComputeFactory;
 import com.bizosys.hsearch.kv.impl.ICompute;
@@ -35,9 +32,7 @@ import com.bizosys.hsearch.treetable.client.HSearchProcessingInstruction;
 
 public final class MapperKV extends MapperKVBase {
 
-    public static final String EMPTY = "";
     static boolean DEBUG_ENABLED = false;
-    static byte[] bytesFor1 = Storable.putInt(1);
 
     HSearchProcessingInstruction instruction = null;
 
@@ -54,8 +49,7 @@ public final class MapperKV extends MapperKVBase {
 
 	@Override
 	public final void setMergeId(final byte[] matchingIds) throws IOException {
-		Collection<BitSet> matches = SortedBytesBitset.getInstance().parse(matchingIds).values(); 
-		this.matchingIds = matches.iterator().next();
+		this.matchingIds = SortedBytesBitset.getInstanceBitset().bytesToBitSet(matchingIds, 0);
 	}
 	
 	
@@ -92,9 +86,7 @@ public final class MapperKV extends MapperKVBase {
     		if(null != result)container.add(result);    		
     	}
     	else{
-    		List<BitSet> idsL = new ArrayList<BitSet>(1);
-    		idsL.add(returnIds);
-    		result = SortedBytesBitset.getInstance().toBytes(idsL);
+    		result = SortedBytesBitset.getInstanceBitset().bitSetToBytes(returnIds);
     		if(null != result)container.add(result);
     	}
     }
@@ -112,7 +104,12 @@ public final class MapperKV extends MapperKVBase {
      */
     @Override
     public final void clear() {
-        this.compute.clear();
+    	if(null != compute)
+    		compute.clear();
+    	if(null != matchingIds)
+    		matchingIds.clear();
+    	if(null != returnIds)
+    		returnIds.clear();
     }
 
     /**
@@ -169,5 +166,4 @@ public final class MapperKV extends MapperKVBase {
     public final MapperKVBase.TablePartsCallback getPart() {
         return new RowReader(this);
     }
-
 }

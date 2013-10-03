@@ -61,7 +61,8 @@ public class Initalizer {
 	    	sb.append(classz[classzCounter]).append(FIELD_SEPARATOR).append(i).append(FIELD_SEPARATOR).append(ages[agesCounter])
 	    	.append(FIELD_SEPARATOR).append(role[roleCounter]).append(FIELD_SEPARATOR).append(location[locationCounter])
 	    	.append(FIELD_SEPARATOR).append((float)i/10).append(FIELD_SEPARATOR).append(remarks[remarksCounter])
-	    	.append(FIELD_SEPARATOR).append(comments[commentsCounter]).append(FIELD_SEPARATOR).append(sex.toString()).append(RECORD_SEPARATOR);
+	    	.append(FIELD_SEPARATOR).append(comments[commentsCounter]).append(FIELD_SEPARATOR).append(sex.toString()).
+	    	append(FIELD_SEPARATOR).append(comments[commentsCounter]).append(RECORD_SEPARATOR);
 
 	    	classzCounter++;
 	    	if ( classzCounter > 1) classzCounter = 0;

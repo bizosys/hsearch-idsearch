@@ -2,6 +2,7 @@ package com.bizosys.hsearch.kv;
 
 import com.bizosys.hsearch.functions.GroupSortedObject;
 import com.bizosys.hsearch.kv.impl.KVDataSchemaRepository.KVDataSchema;
+
 import com.bizosys.hsearch.kv.impl.TypedObject;
 import com.bizosys.hsearch.kv.KVRowI;
 
@@ -15,8 +16,8 @@ public class ExamResult extends GroupSortedObject implements KVRowI{
 	public float marks = 0.0f;
 	public String location = null;
 	public int age = 0;
-	public String role = null;
 	public String comments = null;
+	public String role = null;
 
 		
 	KVDataSchema dataSchema = null;
@@ -47,11 +48,11 @@ public class ExamResult extends GroupSortedObject implements KVRowI{
 		case 2:
 			 this.age = (Integer)value;
 		 break;
+		case 9:
+			 this.comments = value.toString();
+		 break;
 		case 3:
 			 this.role = value.toString();
-		 break;
-		case 7:
-			 this.comments = value.toString();
 		 break;
 
 		}
@@ -73,10 +74,10 @@ public class ExamResult extends GroupSortedObject implements KVRowI{
 			 return this.location;
 		case 2:
 			 return this.age;
+		case 9:
+			 return this.comments;
 		case 3:
 			 return this.role;
-		case 7:
-			 return this.comments;
 
 		}
 		return null;
@@ -98,10 +99,10 @@ public class ExamResult extends GroupSortedObject implements KVRowI{
 			 return new TypedObject(this.location);
 		case 2:
 			 return new TypedObject(this.age);
+		case 9:
+			 return new TypedObject(this.comments);
 		case 3:
 			 return new TypedObject(this.role);
-		case 7:
-			 return new TypedObject(this.comments);
 
 		}
 		return null;
@@ -178,10 +179,10 @@ public class ExamResult extends GroupSortedObject implements KVRowI{
 		 return this.classz;
 	case 4:
 		 return this.location;
+	case 9:
+		 return this.comments;
 	case 3:
 		 return this.role;
-	case 7:
-		 return this.comments;
 
 		}
 		return null;
@@ -249,10 +250,10 @@ public class ExamResult extends GroupSortedObject implements KVRowI{
 			 return this.location;
 		case 2:
 			 return this.age;
+		case 9:
+			 return this.comments;
 		case 3:
 			 return this.role;
-		case 7:
-			 return this.comments;
 
 		}
 		return null;

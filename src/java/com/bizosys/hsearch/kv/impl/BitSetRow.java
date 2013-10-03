@@ -11,11 +11,10 @@ import com.bizosys.hsearch.treetable.client.HSearchProcessingInstruction;
 import com.bizosys.hsearch.treetable.client.HSearchQuery;
 import com.bizosys.hsearch.treetable.client.IHSearchTable;
 
-public class BitSetRow {
+public final class BitSetRow {
 
 	public static final Map<Integer, Object> process(final byte[] inputBytes, 
-			String  filterQuery,
-			final HSearchProcessingInstruction inputMapperInstructions) throws IOException{
+			final String  filterQuery,final HSearchProcessingInstruction inputMapperInstructions) throws IOException{
 		
 		try {
 			IHSearchTable table = ScalarFilter.createTable(inputMapperInstructions);
@@ -53,6 +52,7 @@ public class BitSetRow {
 			);
 			
 			return rowContainer;
+			
 		} catch (Exception e) {
 			e.printStackTrace();
 			throw new IOException(e);

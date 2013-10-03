@@ -1,12 +1,10 @@
 package com.bizosys.hsearch.kv.impl;
 
 import java.io.IOException;
-import java.util.ArrayList;
 import java.util.BitSet;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.HashSet;
-import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.Callable;
@@ -19,7 +17,6 @@ import org.apache.lucene.util.Version;
 
 import com.bizosys.hsearch.byteutils.SortedBytesArray;
 import com.bizosys.hsearch.byteutils.SortedBytesBitset;
-import com.bizosys.hsearch.byteutils.SortedBytesBitsetCompressed;
 import com.bizosys.hsearch.federate.BitSetOrSet;
 import com.bizosys.hsearch.idsearch.config.DocumentTypeCodes;
 import com.bizosys.hsearch.idsearch.config.FieldTypeCodes;
@@ -27,6 +24,7 @@ import com.bizosys.hsearch.kv.dao.KVRowReader;
 import com.bizosys.hsearch.treetable.client.HSearchProcessingInstruction;
 import com.bizosys.hsearch.util.HSearchLog;
 import com.bizosys.hsearch.util.Hashing;
+import com.bizosys.unstructured.util.IdSearchLog;
 
 public class StorageReader implements Callable<Map<Integer, Object>> {
 
@@ -37,16 +35,16 @@ public class StorageReader implements Callable<Map<Integer, Object>> {
 	
 	public String tableName;
 	public String rowId;
-	public BitSetOrSet matchingIds;
+	public byte[] matchingIdsB;
 	public String filterQuery;
 	public HSearchProcessingInstruction instruction = null;
 	public Analyzer analyzer = null;
 	
-	public StorageReader(final String tableName, final String rowId, final BitSetOrSet matchingIds, final String filterQuery, 
+	public StorageReader(final String tableName, final String rowId, final byte[] matchingIdsB, final String filterQuery, 
 						 final HSearchProcessingInstruction instruction, final Analyzer analyzer) {
 		this.tableName = tableName;
 		this.rowId = rowId;
-		this.matchingIds = matchingIds;
+		this.matchingIdsB = matchingIdsB;
 		this.filterQuery = filterQuery;
 		this.instruction = instruction;
 		this.analyzer = analyzer;
@@ -70,15 +68,12 @@ public class StorageReader implements Callable<Map<Integer, Object>> {
 			compute.rowContainer = finalResult;
 			
 			long start = System.currentTimeMillis();
-			if(null == matchingIds){
+			if(null == matchingIdsB){
 				finalResult = KVRowReader.getAllValues(tableName, rowId.getBytes(), 
 					compute, this.filterQuery, instruction);
 			} else {
-				List<BitSet> ids = new ArrayList<BitSet>(1);
-				ids.add(matchingIds.getDocumentSequences());
-				byte[] matchingIdsB = SortedBytesBitset.getInstance().toBytes(ids); 
 				data = KVRowReader.getFilteredValues(tableName, rowId.getBytes(), matchingIdsB, filterQuery, instruction);
-				compute.put(data);						
+				compute.put(data);
 			}
 			
 			if(DEBUG_ENABLED){
@@ -109,10 +104,9 @@ public class StorageReader implements Callable<Map<Integer, Object>> {
 			Collection<byte[]> dataL = SortedBytesArray.getInstanceArr().parse(data).values();
 			
 			byte[] dataChunk = dataL.isEmpty() ? null : dataL.iterator().next();
-			List<BitSet> ids = new ArrayList<BitSet>();
-			SortedBytesBitset.getInstance().parse(dataChunk).values(ids);
-			return (ids.size() == 0 ) ? new BitSet() : ids.get(0);
-			
+			BitSet bitSets = ( null == dataChunk ) ? new BitSet(0) 
+							: SortedBytesBitset.getInstanceBitset().bytesToBitSet(dataChunk, 0);
+			return bitSets;
 		} catch (Exception e) {
 			IOException ioException = new IOException(new String(new String(data)), e);
 			throw ioException;
@@ -163,6 +157,10 @@ public class StorageReader implements Callable<Map<Integer, Object>> {
 				new Integer(FieldTypeCodes.getInstance().getCode(fieldType)).toString();
 			
 			for (Term term : terms) {
+				if ( DEBUG_ENABLED) {
+					IdSearchLog.l.debug("Finding Term :" + term.text());
+				}
+				
 				hash = Hashing.hash(term.text());
 				wordHash = new Integer(hash).toString();
 				sb.delete(0, sb.length());
@@ -175,11 +173,9 @@ public class StorageReader implements Callable<Map<Integer, Object>> {
 				
 				Collection<byte[]> dataL = SortedBytesArray.getInstanceArr().parse(data).values();
 				dataChunk = dataL.isEmpty() ? null : dataL.iterator().next();
-				List<BitSet> ids = new ArrayList<BitSet>();
-				System.out.println("################");
-				SortedBytesBitset.getInstance().parse(dataChunk).values(ids);
-				BitSet bitSets = (ids.size() == 0 ) ? new BitSet() : ids.get(0);
-				
+				BitSet bitSets = ( null == dataChunk ) ? new BitSet(0) 
+								: SortedBytesBitset.getInstanceBitset().bytesToBitSet(dataChunk, 0);
+
 				if(isFirst){
 					destination.setDocumentSequences(bitSets);
 					isFirst = false;
@@ -198,7 +194,6 @@ public class StorageReader implements Callable<Map<Integer, Object>> {
 			throw new IOException(new String(dataChunk), e);
 		} 
 	}
-
 	
 	public final void setFieldTypeCodes(final Map<String, Integer> ftypes) throws IOException {
 		this.indexer.addFieldTypes(ftypes);
@@ -208,5 +203,3 @@ public class StorageReader implements Callable<Map<Integer, Object>> {
 		indexer.addDoumentTypes(dtypes);
 	}	
 }
-
-

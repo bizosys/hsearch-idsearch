@@ -60,6 +60,8 @@ public class FieldMapping extends DefaultHandler {
 		public boolean isAnalyzed;
 
 		public boolean isDocIndex;
+
+		public boolean isSeparable = false;
 		
 		public Field() {
 		}
@@ -73,7 +75,7 @@ public class FieldMapping extends DefaultHandler {
 		public Field(String name,String sourceName, int sourceSeq, boolean isIndexable,boolean isStored,
 				boolean isRepeatable, boolean isMergedKey, int mergePosition,
 				boolean skipNull, String defaultValue, String fieldType, String analyzer, 
-				boolean isDocIndex, boolean isAnalyzed) {
+				boolean isDocIndex, boolean isAnalyzed, boolean isSeparable) {
 			
 			this.name = name;
 			this.sourceName = sourceName;
@@ -89,6 +91,8 @@ public class FieldMapping extends DefaultHandler {
 			this.analyzer = analyzer;
 			this.isAnalyzed = isAnalyzed;
 			this.isDocIndex = isDocIndex;
+			
+			this.isSeparable = isSeparable;
 		}
 
 		public String toString() {
@@ -112,21 +116,6 @@ public class FieldMapping extends DefaultHandler {
 	public String familyName = null;
 	public char fieldSeparator = '|';
 	public boolean isCompressed = false;
-	
-	public String name = null;
-	public String sourceName = null;
-	public int sourceSeq = 0;
-	public boolean isIndexable = false;
-	public boolean isStored = false;
-	public boolean isRepeatable = false;
-	public boolean isMergedKey = false;
-	public int mergePosition = 0;
-	public boolean skipNull = false;
-	public String defaultValue = null;;	
-	public String dataType = null;;
-	public String analyzer = null;
-	public boolean isAnalyzed = false;
-	public boolean isDocIndex = false;
 	
 	@Deprecated
 	public static FieldMapping getInstance(){
@@ -159,6 +148,9 @@ public class FieldMapping extends DefaultHandler {
 		fm.display();
 
 	}
+	
+	int sourceSeq = 0;
+	String name = null;
 	
 	public void parseXMLString(final String xmlString) throws ParseException{
 		SAXParserFactory saxFactory = SAXParserFactory.newInstance();
@@ -198,8 +190,11 @@ public class FieldMapping extends DefaultHandler {
 			familyName = attributes.getValue("familyName");
 			familyName = null == familyName ? "1" : (familyName.length() == 0 ? "1" : familyName);
 			String separator = attributes.getValue("fieldSeparator");
-			separator = null == separator ? "|" : (separator.length() == 0 ? "|" : separator);
-			fieldSeparator = separator.charAt(0);
+			
+			if ( null == separator) fieldSeparator = '\t';
+			else if ( separator.equals("\t")) fieldSeparator = '\t';
+			else if ( separator.equals("\n")) fieldSeparator = '\n';
+			else fieldSeparator = separator.charAt(0);
 
 			String isCompressedStr = attributes.getValue("compressed");
 			isCompressed = null == isCompressedStr ? false : "true".equals(isCompressedStr);
@@ -208,27 +203,31 @@ public class FieldMapping extends DefaultHandler {
 		if (qName.equalsIgnoreCase("field")) {
 
 			name = attributes.getValue("name");
-			sourceName = attributes.getValue("sourcename");
+			String sourceName = attributes.getValue("sourcename");
 			sourceSeq = (null == attributes.getValue("sourcesequence") || (attributes
 					.getValue("sourcesequence").length() == 0)) ? -1 : Integer
 					.parseInt(attributes.getValue("sourcesequence"));
-			dataType = attributes.getValue("type");
-			isIndexable = attributes.getValue("indexed").equalsIgnoreCase("true") ? true : false;
-			isStored = attributes.getValue("stored").equalsIgnoreCase("true") ? true : false;
-			isRepeatable = attributes.getValue("repeatable").equalsIgnoreCase("true") ? true : false;
-			isMergedKey = attributes.getValue("mergekey").equalsIgnoreCase("true") ? true : false;
-			mergePosition = (null == attributes.getValue("mergeposition") || (attributes.getValue("mergeposition").length() == 0)) 
+			String dataType = attributes.getValue("type");
+			boolean isIndexable = attributes.getValue("indexed").equalsIgnoreCase("true") ? true : false;
+			boolean isStored = attributes.getValue("stored").equalsIgnoreCase("true") ? true : false;
+			boolean isRepeatable = attributes.getValue("repeatable").equalsIgnoreCase("true") ? true : false;
+			boolean isMergedKey = attributes.getValue("mergekey").equalsIgnoreCase("true") ? true : false;
+			int mergePosition = (null == attributes.getValue("mergeposition") || (attributes.getValue("mergeposition").length() == 0)) 
 								? -1 : Integer.parseInt(attributes.getValue("mergeposition"));
 
-			skipNull = attributes.getValue("skipNull").equalsIgnoreCase("true") ? true : false;
-			defaultValue = attributes.getValue("defaultValue");
-			analyzer = attributes.getValue("analyzer");
-			isAnalyzed = attributes.getValue("analyzed").equalsIgnoreCase("true") ? true : false;
-			isDocIndex = (null == analyzer) ? false : analyzer.length() > 0;
+			boolean skipNull = attributes.getValue("skipNull").equalsIgnoreCase("true") ? true : false;
+			String defaultValue = attributes.getValue("defaultValue");
+			String analyzer = attributes.getValue("analyzer");
+			boolean isAnalyzed = attributes.getValue("analyzed").equalsIgnoreCase("true") ? true : false;
+			boolean isDocIndex = (null == analyzer) ? false : analyzer.length() > 0;
+
+			String isSeparableStr = attributes.getValue("isSeparable");
+			if ( null == isSeparableStr ) isSeparableStr = "false";
+			boolean isSeparable = isSeparableStr.equalsIgnoreCase("true") ? true : false;
 			
 			field = new Field(name, sourceName, sourceSeq, isIndexable, isStored, isRepeatable,
 					isMergedKey, mergePosition, skipNull, defaultValue, dataType, analyzer, 
-					isDocIndex, isAnalyzed);
+					isDocIndex, isAnalyzed, isSeparable);
 		}
 	}
 

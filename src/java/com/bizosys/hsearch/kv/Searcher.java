@@ -39,6 +39,7 @@ import java.util.regex.Pattern;
 
 import org.apache.lucene.analysis.Analyzer;
 
+import com.bizosys.hsearch.byteutils.SortedBytesBitset;
 import com.bizosys.hsearch.federate.BitSetOrSet;
 import com.bizosys.hsearch.federate.FederatedSearch;
 import com.bizosys.hsearch.federate.FederatedSearchException;
@@ -125,20 +126,26 @@ public class Searcher {
 	}
 	
 	public final void search(final String dataRepository, 
-			final String mergeId, String selectQuery, String whereQuery, 
-			KVRowI blankRow, IEnricher... enrichers) throws IOException, InterruptedException, ExecutionException, FederatedSearchException {
+			final String mergeId, final String selectQuery, final String whereQuery, 
+			final KVRowI blankRow, final IEnricher... enrichers) throws IOException, InterruptedException, ExecutionException, FederatedSearchException {
 		
 		this.dataRepository = dataRepository;
+		BitSetOrSet matchIds = null;
 		boolean isWhereQueryEmpty = ( null == whereQuery) ? true : (whereQuery.length() == 0);
-		BitSetOrSet matchIds = ( isWhereQueryEmpty) ? null : getIds(mergeId, whereQuery);
-		//System.out.println(matchIds.getDocumentSequences().toString());
+		if(!isWhereQueryEmpty){
+			matchIds = getIds(mergeId, whereQuery);
+			if ( DEBUG_ENABLED) {
+				IdSearchLog.l.debug("Found Ids :" + matchIds.size());
+			}
+			if(0 == matchIds.size()) return;
+		}
 		getValues(dataRepository, mergeId,matchIds, selectQuery, whereQuery, blankRow, enrichers);
 	}
 	
 	@SuppressWarnings("unchecked")
 	public final void getValues(final String dataRepository, 
-			final String mergeId, BitSetOrSet matchIds, String selectQuery, String whereQuery, 
-			KVRowI blankRow, IEnricher... enrichers) throws IOException, InterruptedException, ExecutionException, FederatedSearchException {
+			final String mergeId, final BitSetOrSet matchIds, final String selectQuery, final String whereQuery, 
+			final KVRowI blankRow, final IEnricher... enrichers) throws IOException, InterruptedException, ExecutionException, FederatedSearchException {
 
 		Map<String, Object> foundResults = null;
 		Set<Integer> documentIds = null;
@@ -184,7 +191,7 @@ public class Searcher {
 		}
 	}
 
-	public final BitSetOrSet getIds(final String dataRepository, final String mergeId, String whereQuery) throws IOException {
+	public final BitSetOrSet getIds(final String dataRepository, final String mergeId, final String whereQuery) throws IOException {
 		this.dataRepository = dataRepository;
 		return getIds(mergeId, whereQuery);
 	}
@@ -250,14 +257,18 @@ public class Searcher {
 		
 		String rowId = null;
 		Map<String, Object> individualResults = new HashMap<String, Object>();
-
+		byte[] matchingIdsB = null;
+		if( null != matchIds )
+			matchingIdsB = SortedBytesBitset.getInstanceBitset().bitSetToBytes(matchIds.getDocumentSequences());
+		
 		String[] selectFieldsA = patternComma.split(selectFields);
 		Map<String, Future<Map<Integer, Object>>> fieldWithfuture = new HashMap<String, Future<Map<Integer, Object>>>();
 		KVDataSchema dataScheme =  repository.get(schemaRepositoryName);;
 		Field fld = null;
 		int outputType = -1;
 		String isRepeatable = null;
-
+		String isCompressed = null;
+		
 		init();
 		for (String field : selectFieldsA) {
 			rowId = mergeId + "_" + field;
@@ -265,14 +276,14 @@ public class Searcher {
 			outputType = (outputType == Datatype.FREQUENCY_INDEX) ? Datatype.STRING : outputType;
 			fld = dataScheme.fm.nameWithField.get(field);
 			isRepeatable = fld.isRepeatable ? "true" : "false";
-			String isCompressed = dataScheme.fm.isCompressed ? "true" : "false";
+			isCompressed = dataScheme.fm.isCompressed ? "true" : "false";
 
 			HSearchProcessingInstruction instruction = new HSearchProcessingInstruction(
 				HSearchProcessingInstruction.PLUGIN_CALLBACK_COLS, outputType,
 				isRepeatable + "\t" + isCompressed);
 			
 			String filterQuery = "*|*";
-			StorageReader reader = new StorageReader(dataRepository, rowId, matchIds, filterQuery, instruction, analyzer);
+			StorageReader reader = new StorageReader(dataRepository, rowId, matchingIdsB, filterQuery, instruction, analyzer);
 			Future<Map<Integer, Object>> future = ES.submit(reader);
 
 			fieldWithfuture.put(field, future);
@@ -356,6 +367,7 @@ public class Searcher {
 		Map<String, Object> individualResults  = getAllSelectFieldValues(mergeId, foundIds, facetFields);
 
 		for (String field : individualResults.keySet()) {
+			
 			foundResults = (Map<Integer, Object>) individualResults.get(field);
 			documentIds = foundResults.keySet();
 			
@@ -450,9 +462,9 @@ public class Searcher {
 				Field fld = dataScheme.fm.nameWithField.get(field);
 				String isRepeatable = fld.isRepeatable ? "true" : "false";
 				String isCompressed = dataScheme.fm.isCompressed ? "true" : "false";
-				boolean isTextSearch = fld.isDocIndex;
-				HSearchProcessingInstruction instruction = new HSearchProcessingInstruction(HSearchProcessingInstruction.PLUGIN_CALLBACK_ID, outputType, 
-					isRepeatable + "\t" + isCompressed);
+				boolean isTextSearch = fld.isDocIndex && !fld.isStored;
+				HSearchProcessingInstruction instruction = new HSearchProcessingInstruction(HSearchProcessingInstruction.PLUGIN_CALLBACK_ID, 
+																	outputType, isRepeatable + "\t" + isCompressed);
 				
 				StorageReader reader = new StorageReader(dataRepository, rowId, null, filterQuery, instruction, analyzer);
 				BitSet readingIds = null;

@@ -36,7 +36,6 @@ import com.bizosys.hsearch.treetable.client.HSearchQuery;
 import com.bizosys.unstructured.AnalyzerFactory;
 import com.bizosys.unstructured.IndexSearcher;
 import com.bizosys.unstructured.IndexWriter;
-import com.sun.tools.corba.se.idl.InvalidArgument;
 
 public class EmbeddedHSearch {
 	
@@ -65,7 +64,7 @@ public class EmbeddedHSearch {
     	return analyzer;
     }
 
-    public void setAnalyzer(Analyzer analyzer) throws InvalidArgument {
+    public void setAnalyzer(Analyzer analyzer) throws IOException {
     	AnalyzerFactory.getInstance().setDefault(analyzer);
     }
 

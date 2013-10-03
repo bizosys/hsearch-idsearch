@@ -1,4 +1,4 @@
-<schema tableName="examresult" familyName="1" fieldSeparator="|" compressed="true">
+<schema tableName="examresult" familyName="1" fieldSeparator="|" compressed="false">
 <fields>
 		<field name="classz" sourcesequence="0" sourcename="classz" type="String" analyzer="" analyzed = "false" indexed="true" stored="true" repeatable="false" mergekey="true" mergeposition="0" skipNull="false" defaultValue="-2147483648" />
 		<field name="empid" sourcesequence="1" sourcename="empid" type="int" analyzer="" analyzed = "false" indexed="true" stored="true" repeatable="false" mergekey="false" mergeposition="" skipNull="false" defaultValue="-2147483648" />
@@ -9,11 +9,11 @@
 		<field name="marks" sourcesequence="5" sourcename="marks" type="float" analyzer="" analyzed = "false" indexed="true" stored="true" repeatable="false" mergekey="false" mergeposition=""  skipNull="false" defaultValue="-2147483648" />
 		<!--the below free text field can only be searched but not fetched because stored is false.-->
 
-		<field name="remarks" sourcesequence="6" sourcename="remarks" type="String" analyzer="Standard" analyzed = "true" indexed="true" stored="false" repeatable="false" mergekey="false" mergeposition=""  skipNull="false" defaultValue="-2147483648" />
-		<!--the below free text field can be searched and fetched because stored is true-->
-		<field name="comments" sourcesequence="7" sourcename="comments" type="String" analyzer="Standard" analyzed = "true" indexed="true" stored="true" repeatable="false" mergekey="false" mergeposition=""  skipNull="false" defaultValue="-2147483648" />
-
+		<field name="remarks" stored="false" sourcesequence="6" sourcename="remarks" type="String" analyzer="Standard" analyzed = "true" indexed="true" repeatable="false" mergekey="false" mergeposition=""  skipNull="false" defaultValue="-2147483648" />
+		<field name="comments" stored="false" sourcesequence="7" sourcename="comments" type="String" analyzer="Standard" analyzed = "true" indexed="true" repeatable="false" mergekey="false" mergeposition=""  skipNull="false" defaultValue="-2147483648" />
 		<field name="sex" sourcesequence="8" sourcename="sex" type="String" analyzer="" analyzed = "" indexed="true" stored="true" repeatable="true" mergekey="false" mergeposition=""  skipNull="false" defaultValue="true" />
+
+		<field name="commentsVal" stored="true" sourcesequence="9" sourcename="comments" type="String" analyzer="" analyzed = "false" indexed="true" repeatable="false" mergekey="false" mergeposition=""  skipNull="false" defaultValue="-2147483648" />
 
 </fields>
 </schema>
