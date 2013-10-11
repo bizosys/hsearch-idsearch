@@ -38,6 +38,7 @@ import org.xml.sax.SAXException;
 import org.xml.sax.helpers.DefaultHandler;
 
 import com.bizosys.hsearch.util.HSearchLog;
+import com.bizosys.unstructured.util.IdSearchLog;
 
 public class FieldMapping extends DefaultHandler {
 
@@ -116,6 +117,7 @@ public class FieldMapping extends DefaultHandler {
 	public String familyName = null;
 	public char fieldSeparator = '|';
 	public boolean isCompressed = false;
+	public String version = "0";
 	
 	@Deprecated
 	public static FieldMapping getInstance(){
@@ -142,9 +144,7 @@ public class FieldMapping extends DefaultHandler {
 	public static void main(String[] args) throws IOException, SAXException,
 			ParserConfigurationException, ParseException {
 		
-		String xmlString = "<schema tableName=\"findings-detail\" familyName=\"1\" fieldSeparator=\"|\"><fields><field name=\"2\" sourcesequence=\"166\" sourcename=\"FILEID\" type=\"int\" indexed=\"true\" stored=\"true\" analyzer=\"\" analyzed=\"false\" repeatable=\"true\" mergekey=\"true\" mergeposition=\"0\" isjoinkey=\"false\" skipNull=\"false\" defaultValue=\"-2147483648\" /><field name=\"524\" sourcesequence=\"99\" sourcename=\"PCDID\" type=\"int\" indexed=\"true\" stored=\"true\" analyzer=\"\" analyzed=\"false\" repeatable=\"true\" mergekey=\"true\" mergeposition=\"1\" isjoinkey=\"false\" skipNull=\"false\" defaultValue=\"-2147483648\"/></fields></schema>";
-		FieldMapping fm = FieldMapping.getInstance();
-		fm.parseXMLString(xmlString);
+		FieldMapping fm = FieldMapping.getInstance(args[0]);
 		fm.display();
 
 	}
@@ -186,44 +186,75 @@ public class FieldMapping extends DefaultHandler {
 
 		if(qName.equalsIgnoreCase("schema")){
 			tableName = attributes.getValue("tableName");
-			tableName = null == tableName ? "kv-store" : (tableName.length() == 0 ? "kv-store" : tableName);		
-			familyName = attributes.getValue("familyName");
-			familyName = null == familyName ? "1" : (familyName.length() == 0 ? "1" : familyName);
-			String separator = attributes.getValue("fieldSeparator");
+			tableName = (null == tableName) ? "hsearch" : (tableName.length() == 0 ? "hsearch" : tableName);
 			
+			familyName = attributes.getValue("familyName");
+			familyName = (null == familyName) ? "1" : (familyName.length() == 0 ? "1" : familyName);
+
+			String separator = attributes.getValue("fieldSeparator");
 			if ( null == separator) fieldSeparator = '\t';
-			else if ( separator.equals("\t")) fieldSeparator = '\t';
-			else if ( separator.equals("\n")) fieldSeparator = '\n';
+			else if ( separator.equals("\\t")) fieldSeparator = '\t';
+			else if ( separator.equals("\\n")) fieldSeparator = '\n';
 			else fieldSeparator = separator.charAt(0);
 
 			String isCompressedStr = attributes.getValue("compressed");
-			isCompressed = null == isCompressedStr ? false : "true".equals(isCompressedStr);
+			isCompressed = (null == isCompressedStr) ? false : "true".equals(isCompressedStr);
 			
+			String fldVal = attributes.getValue("version");
+			version = (null == fldVal) ? "0" : (fldVal.length() == 0) ? "0" : fldVal;
+			if ( null == fldVal ) IdSearchLog.l.info("Version is missing, Taking 0"); 
 		}
 		if (qName.equalsIgnoreCase("field")) {
 
 			name = attributes.getValue("name");
+			if ( null == name) IdSearchLog.l.warn("Missing Field Name(name) attribute");
+			
 			String sourceName = attributes.getValue("sourcename");
-			sourceSeq = (null == attributes.getValue("sourcesequence") || (attributes
-					.getValue("sourcesequence").length() == 0)) ? -1 : Integer
-					.parseInt(attributes.getValue("sourcesequence"));
-			String dataType = attributes.getValue("type");
-			boolean isIndexable = attributes.getValue("indexed").equalsIgnoreCase("true") ? true : false;
-			boolean isStored = attributes.getValue("stored").equalsIgnoreCase("true") ? true : false;
-			boolean isRepeatable = attributes.getValue("repeatable").equalsIgnoreCase("true") ? true : false;
-			boolean isMergedKey = attributes.getValue("mergekey").equalsIgnoreCase("true") ? true : false;
+
+			String fldVal = attributes.getValue("sourcesequence");
+			if ( null == fldVal) IdSearchLog.l.debug("Missing " + name + " Field Sequence(sourcesequence) attribute");
+			sourceSeq = (null == fldVal || (fldVal.length() == 0)) ? -1 : Integer.parseInt(fldVal);
+			
+			fldVal = attributes.getValue("type");
+			if ( null == fldVal) IdSearchLog.l.debug("Missing " + name + " Data Type(type) attribute");
+			String dataType = fldVal;
+
+			fldVal = attributes.getValue("mergekey");
+			boolean isMergedKey = ( null == fldVal) ? false : fldVal.equalsIgnoreCase("true");
+			
 			int mergePosition = (null == attributes.getValue("mergeposition") || (attributes.getValue("mergeposition").length() == 0)) 
 								? -1 : Integer.parseInt(attributes.getValue("mergeposition"));
+			
+			fldVal = attributes.getValue("indexed");
+			if ( null == fldVal) IdSearchLog.l.debug("Missing " + name + " Index (indexed) Setting to true");
+			boolean isIndexable = ( null == fldVal) ? true : fldVal.equalsIgnoreCase("true");
 
-			boolean skipNull = attributes.getValue("skipNull").equalsIgnoreCase("true") ? true : false;
-			String defaultValue = attributes.getValue("defaultValue");
-			String analyzer = attributes.getValue("analyzer");
-			boolean isAnalyzed = attributes.getValue("analyzed").equalsIgnoreCase("true") ? true : false;
+			fldVal = attributes.getValue("stored");
+			if ( null == fldVal) IdSearchLog.l.debug("Missing " + name + " Store setting (stored) Setting to true");
+			boolean isStored = ( null == fldVal) ? true : fldVal.equalsIgnoreCase("true");
+			
+			fldVal = attributes.getValue("repeatable");
+			if ( null == fldVal) IdSearchLog.l.debug("Missing " + name + " Repeat setting (repeatable) Setting to true");
+			boolean isRepeatable = ( null == fldVal) ? true : fldVal.equalsIgnoreCase("true");
+			
+			fldVal = attributes.getValue("skipNull");
+			if ( null == fldVal) IdSearchLog.l.debug("Missing " + name + " Null setting (skipNull) Setting to true");
+			boolean skipNull = ( null == fldVal) ? true : fldVal.equalsIgnoreCase("true");
+			
+			fldVal = attributes.getValue("defaultValue");
+			if ( null == fldVal) IdSearchLog.l.debug("Missing " + name + " Default Value (defaultValue) Setting to -");
+			String defaultValue = ( null == fldVal) ? "-" : fldVal;
+			
+			fldVal = attributes.getValue("analyzer");
+			String analyzer = ( null == fldVal) ? "" : fldVal;
+			
+			fldVal = attributes.getValue("analyzed");
+			boolean isAnalyzed = ( null == fldVal) ? true : fldVal.equalsIgnoreCase("true");
 			boolean isDocIndex = (null == analyzer) ? false : analyzer.length() > 0;
 
-			String isSeparableStr = attributes.getValue("isSeparable");
-			if ( null == isSeparableStr ) isSeparableStr = "false";
-			boolean isSeparable = isSeparableStr.equalsIgnoreCase("true") ? true : false;
+			fldVal = attributes.getValue("isSeparable");
+			if ( null == fldVal) IdSearchLog.l.debug("Missing " + name + " separablity (isSeparable) Setting to false");
+			boolean isSeparable = ( null == fldVal) ? false : fldVal.equalsIgnoreCase("true");
 			
 			field = new Field(name, sourceName, sourceSeq, isIndexable, isStored, isRepeatable,
 					isMergedKey, mergePosition, skipNull, defaultValue, dataType, analyzer, 

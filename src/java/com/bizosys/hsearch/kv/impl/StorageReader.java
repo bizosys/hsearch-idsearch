@@ -108,7 +108,9 @@ public class StorageReader implements Callable<Map<Integer, Object>> {
 							: SortedBytesBitset.getInstanceBitset().bytesToBitSet(dataChunk, 0);
 			return bitSets;
 		} catch (Exception e) {
-			IOException ioException = new IOException(new String(new String(data)), e);
+			String msg = ( null == data) ? "Null Data" :  new String(data);
+			msg = e.getMessage()  + "\n" + msg ;
+			IOException ioException = new IOException(msg, e);
 			throw ioException;
 		}
 	}
@@ -132,6 +134,7 @@ public class StorageReader implements Callable<Map<Integer, Object>> {
 		}
 
 		byte[] dataChunk = null;
+		String query = null;
 		try {
 
 			Map<String, Integer> dTypes = new HashMap<String, Integer>(1);
@@ -143,7 +146,11 @@ public class StorageReader implements Callable<Map<Integer, Object>> {
 			setFieldTypeCodes(fTypes);
 			
 			int queryPartLoc = filterQuery.lastIndexOf('|');
-			String query = ( queryPartLoc < 0 ) ? filterQuery : filterQuery.substring(queryPartLoc + 1);
+			query = ( queryPartLoc < 0 ) ? filterQuery : filterQuery.substring(queryPartLoc + 1);
+			int qLen = ( null == query) ? 0 : query.trim().length();  
+			if ( 0 == qLen) {
+				throw new IOException(filterQuery + " > Query is Null/Blank while processing field " + fieldName );
+			}
 			QueryParser qp = new QueryParser(Version.LUCENE_36, "K", analyzer);
 			Query q = null;
 			q = qp.parse(query);
@@ -190,8 +197,11 @@ public class StorageReader implements Callable<Map<Integer, Object>> {
 			
 			return destination.getDocumentSequences();
 		} catch (Exception e) {
+			String msg = "Error while processing query [" + query + "]\n";
+			msg = msg + "Found Data Chunk\t" + (( null == dataChunk) ? "None" : new String(dataChunk) );
+			IdSearchLog.l.fatal(this.getClass().getName() + ":\t"  + msg);
 			e.printStackTrace();
-			throw new IOException(new String(dataChunk), e);
+			throw new IOException(msg, e);
 		} 
 	}
 	

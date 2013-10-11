@@ -6,6 +6,8 @@ import com.bizosys.hsearch.kv.impl.KVDataSchemaRepository.KVDataSchema;
 import com.bizosys.hsearch.kv.impl.TypedObject;
 import com.bizosys.hsearch.kv.KVRowI;
 
+import com.bizosys.unstructured.util.IdSearchLog;
+
 public class ExamResult extends GroupSortedObject implements KVRowI{
 	
 	public String mergeId = null;
@@ -16,7 +18,7 @@ public class ExamResult extends GroupSortedObject implements KVRowI{
 	public float marks = 0.0f;
 	public String location = null;
 	public int age = 0;
-	public String comments = null;
+	public String commentsval = null;
 	public String role = null;
 
 		
@@ -28,6 +30,10 @@ public class ExamResult extends GroupSortedObject implements KVRowI{
 	}
 
 	public final void setValue(final String key, final Object value){
+		if ( ! this.dataSchema.nameToSeqMapping.containsKey(key) ) {
+			IdSearchLog.l.warn("Warning: Field is not stored type or undefined > " + key);
+			return;
+		}
 		int keySeq = this.dataSchema.nameToSeqMapping.get(key);
 		switch ( keySeq ) {
 		case 1:
@@ -49,7 +55,7 @@ public class ExamResult extends GroupSortedObject implements KVRowI{
 			 this.age = (Integer)value;
 		 break;
 		case 9:
-			 this.comments = value.toString();
+			 this.commentsval = value.toString();
 		 break;
 		case 3:
 			 this.role = value.toString();
@@ -60,6 +66,11 @@ public class ExamResult extends GroupSortedObject implements KVRowI{
 	
 		@Override
 	public final Object getValue(final String key){
+		if ( ! this.dataSchema.nameToSeqMapping.containsKey(key) ) {
+			IdSearchLog.l.warn("Warning: Field is not stored type or undefined > " + key);
+			return null;
+		}
+	
 		int keySeq = this.dataSchema.nameToSeqMapping.get(key);
 		switch ( keySeq ) {
 		case 1:
@@ -75,7 +86,7 @@ public class ExamResult extends GroupSortedObject implements KVRowI{
 		case 2:
 			 return this.age;
 		case 9:
-			 return this.comments;
+			 return this.commentsval;
 		case 3:
 			 return this.role;
 
@@ -100,7 +111,7 @@ public class ExamResult extends GroupSortedObject implements KVRowI{
 		case 2:
 			 return new TypedObject(this.age);
 		case 9:
-			 return new TypedObject(this.comments);
+			 return new TypedObject(this.commentsval);
 		case 3:
 			 return new TypedObject(this.role);
 
@@ -180,7 +191,7 @@ public class ExamResult extends GroupSortedObject implements KVRowI{
 	case 4:
 		 return this.location;
 	case 9:
-		 return this.comments;
+		 return this.commentsval;
 	case 3:
 		 return this.role;
 
@@ -251,7 +262,7 @@ public class ExamResult extends GroupSortedObject implements KVRowI{
 		case 2:
 			 return this.age;
 		case 9:
-			 return this.comments;
+			 return this.commentsval;
 		case 3:
 			 return this.role;
 

@@ -6,7 +6,6 @@ import java.util.Arrays;
 import org.apache.hadoop.io.Text;
 
 import com.bizosys.hsearch.kv.KVIndexer;
-import com.bizosys.hsearch.util.LineReaderUtil;
 
 public abstract class IndexField {
 	
@@ -23,7 +22,12 @@ public abstract class IndexField {
 
 			line = text.toString();
 			
-			LineReaderUtil.fastSplit(resultValue, line, KVIndexer.FIELD_SEPARATOR);
+			int index = line.indexOf(KVIndexer.FIELD_SEPARATOR);
+			if (index >= 0) {
+				resultValue[0] = line.substring(0, index);
+				if (index <= line.length() - 1) resultValue[1] = line.substring(index + 1);
+			}
+					
 			int containerKey = Integer.parseInt(resultValue[0]);
 			hasValue = true;
 			add(containerKey, resultValue[1]);

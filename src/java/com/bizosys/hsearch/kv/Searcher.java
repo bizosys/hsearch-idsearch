@@ -217,6 +217,9 @@ public class Searcher {
 				String queryId = "q" + totalQueries++; 
 				whereQuery = whereQuery.substring(0, index) + queryId +  whereQuery.substring(index + splittedQuery.length());
 				colonIndex = splittedQuery.indexOf(':');
+				if ( -1 == colonIndex) {
+					throw new IOException("Invalid query fyntax. Expecting FIELD:VALUE and not " + splittedQuery);
+				}
 				fieldName = splittedQuery.substring(0,colonIndex);
 				fieldQuery = "*|" + splittedQuery.substring(colonIndex + 1,splittedQuery.length());
 				QueryPart qpart = new QueryPart(mergeId + "_" + fieldName);
@@ -272,6 +275,10 @@ public class Searcher {
 		init();
 		for (String field : selectFieldsA) {
 			rowId = mergeId + "_" + field;
+			if ( ! dataScheme.fldWithDataTypeMapping.containsKey(field) ) {
+				throw new IOException("Unknown Field on select clause " + field);
+			}
+			
 			outputType = dataScheme.fldWithDataTypeMapping.get(field);
 			outputType = (outputType == Datatype.FREQUENCY_INDEX) ? Datatype.STRING : outputType;
 			fld = dataScheme.fm.nameWithField.get(field);
@@ -458,11 +465,23 @@ public class Searcher {
 				
 				KVDataSchema dataScheme = repository.get(schemaRepositoryName);;
 				String field = rowId.substring(rowId.lastIndexOf('_') + 1);
+				if ( null == field) {
+					String msg = "Field can not be null - " + rowId + "\n" + (dataScheme.fldWithDataTypeMapping + "\t" + field);
+					throw new IOException(msg);
+				}
+				
+				if ( ! dataScheme.fldWithDataTypeMapping.containsKey(field)) {
+					throw new IOException("Field Is not mapped properly - " + field);
+				}
 				int outputType = dataScheme.fldWithDataTypeMapping.get(field);
+				
 				Field fld = dataScheme.fm.nameWithField.get(field);
 				String isRepeatable = fld.isRepeatable ? "true" : "false";
 				String isCompressed = dataScheme.fm.isCompressed ? "true" : "false";
+
 				boolean isTextSearch = fld.isDocIndex && !fld.isStored;
+				
+				
 				HSearchProcessingInstruction instruction = new HSearchProcessingInstruction(HSearchProcessingInstruction.PLUGIN_CALLBACK_ID, 
 																	outputType, isRepeatable + "\t" + isCompressed);
 				

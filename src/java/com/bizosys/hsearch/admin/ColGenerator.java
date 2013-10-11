@@ -67,8 +67,8 @@ public class ColGenerator {
 		
 		for (Map.Entry<String, Field> entry : fm.nameWithField.entrySet()) {
 			FieldMapping.Field fld = entry.getValue();
-			if(!fld.isStored)
-				continue;
+			if(!fld.isStored) continue;
+			
 			String casted ="";
 			String fieldValue = "";
 			
@@ -80,64 +80,64 @@ public class ColGenerator {
 				{
 					fieldValue = " = null";
 					casted = "value.toString()";		
-					stringSequencer += "\tcase "+ fld.sourceSeq + ":\n\t\t return this."+fld.sourceName.toLowerCase() +";\n";				
+					stringSequencer += "\tcase "+ fld.sourceSeq + ":\n\t\t return this."+fld.name.toLowerCase() +";\n";				
 				}
 				break;
 				case 'i':
 				{
 					fieldValue = " = 0";
 					casted = "(Integer)value";
-					intSequencer += "\tcase "+ fld.sourceSeq + ":\n\t\t return this."+fld.sourceName.toLowerCase() +";\n";								
+					intSequencer += "\tcase "+ fld.sourceSeq + ":\n\t\t return this."+fld.name.toLowerCase() +";\n";								
 				}
 				break;
 				case 'f':
 				{
 					fieldValue = " = 0.0f";
 					casted = "(Float)value";
-					floatSequencer += "\tcase "+ fld.sourceSeq + ":\n\t\t return this."+fld.sourceName.toLowerCase() +";\n";				
+					floatSequencer += "\tcase "+ fld.sourceSeq + ":\n\t\t return this."+fld.name.toLowerCase() +";\n";				
 				}
 				break;
 				case 'd':
 				{
 					fieldValue = " = 0.0";
 					casted = "(Double)value";
-					doubleSequencer += "\tcase "+ fld.sourceSeq + ":\n\t\t return this."+fld.sourceName.toLowerCase() +";\n";								
+					doubleSequencer += "\tcase "+ fld.sourceSeq + ":\n\t\t return this."+fld.name.toLowerCase() +";\n";								
 				}
 				break;
 				case 'l':
 				{
 					fieldValue = " = 0L";
 					casted = "(Long)value";
-					longSequencer += "\tcase "+ fld.sourceSeq + ":\n\t\t return this."+fld.sourceName.toLowerCase() +";\n";				
+					longSequencer += "\tcase "+ fld.sourceSeq + ":\n\t\t return this."+fld.name.toLowerCase() +";\n";				
 				}
 				break;
 				case 's':
 				{
 					fieldValue = " = 0";
 					casted = "(Short)value";
-					shortSequencer += "\tcase "+ fld.sourceSeq + ":\n\t\t return this."+fld.sourceName.toLowerCase() +";\n";				
+					shortSequencer += "\tcase "+ fld.sourceSeq + ":\n\t\t return this."+fld.name.toLowerCase() +";\n";				
 				}
 				break;
 				case 'b':
 				{
 					fieldValue = " = false";
 					casted = "(Boolean)value";
-					booleanSequencer += "\tcase "+ fld.sourceSeq + ":\n\t\t return this."+fld.sourceName.toLowerCase() +";\n";				
+					booleanSequencer += "\tcase "+ fld.sourceSeq + ":\n\t\t return this."+fld.name.toLowerCase() +";\n";				
 				}
 				break;
 				case 'c':
 				{
 					fieldValue = " = 0";
 					casted = "(Byte)value";
-					byteSequencer += "\tcase "+ fld.sourceSeq + ":\n\t\t return this."+fld.sourceName.toLowerCase() +";\n";
+					byteSequencer += "\tcase "+ fld.sourceSeq + ":\n\t\t return this."+fld.name.toLowerCase() +";\n";
 				}
 				break;
 			}
 
-			params += "\tpublic " + fld.getDataType() + " " + fld.sourceName.toLowerCase() + fieldValue +";\n";
-			setters += "\t\tcase "+ fld.sourceSeq + ":\n\t\t\t this."+fld.sourceName.toLowerCase()+" = " + casted + ";\n\t\t break;\n";
-			getters += "\t\tcase "+ fld.sourceSeq + ":\n\t\t\t return this."+fld.sourceName.toLowerCase()+";\n";
-			gettersNative += "\t\tcase "+ fld.sourceSeq + ":\n\t\t\t return new TypedObject(this."+fld.sourceName.toLowerCase()+");\n";
+			params += "\tpublic " + fld.getDataType() + " " + fld.name.toLowerCase() + fieldValue +";\n";
+			setters += "\t\tcase "+ fld.sourceSeq + ":\n\t\t\t this."+fld.name.toLowerCase()+" = " + casted + ";\n\t\t break;\n";
+			getters += "\t\tcase "+ fld.sourceSeq + ":\n\t\t\t return this."+fld.name.toLowerCase()+";\n";
+			gettersNative += "\t\tcase "+ fld.sourceSeq + ":\n\t\t\t return new TypedObject(this."+fld.name.toLowerCase()+");\n";
 			
 		}
 		

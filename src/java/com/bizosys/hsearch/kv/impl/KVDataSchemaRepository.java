@@ -57,11 +57,14 @@ public class KVDataSchemaRepository {
 		public KVDataSchema(final FieldMapping fm) {
 			this.fm = fm;
 			Map<Integer,Field> seqFields = fm.sourceSeqWithField;
+			
 			String dataType = ""; 
-			for (Integer seq : seqFields.keySet()) {
-				Field fld = seqFields.get(seq);
-				nameToSeqMapping.put(fld.name, fld.sourceSeq);
-				seqToNameMapping.put(fld.sourceSeq, fld.name);
+			for (String fldName : fm.nameWithField.keySet()) {
+				Field fld = fm.nameWithField.get(fldName);
+				if ( fld.isStored) {
+					nameToSeqMapping.put(fld.name, fld.sourceSeq);
+					seqToNameMapping.put(fld.sourceSeq, fld.name);
+				}
 				
 				dataType = fld.getDataType().toLowerCase();
 				char dataTypeChar = dataTypesPrimitives.get(dataType);

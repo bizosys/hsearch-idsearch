@@ -155,8 +155,7 @@ public class KVReducer extends TableReducer<Text, Text, ImmutableBytesWritable> 
 			LineReaderUtil.fastSplit(resultValue, line, KVIndexer.FIELD_SEPARATOR);
 
 			containerKey = Integer.parseInt(resultValue[0]);
-			if(null == resultValue[1])
-				continue;
+			if(null == resultValue[1]) continue;
 			containervalue = Integer.parseInt(resultValue[1]);
 			table.put(docType, fieldType, metaDoc, containervalue, containerKey, flag);
 		}

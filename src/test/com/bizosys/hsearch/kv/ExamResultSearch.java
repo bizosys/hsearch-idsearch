@@ -17,7 +17,7 @@ import com.oneline.ferrari.TestAll;
 public class ExamResultSearch extends TestCase {
 
 	public static String[] modes = new String[] {"all", "random", "method"};
-	public static String mode = modes[1];
+	public static String mode = modes[2];
 	public FieldMapping fm = null;
 	public static void main(final String[] args) throws Exception {
 		ExamResultSearch t = new ExamResultSearch();
@@ -30,7 +30,7 @@ public class ExamResultSearch extends TestCase {
 		} else if  ( modes[2].equals(mode) ) {
 			t.setUp();
 			
-			t.testFreeTextNotStored();
+			t.testNullQuery();
 			/**
 			t.testRepeatable();
 			t.testMultipleFilters();
@@ -234,6 +234,19 @@ public class ExamResultSearch extends TestCase {
 		IEnricher enricher = null;
 		searcher.search(fm.tableName, "A", "age,location,marks,comments","comments:Tremendous", aBlankRow, enricher);
 		searcher.sort("location","marks");
+		Set<KVRowI> mergedResult = searcher.getResult();
+
+		long end = System.currentTimeMillis();
+		assertEquals(16, mergedResult.size());
+		System.out.println("Fetched " + mergedResult.size() + " results in " + (end - start) + " ms.");
+	}	
+	
+	public final void testNullQuery() throws Exception {
+		long start = System.currentTimeMillis();
+		Searcher searcher = new Searcher(fm.tableName, fm, new StandardAnalyzer(Version.LUCENE_36));
+		KVRowI aBlankRow = new ExamResult();
+		IEnricher enricher = null;
+		searcher.search(fm.tableName, "A", "age","remarks:study", aBlankRow, enricher);
 		Set<KVRowI> mergedResult = searcher.getResult();
 
 		long end = System.currentTimeMillis();

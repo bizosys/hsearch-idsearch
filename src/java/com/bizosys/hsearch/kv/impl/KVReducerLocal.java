@@ -1,10 +1,8 @@
 package com.bizosys.hsearch.kv.impl;
 
 import java.io.IOException;
-import java.net.URI;
 
 import org.apache.hadoop.conf.Configuration;
-import org.apache.hadoop.conf.Configuration.IntegerRanges;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.hbase.client.Put;
 import org.apache.hadoop.hbase.io.ImmutableBytesWritable;
@@ -12,6 +10,7 @@ import org.apache.hadoop.hbase.mapreduce.TableReducer;
 import org.apache.hadoop.io.RawComparator;
 import org.apache.hadoop.io.Text;
 import org.apache.hadoop.io.Writable;
+import org.apache.hadoop.mapred.RawKeyValueIterator;
 import org.apache.hadoop.mapreduce.Counter;
 import org.apache.hadoop.mapreduce.InputFormat;
 import org.apache.hadoop.mapreduce.JobID;
@@ -20,12 +19,12 @@ import org.apache.hadoop.mapreduce.OutputCommitter;
 import org.apache.hadoop.mapreduce.OutputFormat;
 import org.apache.hadoop.mapreduce.Partitioner;
 import org.apache.hadoop.mapreduce.Reducer;
+import org.apache.hadoop.mapreduce.StatusReporter;
 import org.apache.hadoop.mapreduce.TaskAttemptID;
 import org.apache.hadoop.security.Credentials;
 
 import com.bizosys.hsearch.hbase.HBaseFacade;
 import com.bizosys.hsearch.hbase.HTableWrapper;
-import com.bizosys.hsearch.hbase.ObjectFactory;
 import com.bizosys.hsearch.kv.KVIndexer;
 import com.bizosys.unstructured.util.IdSearchLog;
 
@@ -33,8 +32,28 @@ public class KVReducerLocal extends TableReducer<Text, Text, ImmutableBytesWrita
     	
 	public class LocalReduceContext extends Context {
 
-		Configuration conf = new Configuration();
+		public LocalReduceContext(
+				Configuration conf,
+				TaskAttemptID taskid,
+				RawKeyValueIterator input,
+				Counter inputKeyCounter,
+				Counter inputValueCounter,
+				org.apache.hadoop.mapreduce.RecordWriter<ImmutableBytesWritable, Writable> output,
+				OutputCommitter committer, StatusReporter reporter,
+				RawComparator<Text> comparator, Class<Text> keyClass,
+				Class<Text> valueClass) throws IOException,
+				InterruptedException {
+			
+			super(new Configuration(), new TaskAttemptID(), 
+					input, inputKeyCounter, inputValueCounter, output,
+					committer, reporter, comparator, keyClass, valueClass);
+			this.conf = super.getConfiguration();
+		}
+
+		Configuration conf = null;
 		String tableName = null;
+
+
 		
 		@Override
 		public Iterable<Text> getValues() throws IOException,
@@ -47,18 +66,6 @@ public class KVReducerLocal extends TableReducer<Text, Text, ImmutableBytesWrita
 		public boolean nextKey() throws IOException, InterruptedException {
 			// TODO Auto-generated method stub
 			return false;
-		}
-
-		@Override
-		public Text getCurrentKey() throws IOException, InterruptedException {
-			// TODO Auto-generated method stub
-			return null;
-		}
-
-		@Override
-		public Text getCurrentValue() throws IOException, InterruptedException {
-			// TODO Auto-generated method stub
-			return null;
 		}
 
 		@Override
@@ -134,30 +141,6 @@ public class KVReducerLocal extends TableReducer<Text, Text, ImmutableBytesWrita
 		}
 
 		@Override
-		public Path[] getArchiveClassPaths() {
-			// TODO Auto-generated method stub
-			return null;
-		}
-
-		@Override
-		public String[] getArchiveTimestamps() {
-			// TODO Auto-generated method stub
-			return null;
-		}
-
-		@Override
-		public URI[] getCacheArchives() throws IOException {
-			// TODO Auto-generated method stub
-			return null;
-		}
-
-		@Override
-		public URI[] getCacheFiles() throws IOException {
-			// TODO Auto-generated method stub
-			return null;
-		}
-
-		@Override
 		public Class<? extends Reducer<?, ?, ?, ?>> getCombinerClass()
 				throws ClassNotFoundException {
 			// TODO Auto-generated method stub
@@ -171,18 +154,6 @@ public class KVReducerLocal extends TableReducer<Text, Text, ImmutableBytesWrita
 
 		@Override
 		public Credentials getCredentials() {
-			// TODO Auto-generated method stub
-			return null;
-		}
-
-		@Override
-		public Path[] getFileClassPaths() {
-			// TODO Auto-generated method stub
-			return null;
-		}
-
-		@Override
-		public String[] getFileTimestamps() {
 			// TODO Auto-generated method stub
 			return null;
 		}
@@ -219,24 +190,6 @@ public class KVReducerLocal extends TableReducer<Text, Text, ImmutableBytesWrita
 		}
 
 		@Override
-		public boolean getJobSetupCleanupNeeded() {
-			// TODO Auto-generated method stub
-			return false;
-		}
-
-		@Override
-		public Path[] getLocalCacheArchives() throws IOException {
-			// TODO Auto-generated method stub
-			return null;
-		}
-
-		@Override
-		public Path[] getLocalCacheFiles() throws IOException {
-			// TODO Auto-generated method stub
-			return null;
-		}
-
-		@Override
 		public Class<?> getMapOutputKeyClass() {
 			// TODO Auto-generated method stub
 			return null;
@@ -253,18 +206,6 @@ public class KVReducerLocal extends TableReducer<Text, Text, ImmutableBytesWrita
 				throws ClassNotFoundException {
 			// TODO Auto-generated method stub
 			return null;
-		}
-
-		@Override
-		public int getMaxMapAttempts() {
-			// TODO Auto-generated method stub
-			return 0;
-		}
-
-		@Override
-		public int getMaxReduceAttempts() {
-			// TODO Auto-generated method stub
-			return 0;
 		}
 
 		@Override
@@ -300,24 +241,6 @@ public class KVReducerLocal extends TableReducer<Text, Text, ImmutableBytesWrita
 		}
 
 		@Override
-		public boolean getProfileEnabled() {
-			// TODO Auto-generated method stub
-			return false;
-		}
-
-		@Override
-		public String getProfileParams() {
-			// TODO Auto-generated method stub
-			return null;
-		}
-
-		@Override
-		public IntegerRanges getProfileTaskRange(boolean arg0) {
-			// TODO Auto-generated method stub
-			return null;
-		}
-
-		@Override
 		public Class<? extends Reducer<?, ?, ?, ?>> getReducerClass()
 				throws ClassNotFoundException {
 			// TODO Auto-generated method stub
@@ -326,24 +249,6 @@ public class KVReducerLocal extends TableReducer<Text, Text, ImmutableBytesWrita
 
 		@Override
 		public RawComparator<?> getSortComparator() {
-			// TODO Auto-generated method stub
-			return null;
-		}
-
-		@Override
-		public boolean getSymlink() {
-			// TODO Auto-generated method stub
-			return false;
-		}
-
-		@Override
-		public boolean getTaskCleanupNeeded() {
-			// TODO Auto-generated method stub
-			return false;
-		}
-
-		@Override
-		public String getUser() {
 			// TODO Auto-generated method stub
 			return null;
 		}
@@ -361,8 +266,8 @@ public class KVReducerLocal extends TableReducer<Text, Text, ImmutableBytesWrita
 		}
 	}
 	
-	public LocalReduceContext getContext() {
-		return new LocalReduceContext();
+	public LocalReduceContext getContext() throws IOException, InterruptedException {
+		return new LocalReduceContext(null,null,null,null,null,null,null,null,null,null,null);
 	}
 	
 	KVReducer reducer = new KVReducer();

@@ -105,6 +105,10 @@ public class KVShell {
 			
 		}
 
+		Option compile = OptionBuilder.withArgName("schemaFile").hasArgs(1)
+				.withDescription("Specify Schema file.")
+				.create("compile");
+
 		Option create = OptionBuilder.withArgName("schemaFile").hasArgs(1)
 									.withDescription("Specify Schema file.")
 									.create("create");
@@ -122,6 +126,7 @@ public class KVShell {
 									.create("sort");
 
 		Options options = new Options();
+		options.addOption(compile);
 		options.addOption(create);
 		options.addOption(load);
 		options.addOption(search);
@@ -131,6 +136,13 @@ public class KVShell {
 		CommandLineParser parser = new GnuParser();
 		try {
 			CommandLine commandLine = parser.parse(options, args);
+
+			if (commandLine.hasOption("compile")) {
+				String[] arguments = commandLine.getOptionValues("compile");
+				shell.compile(arguments);
+				return;
+			}
+			
 			if (commandLine.hasOption("create")) {
 				String[] arguments = commandLine.getOptionValues("create");
 				shell.createTable(arguments);
@@ -139,6 +151,8 @@ public class KVShell {
 
 			if (commandLine.hasOption("load")) {
 				String[] arguments = commandLine.getOptionValues("load");
+				System.out.println(arguments.length);
+				System.out.println(arguments.toString());
 				shell.loadTable(arguments);
 				return;
 			}
@@ -160,6 +174,67 @@ public class KVShell {
 			throw new IOException("Parsing failed.  Reason: ", exp);
 		}
 	}
+	
+	public void compile(String[] arguments) throws IOException {
+		try {
+			//read schema file from hadoop
+			StringBuilder sb = new StringBuilder();
+			try {
+				Path hadoopPath = new Path(arguments[0]);
+				FileSystem fs = FileSystem.get(new Configuration());
+				BufferedReader br = new BufferedReader(new InputStreamReader(fs.open(hadoopPath)));
+				String line = null;
+				while ((line = br.readLine()) != null) {
+					sb.append(line);
+				}
+			} catch (Exception e) {
+				writer.println("Cannot read from path " + arguments[0]);
+				throw new IOException(e);
+			}
+
+			String schemaStr = sb.toString();
+			FieldMapping fm = FieldMapping.getInstance();
+			fm.parseXMLString(schemaStr);
+			
+			ColGenerator.generate(fm, SRC_TEMP, "Column");
+
+			HSearchShell hShell = new HSearchShell();
+			File javaSourceDirectory = new File(SRC_TEMP);
+			List<String> sources = new ArrayList<String>();
+			hShell.listAllFiles(javaSourceDirectory, sources, ".java");
+						
+			String[] compileArgs = new String[sources.size() + 4];
+			int index = 0;
+			compileArgs[index++] = "-cp";
+			compileArgs[index++] = ( null != customClasspath) ? 
+					customClasspath + ":" +  System.getProperty("java.class.path") :
+					System.getProperty("java.class.path");
+			 
+			compileArgs[index++] = "-d";
+			compileArgs[index++] = BUILD_TEMP;
+			for (String source : sources) {
+				compileArgs[index++] = source;
+			}
+			
+			//compile
+			Main.compile(compileArgs);
+
+			// make jar
+			Manifest manifest = new Manifest();
+			manifest.getMainAttributes().put(Attributes.Name.MANIFEST_VERSION,"1.0");
+			manifest.getMainAttributes().put(Attributes.Name.MAIN_CLASS,"Column");
+			JarOutputStream target = new JarOutputStream(new FileOutputStream(JAR_TEMP + "/column.jar"), manifest);
+
+			writer.print("Building Jar : " + JAR_TEMP + "/column.jar   ");
+			hShell.createJar(new File(BUILD_TEMP), target);
+			writer.println("DONE");
+			target.close();
+			
+		} catch (Exception e) {
+			e.printStackTrace(System.err);
+			throw new IOException("Loading to table Failure", e);
+		}
+	}	
 
 	public void createTable(String[] arguments) throws IOException {
 		
@@ -293,11 +368,12 @@ public class KVShell {
 			fm.parseXMLString(schemaStr);
 
 			IEnricher enricher = null;
-			if(null == searcher)searcher = new Searcher("kv-store", fm, null);
+			if(null == searcher)searcher = new Searcher(fm.tableName, fm, null);
 			
 			searcher.search(fm.tableName, arguments[1], arguments[2], arguments[3], blankRow, enricher);
 			String[] selectFields = arguments[2].split(",");
 			resultStore = searcher.getResult();
+			System.out.println("Size:" + resultStore.size());
 			for (KVRowI aRow : resultStore) {
 				for (String selectField : selectFields) {
 					writer.print(aRow.getValue(selectField) + "\t");
