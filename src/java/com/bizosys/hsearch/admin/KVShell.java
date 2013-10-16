@@ -47,6 +47,8 @@ import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.hbase.HColumnDescriptor;
+import org.apache.lucene.analysis.standard.StandardAnalyzer;
+import org.apache.lucene.util.Version;
 
 import com.bizosys.hsearch.hbase.HDML;
 import com.bizosys.hsearch.kv.IEnricher;
@@ -368,7 +370,7 @@ public class KVShell {
 			fm.parseXMLString(schemaStr);
 
 			IEnricher enricher = null;
-			if(null == searcher)searcher = new Searcher(fm.tableName, fm, null);
+			if(null == searcher)searcher = new Searcher(fm.tableName, fm, new StandardAnalyzer(Version.LUCENE_36));
 			
 			searcher.search(fm.tableName, arguments[1], arguments[2], arguments[3], blankRow, enricher);
 			String[] selectFields = arguments[2].split(",");

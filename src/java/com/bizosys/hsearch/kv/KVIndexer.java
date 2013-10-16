@@ -73,7 +73,6 @@ public class KVIndexer {
     	execute(KVMapper.class, KVReducer.class, args);
     }
 	
-    @SuppressWarnings({ "deprecation", "rawtypes" })
 	public void execute( Class<? extends Mapper> map, Class<? extends TableReducer> reduce, String[] args) throws IOException, InterruptedException, ClassNotFoundException {
  
     	if(args.length < 3){

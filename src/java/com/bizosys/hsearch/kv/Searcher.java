@@ -79,14 +79,21 @@ public class Searcher {
 	public KVDataSchemaRepository repository = KVDataSchemaRepository.getInstance();
 	public Analyzer analyzer = null;
 	
+	
 	public static boolean DEBUG_ENABLED = HSearchLog.l.isDebugEnabled();
 	public static boolean INFO_ENABLED = HSearchLog.l.isInfoEnabled();
+	
+	private boolean checkForAllWords = false;
 		
 	public Searcher(final String schemaName, final FieldMapping fm, final Analyzer analyzer){
 		this.schemaRepositoryName = schemaName;
 		this.repository.add(schemaRepositoryName, fm);
 		this.resultset = new HashSet<KVRowI>();
 		this.analyzer = analyzer;
+	}
+	
+	public final void setCheckForAllWords(final boolean checkForAllWords) {
+		this.checkForAllWords = checkForAllWords;
 	}
 
 	public final Set<String> searchRegex(final String dataRepository,
@@ -133,9 +140,13 @@ public class Searcher {
 		BitSetOrSet matchIds = null;
 		boolean isWhereQueryEmpty = ( null == whereQuery) ? true : (whereQuery.length() == 0);
 		if(!isWhereQueryEmpty){
+			long start = -1L;
+			if ( DEBUG_ENABLED) start = System.currentTimeMillis();
+			
 			matchIds = getIds(mergeId, whereQuery);
+
 			if ( DEBUG_ENABLED) {
-				IdSearchLog.l.debug("Found Ids :" + matchIds.size());
+				if ( DEBUG_ENABLED) IdSearchLog.l.debug("Found Ids :" + matchIds.size() + " in ms " + (System.currentTimeMillis() - start));
 			}
 			if(0 == matchIds.size()) return;
 		}
@@ -164,6 +175,7 @@ public class Searcher {
 		for (String field : fields) {
 
 			result = (Map<Integer, Object>) foundResults.get(field);
+			if ( null == result) continue;
 			documentIds = result.keySet();
 
 			for (Integer id : documentIds) {
@@ -224,9 +236,10 @@ public class Searcher {
 				fieldQuery = "*|" + splittedQuery.substring(colonIndex + 1,splittedQuery.length());
 				QueryPart qpart = new QueryPart(mergeId + "_" + fieldName);
 				qpart.setParam("query", fieldQuery);
+				qpart.setParam("allwords", this.checkForAllWords);
 				queryDetails.put(queryId, qpart);
 			}
-
+			
 			FederatedSearch ff = createFederatedSearch();
 			BitSetOrSet mixedQueryMatchedIds = ff.execute(whereQuery, queryDetails);
 
@@ -283,14 +296,15 @@ public class Searcher {
 			outputType = (outputType == Datatype.FREQUENCY_INDEX) ? Datatype.STRING : outputType;
 			fld = dataScheme.fm.nameWithField.get(field);
 			isRepeatable = fld.isRepeatable ? "true" : "false";
-			isCompressed = dataScheme.fm.isCompressed ? "true" : "false";
+			isCompressed = fld.isCompressed ? "true" : "false";
 
 			HSearchProcessingInstruction instruction = new HSearchProcessingInstruction(
 				HSearchProcessingInstruction.PLUGIN_CALLBACK_COLS, outputType,
 				isRepeatable + "\t" + isCompressed);
 			
 			String filterQuery = "*|*";
-			StorageReader reader = new StorageReader(dataRepository, rowId, matchingIdsB, filterQuery, instruction, analyzer);
+			StorageReader reader = new StorageReader(dataRepository, rowId, 
+				matchIds, matchingIdsB, field, filterQuery, instruction, analyzer, fld.isCachable);
 			Future<Map<Integer, Object>> future = ES.submit(reader);
 
 			fieldWithfuture.put(field, future);
@@ -455,7 +469,11 @@ public class Searcher {
 			public BitSetOrSet populate(final String type, final String queryId,
 					final String rowId, final Map<String, Object> filterValues) throws IOException {
 				
-				String filterQuery = filterValues.values().iterator().next().toString();
+				String filterQuery = null;
+				for (String key : filterValues.keySet()) {
+					if ( "query".equals(key) ) filterQuery = filterValues.get(key).toString();
+				}
+				
 				int tableNameLen = ( null == dataRepository) ? 0 : dataRepository.trim().length();
 				
 				if ( 0 == tableNameLen) {
@@ -477,18 +495,21 @@ public class Searcher {
 				
 				Field fld = dataScheme.fm.nameWithField.get(field);
 				String isRepeatable = fld.isRepeatable ? "true" : "false";
-				String isCompressed = dataScheme.fm.isCompressed ? "true" : "false";
+				String isCompressed = fld.isCompressed ? "true" : "false";
 
 				boolean isTextSearch = fld.isDocIndex && !fld.isStored;
 				
 				
 				HSearchProcessingInstruction instruction = new HSearchProcessingInstruction(HSearchProcessingInstruction.PLUGIN_CALLBACK_ID, 
-																	outputType, isRepeatable + "\t" + isCompressed);
+					outputType, isRepeatable + "\t" + isCompressed);
 				
-				StorageReader reader = new StorageReader(dataRepository, rowId, null, filterQuery, instruction, analyzer);
+				StorageReader reader = new StorageReader(dataRepository, rowId,
+					filterQuery, instruction, analyzer, fld.isCachable);
+				
 				BitSet readingIds = null;
 				
-				readingIds = isTextSearch ? reader.readStorageTextIds(field) : reader.readStorageIds();
+				readingIds = isTextSearch ? reader.readStorageTextIds(fld, checkForAllWords, field) : 
+					reader.readStorageIds();
 
 				BitSetOrSet rows = new BitSetOrSet();
 				rows.setDocumentSequences(readingIds);

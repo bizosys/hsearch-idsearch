@@ -12,12 +12,13 @@ import org.apache.lucene.util.Version;
 
 import com.bizosys.hsearch.federate.BitSetOrSet;
 import com.bizosys.hsearch.kv.impl.FieldMapping;
+import com.bizosys.unstructured.util.IdSearchLog;
 import com.oneline.ferrari.TestAll;
 
 public class ExamResultSearch extends TestCase {
 
 	public static String[] modes = new String[] {"all", "random", "method"};
-	public static String mode = modes[2];
+	public static String mode = modes[1];
 	public FieldMapping fm = null;
 	public static void main(final String[] args) throws Exception {
 		ExamResultSearch t = new ExamResultSearch();
@@ -25,12 +26,13 @@ public class ExamResultSearch extends TestCase {
 		if ( modes[0].equals(mode) ) {
 			TestAll.run(new TestCase[]{t});
 		} else if  ( modes[1].equals(mode) ) {
-			System.out.println("Failed :" + TestFerrari.testRandom(t).getFailedFunctions());
+			String status = TestFerrari.testRandom(t).getFailedFunctions();
+			IdSearchLog.l.fatal("Failed :" + status);
 
 		} else if  ( modes[2].equals(mode) ) {
 			t.setUp();
 			
-			t.testNullQuery();
+			t.testFreeTextSearch();
 			/**
 			t.testRepeatable();
 			t.testMultipleFilters();
@@ -78,7 +80,7 @@ public class ExamResultSearch extends TestCase {
 
 		long end = System.currentTimeMillis();
 		assertEquals(10, mergedResult.size());
-		System.out.println("Fetched " + mergedResult.size() + " results in " + (end - start) + " ms.");
+		//System.out.println("Fetched " + mergedResult.size() + " results in " + (end - start) + " ms.");
 	}
 	
 	public final void testRepeatable() throws Exception {
@@ -92,7 +94,7 @@ public class ExamResultSearch extends TestCase {
 
 		long end = System.currentTimeMillis();
 		assertEquals(10, mergedResult.size());
-		System.out.println("Fetched " + mergedResult.size() + " results in " + (end - start) + " ms.");
+		//System.out.println("Fetched " + mergedResult.size() + " results in " + (end - start) + " ms.");
 	}
 
 	public final void testMultipleFilters() throws Exception {
@@ -106,7 +108,7 @@ public class ExamResultSearch extends TestCase {
 		Set<KVRowI> mergedResult = searcher.getResult();
 		assertEquals(9, mergedResult.size());
 		long end = System.currentTimeMillis();
-		System.out.println("Fetched " + mergedResult.size() + " results in " + (end - start) + " ms.");
+		//System.out.println("Fetched " + mergedResult.size() + " results in " + (end - start) + " ms.");
 	}
 
 	public final void testSorting() throws Exception {
@@ -123,7 +125,7 @@ public class ExamResultSearch extends TestCase {
 		String actual = firstRow.getValue("sex") + " " +firstRow.getValue("age") + " " +firstRow.getValue("location") + " " +firstRow.getValue("marks");
 		assertEquals(expected, actual);
 		long end = System.currentTimeMillis();
-		System.out.println("Fetched " + mergedResult.size() + " results in " + (end - start) + " ms.");
+//		System.out.println("Fetched " + mergedResult.size() + " results in " + (end - start) + " ms.");
 	}
 
 	public final void testComboSearchWithfacet() throws Exception {
@@ -158,7 +160,7 @@ public class ExamResultSearch extends TestCase {
 		assertEquals(25, facetResult.get("marks").size());
 		assertEquals(1, facetResult.get("location").size());
 		assertEquals(5, facetResult.get("age").size());
-		System.out.println("Fetched " + facetResult.size() + "facet sets in " + (end - start) + " ms.");
+		//System.out.println("Fetched " + facetResult.size() + "facet sets in " + (end - start) + " ms.");
 	}
 
 	public final void testPivotFacet() throws Exception {
@@ -171,12 +173,13 @@ public class ExamResultSearch extends TestCase {
 
 		int size = facetResult.get("age,marks").size();
 		assertEquals(5, size);
-		System.out.println("Fetched " + facetResult.size() + " facet results in " + (end - start) + " ms.");
+		//System.out.println("Fetched " + facetResult.size() + " facet results in " + (end - start) + " ms.");
 	}
 
 	public final void testFreeTextSearch() throws Exception {
 		long start = System.currentTimeMillis();
 		Searcher searcher = new Searcher("test", fm, new StandardAnalyzer(Version.LUCENE_36));
+		searcher.setCheckForAllWords(true);
 		KVRowI aBlankRow = new ExamResult();
 		IEnricher enricher = null;
 		searcher.search(fm.tableName, "A", "age,location,marks","remarks:authentic AND age:25", aBlankRow, enricher);
@@ -185,7 +188,7 @@ public class ExamResultSearch extends TestCase {
 		long end = System.currentTimeMillis();
 
 		assertEquals(3, mergedResult.size());
-		System.out.println("Fetched " + mergedResult.size() + " results in " + (end - start) + " ms.");
+		//System.out.println("Fetched " + mergedResult.size() + " results in " + (end - start) + " ms.");
 	}
 
 	public final void testFreeTextStored() throws Exception {
@@ -203,9 +206,11 @@ public class ExamResultSearch extends TestCase {
 			assertNotNull(kvRowI.getValue("age"));
 			assertNotNull(kvRowI.getValue("commentsVal"));
 			assertTrue(kvRowI.getValue("commentsVal").toString().length() > 0);
-			System.out.println(kvRowI.getValue("empid") + "\t" + kvRowI.getValue("age") + "\t" + kvRowI.getValue("commentsVal"));
+			assertEquals(kvRowI.getValue("commentsVal").toString(), "Tremendous boy");
+			assertTrue( (Integer) kvRowI.getValue("empid") > 0);
+			assertTrue( (Integer) kvRowI.getValue("age") > 0);
 		}
-		System.out.println("Fetched " + mergedResult.size() + " results in " + (end - start) + " ms.");
+		//System.out.println("Fetched " + mergedResult.size() + " results in " + (end - start) + " ms.");
 	}
 	
 
@@ -217,18 +222,14 @@ public class ExamResultSearch extends TestCase {
 		searcher.search(fm.tableName, "A", "age,remarks","remarks:fabulous", aBlankRow, enricher);
 		Set<KVRowI> mergedResult = searcher.getResult();
 
-		long end = System.currentTimeMillis();
 		assertEquals(16, mergedResult.size());
 		for (KVRowI kvRowI : mergedResult) {
 			assertNotNull(kvRowI.getValue("age"));
-			assertNull(kvRowI.getValue("remarks"));
-			System.out.println( kvRowI.getValue("age") + "\t" + kvRowI.getValue("remarks"));
+			assertTrue( (Integer) kvRowI.getValue("age") > 0 );
 		}
-		System.out.println("Fetched " + mergedResult.size() + " results in " + (end - start) + " ms.");
 	}
 
 	public final void testFreeTextWithNumericals() throws Exception {
-		long start = System.currentTimeMillis();
 		Searcher searcher = new Searcher("test", fm, new StandardAnalyzer(Version.LUCENE_36));
 		KVRowI aBlankRow = new ExamResult();
 		IEnricher enricher = null;
@@ -236,21 +237,81 @@ public class ExamResultSearch extends TestCase {
 		searcher.sort("location","marks");
 		Set<KVRowI> mergedResult = searcher.getResult();
 
-		long end = System.currentTimeMillis();
 		assertEquals(16, mergedResult.size());
-		System.out.println("Fetched " + mergedResult.size() + " results in " + (end - start) + " ms.");
 	}	
 	
 	public final void testNullQuery() throws Exception {
-		long start = System.currentTimeMillis();
 		Searcher searcher = new Searcher(fm.tableName, fm, new StandardAnalyzer(Version.LUCENE_36));
 		KVRowI aBlankRow = new ExamResult();
 		IEnricher enricher = null;
 		searcher.search(fm.tableName, "A", "age","remarks:study", aBlankRow, enricher);
 		Set<KVRowI> mergedResult = searcher.getResult();
 
-		long end = System.currentTimeMillis();
 		assertEquals(16, mergedResult.size());
-		System.out.println("Fetched " + mergedResult.size() + " results in " + (end - start) + " ms.");
 	}	
+	
+	public final void testPhraseQuery() throws Exception {
+		long start = System.currentTimeMillis();
+		Searcher searcher = new Searcher(fm.tableName, fm, new StandardAnalyzer(Version.LUCENE_36));
+		searcher.setCheckForAllWords(true);
+		KVRowI aBlankRow = new ExamResult();
+		IEnricher enricher = null;
+		searcher.search(fm.tableName, "A", "commentsVal","comments:'tremendous boy'", aBlankRow, enricher);
+		Set<KVRowI> mergedResult = searcher.getResult();
+
+		long end = System.currentTimeMillis();
+		for (KVRowI kvRowI : mergedResult) {
+			assertNotNull(kvRowI.getValue("commentsVal"));
+			assertTrue(kvRowI.getValue("commentsVal").toString().length() > 0);
+			assertEquals(kvRowI.getValue("commentsVal").toString(), "Tremendous boy");
+		}
+		assertEquals(16, mergedResult.size());
+	}		
+
+	public final void testUnknownWord() throws Exception {
+		long start = System.currentTimeMillis();
+		Searcher searcher = new Searcher(fm.tableName, fm, new StandardAnalyzer(Version.LUCENE_36));
+		KVRowI aBlankRow = new ExamResult();
+		IEnricher enricher = null;
+		searcher.search(fm.tableName, "A", "commentsVal","comments:'unknown'", aBlankRow, enricher);
+		Set<KVRowI> mergedResult = searcher.getResult();
+
+		long end = System.currentTimeMillis();
+		for (KVRowI kvRowI : mergedResult) {
+			System.out.println(kvRowI.getId() + "\t" +  kvRowI.getValue("commentsVal"));
+		}
+		assertEquals(0, mergedResult.size());
+	}		
+
+	public final void testUnknownKnownWord() throws Exception {
+		long start = System.currentTimeMillis();
+		Searcher searcher = new Searcher(fm.tableName, fm, new StandardAnalyzer(Version.LUCENE_36));
+		searcher.setCheckForAllWords(true);
+		KVRowI aBlankRow = new ExamResult();
+		IEnricher enricher = null;
+		searcher.search(fm.tableName, "A", "commentsVal","comments:'unknown boy'", aBlankRow, enricher);
+		Set<KVRowI> mergedResult = searcher.getResult();
+
+		long end = System.currentTimeMillis();
+		for (KVRowI kvRowI : mergedResult) {
+			System.out.println(kvRowI.getId() + "\t" +  kvRowI.getValue("commentsVal"));
+		}
+		assertEquals(0, mergedResult.size());
+	}		
+
+	public final void testLemos() throws Exception {
+		long start = System.currentTimeMillis();
+		Searcher searcher = new Searcher(fm.tableName, fm, new StandardAnalyzer(Version.LUCENE_36));
+		KVRowI aBlankRow = new ExamResult();
+		IEnricher enricher = null;
+		searcher.search(fm.tableName, "A", "commentsVal","comments:boys", aBlankRow, enricher);
+		Set<KVRowI> mergedResult = searcher.getResult();
+
+		long end = System.currentTimeMillis();
+		for (KVRowI kvRowI : mergedResult) {
+			System.out.println(kvRowI.getId() + "\t" +  kvRowI.getValue("commentsVal"));
+		}
+		assertEquals(0, mergedResult.size());
+	}		
+
 }

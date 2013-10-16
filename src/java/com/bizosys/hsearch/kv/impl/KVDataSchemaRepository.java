@@ -112,11 +112,6 @@ public class KVDataSchemaRepository {
 			return this.fm.nameWithField.get(fldName).isRepeatable;
 		}
 		
-		public final boolean getCompression(String fldName) throws IOException {
-			if ( null == this.fm ) throw new IOException("FieldMapping is not initialized"); 
-			return this.fm.isCompressed;
-		}
-		
 	}
 	
 	Map<String, KVDataSchema> repositoryMap = new HashMap<String, KVDataSchemaRepository.KVDataSchema>();

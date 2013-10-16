@@ -7,6 +7,7 @@ import java.io.InputStreamReader;
 import java.text.ParseException;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.LinkedHashSet;
 import java.util.Map;
 import java.util.Set;
 
@@ -56,14 +57,14 @@ public class KVMapperBase {
 	NV kv = null;
 
 	final int mergeKeyCacheSize = 1000;
-	long mergeKeySeekPosition = 0;
+	long incrementalIdSeekPosition = 0;
 	Map<String, Counter> ids = new HashMap<String, Counter>();
 	
 	String fldValue = null;
 	boolean isFieldNull = false;
 	String rowKey = "";
 	String rowVal = "";
-	String rowId = "";
+	String mergeId = "";
 
 	int wordhash;
 	String wordhashStr;
@@ -126,28 +127,28 @@ public class KVMapperBase {
 	protected void map(String[] result, Context context) throws IOException, InterruptedException {
     	
     	//get mergeId 
-    	rowId = createMergeId(result);
+    	mergeId = createMergeId(result);
     	
 		//get incremetal value for id
-		if(ids.containsKey(rowId)){
-			Counter c = ids.get(rowId);
+		if(ids.containsKey(mergeId)){
+			Counter c = ids.get(mergeId);
 			if(c.maxPointer <= c.seekPointer){
-				c.maxPointer = createIncrementalValue(rowId, mergeKeyCacheSize);
+				c.maxPointer = createIncrementalValue(mergeId, mergeKeyCacheSize);
         		if(c.maxPointer > Integer.MAX_VALUE)
         			throw new IOException("Maximum limit reached please revisit your merge keys in the schema.");
 				c.seekPointer = c.maxPointer - mergeKeyCacheSize;
-				mergeKeySeekPosition = c.seekPointer++;
+				incrementalIdSeekPosition = c.seekPointer++;
 			} else{
-				mergeKeySeekPosition = c.seekPointer++;
+				incrementalIdSeekPosition = c.seekPointer++;
 			}
 		} else {
-			long maxPointer = createIncrementalValue(rowId, mergeKeyCacheSize);
+			long maxPointer = createIncrementalValue(mergeId, mergeKeyCacheSize);
     		if(maxPointer > Integer.MAX_VALUE)
     			throw new IOException("Maximum limit reached please revisit your merge keys in the schema.");
 			long seekPointer = maxPointer - mergeKeyCacheSize;
 			Counter c = new Counter(seekPointer, maxPointer);
-			mergeKeySeekPosition = c.seekPointer++;
-			ids.put(rowId, c);
+			incrementalIdSeekPosition = c.seekPointer++;
+			ids.put(mergeId, c);
 		}
 
 		for ( int neededIndex : neededPositions) {
@@ -166,18 +167,19 @@ public class KVMapperBase {
     		}
     		
     		if(fld.isDocIndex) {
-    			mapFreeText(fld, context);
+    			if ( fld.isRepeatable) mapFreeTextBitset(fld, context);
+    			else mapFreeTextSet(fld, context);
     		}
     		
     		if(fld.isStored) {
-        		boolean isEmpty = ( null == rowId) ? true : (rowId.length() == 0);
-        		rowKey = ( isEmpty) ? fld.name : rowId + fld.name;
+        		boolean isEmpty = ( null == mergeId) ? true : (mergeId.length() == 0);
+        		rowKey = ( isEmpty) ? fld.name : mergeId + fld.name;
         		appender.delete(0, appender.capacity());
         		rowKey = appender.append(rowKey).append( KVIndexer.FIELD_SEPARATOR)
         						 .append(fld.getDataType()).append(KVIndexer.FIELD_SEPARATOR)
         						 .append( fld.sourceSeq).toString();
         		appender.delete(0, appender.capacity());
-        		rowVal = appender.append(mergeKeySeekPosition).append(KVIndexer.FIELD_SEPARATOR).append(fldValue).toString();
+        		rowVal = appender.append(incrementalIdSeekPosition).append(KVIndexer.FIELD_SEPARATOR).append(fldValue).toString();
         		context.write(new Text(rowKey), new Text(rowVal) );
     		}
 
@@ -216,7 +218,7 @@ public class KVMapperBase {
     }
     
     @SuppressWarnings({ "rawtypes", "unchecked" })
-	public void mapFreeText(Field fld, Context context) throws IOException, InterruptedException{
+	public void mapFreeTextSet(Field fld, Context context) throws IOException, InterruptedException{
     	try {
 			Set<Term> terms = new HashSet<Term>();
 			if( !isFieldNull){
@@ -233,12 +235,12 @@ public class KVMapperBase {
         		
     			appender.delete(0, appender.capacity());
     			//below is hardcoded datatype for free text search.
-    			rowKey = appender.append(rowId).append(firstChar).append('_').append(lastChar)
+    			rowKey = appender.append(mergeId).append(firstChar).append('_').append(lastChar)
     							  .append(KVIndexer.FIELD_SEPARATOR).append("text")
 								 .append( KVIndexer.FIELD_SEPARATOR ).append(fld.sourceSeq).toString();
 
     			appender.delete(0, appender.capacity());
-        		rowVal = appender.append(mergeKeySeekPosition).append(KVIndexer.FIELD_SEPARATOR).append(wordhash).toString();
+        		rowVal = appender.append(incrementalIdSeekPosition).append(KVIndexer.FIELD_SEPARATOR).append(wordhash).toString();
     			
     			context.write(new Text(rowKey), new Text(rowVal));
 			}
@@ -246,6 +248,77 @@ public class KVMapperBase {
 			e.printStackTrace();
 		}
     }
+    
+    @SuppressWarnings({ "rawtypes", "unchecked" })
+	public void mapFreeTextBitset(Field fld, Context context) throws IOException, InterruptedException{
+    	try {
+			Set<Term> terms = new LinkedHashSet<Term>();
+			if( !isFieldNull){
+				fldValue = LuceneUtil.escapeLuceneSpecialCharacters(fldValue);
+				q = qp.parse(fldValue);
+				q.extractTerms(terms);				
+			}
+			
+			String last2 = null;
+			String last1 = null;
+			
+			for (Term term : terms) {
+    			String termWord = term.text();
+    			appender.delete(0, appender.capacity());
+    			
+    			/**
+    			 * Row Key is mergeidFIELDwordhashStr
+    			 */
+        		boolean isEmpty = ( null == mergeId) ? true : (mergeId.length() == 0);
+        		String rowKeyPrefix = ( isEmpty) ? fld.name : mergeId + fld.name;
+    			
+    			rowKey = appender.append(rowKeyPrefix).append(termWord).append(KVIndexer.FIELD_SEPARATOR)
+    					.append("text").append( KVIndexer.FIELD_SEPARATOR )
+    					.append(fld.sourceSeq).toString();
+
+    			appender.setLength(0);
+        		rowVal = appender.append(incrementalIdSeekPosition).toString();
+    			
+    			context.write(new Text(rowKey), new Text(rowVal));
+    			
+    			if ( ! fld.keepPhrase ) continue;
+
+    			/**
+    			 * Do Three phrase word
+    			 */
+    			if ( null != last2) {
+    				appender.setLength(0);
+    				
+        			rowKey = appender.append(rowKeyPrefix).append(last2).append(' ').
+        					append(last1).append(' ').append(termWord).append('*').
+        					append(KVIndexer.FIELD_SEPARATOR).
+        					append("text").append( KVIndexer.FIELD_SEPARATOR ).
+        					append(fld.sourceSeq).toString();
+        			context.write(new Text(rowKey), new Text(rowVal));
+    			}
+    			
+    			/**
+    			 * Do Two phrase word
+    			 */
+    			if ( null != last1) {
+    				appender.setLength(0);
+    				
+        			rowKey = appender.append(rowKeyPrefix).
+        					append(last1).append(' ').append(termWord).append('*').
+        					append(KVIndexer.FIELD_SEPARATOR).
+        					append("text").append( KVIndexer.FIELD_SEPARATOR ).
+        					append(fld.sourceSeq).toString();
+        			context.write(new Text(rowKey), new Text(rowVal));
+    			}
+    			
+    			last2 = last1;
+    			last1 = termWord;
+    			
+			}
+		} catch (Exception e) {
+			e.printStackTrace();
+		}
+    }    
     
     public long createIncrementalValue(String mergeID, int cacheSize) throws IOException{
     	long id = 0;

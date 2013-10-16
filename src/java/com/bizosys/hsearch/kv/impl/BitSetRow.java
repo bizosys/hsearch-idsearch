@@ -15,6 +15,11 @@ public final class BitSetRow {
 
 	public static final Map<Integer, Object> process(final byte[] inputBytes, 
 			final String  filterQuery,final HSearchProcessingInstruction inputMapperInstructions) throws IOException{
+		return process(inputBytes, null, filterQuery, inputMapperInstructions);
+	}
+	
+	public static final Map<Integer, Object> process(final byte[] inputBytes, final BitSet matchingIds,
+			final String  filterQuery,final HSearchProcessingInstruction inputMapperInstructions) throws IOException{
 		
 		try {
 			IHSearchTable table = ScalarFilter.createTable(inputMapperInstructions);
@@ -39,6 +44,7 @@ public final class BitSetRow {
 
 				@Override
 				public boolean onRowCols(BitSet k, Object v) {
+					if ( null != matchingIds) k.and(matchingIds);
 					for (int i = k.nextSetBit(0); i >= 0; i = k.nextSetBit(i+1)) {
 						rowContainer.put(i, v);
 					}

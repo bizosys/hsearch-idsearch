@@ -23,5 +23,5 @@ import java.util.Collection;
 
 
 public interface IEnricher {
-	public void enrich(Collection<KVRowI> rows);
+	void enrich(Collection<KVRowI> rows);
 }

@@ -21,6 +21,7 @@ package com.bizosys.hsearch.kv.impl;
 
 import java.io.IOException;
 import java.io.OutputStream;
+import java.util.BitSet;
 import java.util.Map;
 
 import com.bizosys.hsearch.byteutils.SortedBytesArray;
@@ -246,20 +247,27 @@ public final class ComputeKV implements ICompute {
 	
 	@Override
 	public final void put(final byte[] data) throws IOException {
-
-		for (byte[] dataChunk : SortedBytesArray.getInstanceArr().parse(data).values()) {
-			parse(dataChunk);
-		}
-		
+		put(data, null);
 	}
-
+	
 	public final void parse(final byte[] dataChunk) throws IOException {
+		parse(dataChunk, null);
+	}
+	
+	public final void put(final byte[] data, BitSet bitset) throws IOException {
+		for (byte[] dataChunk : SortedBytesArray.getInstanceArr().parse(data).values()) {
+			parse(dataChunk, bitset);
+		}
+	}
+	
+	public final void parse(final byte[] dataChunk, BitSet bitset) throws IOException {
 		switch (this.kvType) {
 			case Datatype.BOOLEAN:
 			{
 				kv_boolean = new Cell2<Integer, Boolean>(SortedBytesInteger.getInstance(), SortedBytesBoolean.getInstance(), dataChunk);
 				
 				ComputeKVRowVisitor<Boolean> visitor = new ComputeKVRowVisitor<Boolean>(rowContainer);
+				visitor.setMatchingIds(bitset);
 				kv_boolean.process(visitor);
 				break;
 			}
@@ -269,6 +277,7 @@ public final class ComputeKV implements ICompute {
 						SortedBytesInteger.getInstance(), SortedBytesChar.getInstance(), dataChunk);
 				
 				ComputeKVRowVisitor<Byte> visitor = new ComputeKVRowVisitor<Byte>(rowContainer);
+				visitor.setMatchingIds(bitset);
 				kv_byte.process(visitor);
 				break;
 			}
@@ -277,6 +286,7 @@ public final class ComputeKV implements ICompute {
 				kv_short = new Cell2<Integer, Short>(
 						SortedBytesInteger.getInstance(), SortedBytesShort.getInstance(), dataChunk);
 				ComputeKVRowVisitor<Short> visitor = new ComputeKVRowVisitor<Short>(rowContainer);
+				visitor.setMatchingIds(bitset);
 				kv_short.process(visitor);
 				break;
 			}
@@ -285,6 +295,7 @@ public final class ComputeKV implements ICompute {
 				kv_integer = new Cell2<Integer, Integer>(
 						SortedBytesInteger.getInstance(), SortedBytesInteger.getInstance(), dataChunk);
 				ComputeKVRowVisitor<Integer> visitor = new ComputeKVRowVisitor<Integer>(rowContainer);
+				visitor.setMatchingIds(bitset);
 				kv_integer.process(visitor);
 				break;
 			}
@@ -293,6 +304,7 @@ public final class ComputeKV implements ICompute {
 				kv_float = new Cell2<Integer, Float>(
 						SortedBytesInteger.getInstance(), SortedBytesFloat.getInstance(), dataChunk);
 				ComputeKVRowVisitor<Float> visitor = new ComputeKVRowVisitor<Float>(rowContainer);
+				visitor.setMatchingIds(bitset);
 				kv_float.process(visitor);
 				break;
 			}
@@ -301,6 +313,7 @@ public final class ComputeKV implements ICompute {
 				kv_long = new Cell2<Integer, Long>(
 						SortedBytesInteger.getInstance(), SortedBytesLong.getInstance(), dataChunk);
 				ComputeKVRowVisitor<Long> visitor = new ComputeKVRowVisitor<Long>(rowContainer);
+				visitor.setMatchingIds(bitset);
 				kv_long.process(visitor);
 				break;
 			}
@@ -309,6 +322,7 @@ public final class ComputeKV implements ICompute {
 				kv_double = new Cell2<Integer, Double>(
 						SortedBytesInteger.getInstance(), SortedBytesDouble.getInstance(), dataChunk);
 				ComputeKVRowVisitor<Double> visitor = new ComputeKVRowVisitor<Double>(rowContainer);
+				visitor.setMatchingIds(bitset);
 				kv_double.process(visitor);
 				break;
 			}
@@ -317,6 +331,7 @@ public final class ComputeKV implements ICompute {
 				kv_string = new Cell2<Integer, String>(
 						SortedBytesInteger.getInstance(), SortedBytesString.getInstance(), dataChunk);
 				ComputeKVRowVisitor<String> visitor = new ComputeKVRowVisitor<String>(rowContainer);
+				visitor.setMatchingIds(bitset);
 				kv_string.process(visitor);
 				break;
 			}

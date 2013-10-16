@@ -63,7 +63,6 @@ public class KVIndexerHBase {
     	execute(new KVMapperHBase(), new KVReducer(), args);
     }
 	
-    @SuppressWarnings({ "deprecation", "rawtypes" })
 	public void execute(KVMapperHBase map, KVReducer reduce, String[] args) throws IOException, InterruptedException, ClassNotFoundException, ParseException {
  
     	if(args.length < 2){

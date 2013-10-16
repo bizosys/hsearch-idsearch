@@ -44,7 +44,7 @@ public class FieldMapping extends DefaultHandler {
 
 	private static final boolean DEBUG_ENABLED = HSearchLog.l.isDebugEnabled();
 
-	public class Field {
+	public class Field implements Comparable<Field>{
 
 		public String name;
 		public  String sourceName;
@@ -59,10 +59,15 @@ public class FieldMapping extends DefaultHandler {
 		private String dataType;
 		public String analyzer;
 		public boolean isAnalyzed;
+		public boolean isCompressed;
 
+		public boolean keepPhrase;
+		
 		public boolean isDocIndex;
 
 		public boolean isSeparable = false;
+
+		public boolean isCachable = true;
 		
 		public Field() {
 		}
@@ -76,7 +81,8 @@ public class FieldMapping extends DefaultHandler {
 		public Field(String name,String sourceName, int sourceSeq, boolean isIndexable,boolean isStored,
 				boolean isRepeatable, boolean isMergedKey, int mergePosition,
 				boolean skipNull, String defaultValue, String fieldType, String analyzer, 
-				boolean isDocIndex, boolean isAnalyzed, boolean isSeparable) {
+				boolean isDocIndex, boolean isAnalyzed, boolean isSeparable, boolean isCachable,
+				boolean isCompressed, boolean keepPhrase) {
 			
 			this.name = name;
 			this.sourceName = sourceName;
@@ -94,6 +100,9 @@ public class FieldMapping extends DefaultHandler {
 			this.isDocIndex = isDocIndex;
 			
 			this.isSeparable = isSeparable;
+			this.isCachable = isCachable;
+			this.isCompressed = isCompressed;
+			this.keepPhrase = keepPhrase;
 		}
 
 		public String toString() {
@@ -103,9 +112,18 @@ public class FieldMapping extends DefaultHandler {
 					.append(isIndexable).append('\t').append(isRepeatable)
 					.append('\t').append(isMergedKey).append('\t')
 					.append(skipNull).append('\t').append(defaultValue)
-					.append('\t').append(dataType).append('\t').append(analyzer);
+					.append('\t').append(dataType).append('\t').append(analyzer)
+					.append('\t').append(isCachable).append('\t').append(isCompressed)
+					.append(keepPhrase);
 
 			return sb.toString();
+		}
+
+		@Override
+		public int compareTo(Field o) {
+			if ( this.sourceSeq == o.sourceSeq) return 0;
+			if ( this.sourceSeq > o.sourceSeq) return 1;
+			return -1;
 		}
 	}
 
@@ -116,7 +134,6 @@ public class FieldMapping extends DefaultHandler {
 	public String tableName = null;
 	public String familyName = null;
 	public char fieldSeparator = '|';
-	public boolean isCompressed = false;
 	public String version = "0";
 	
 	@Deprecated
@@ -197,9 +214,6 @@ public class FieldMapping extends DefaultHandler {
 			else if ( separator.equals("\\n")) fieldSeparator = '\n';
 			else fieldSeparator = separator.charAt(0);
 
-			String isCompressedStr = attributes.getValue("compressed");
-			isCompressed = (null == isCompressedStr) ? false : "true".equals(isCompressedStr);
-			
 			String fldVal = attributes.getValue("version");
 			version = (null == fldVal) ? "0" : (fldVal.length() == 0) ? "0" : fldVal;
 			if ( null == fldVal ) IdSearchLog.l.info("Version is missing, Taking 0"); 
@@ -256,9 +270,18 @@ public class FieldMapping extends DefaultHandler {
 			if ( null == fldVal) IdSearchLog.l.debug("Missing " + name + " separablity (isSeparable) Setting to false");
 			boolean isSeparable = ( null == fldVal) ? false : fldVal.equalsIgnoreCase("true");
 			
+			fldVal = attributes.getValue("compress");
+			boolean isCompressed = ( null == fldVal) ? false : fldVal.equalsIgnoreCase("true");
+
+			fldVal = attributes.getValue("cache");
+			boolean isCachable = ( null == fldVal) ? true : fldVal.equalsIgnoreCase("true");
+
+			fldVal = attributes.getValue("keepphrase");
+			boolean keepPhrase = ( null == fldVal) ? false : fldVal.equalsIgnoreCase("true");
+
 			field = new Field(name, sourceName, sourceSeq, isIndexable, isStored, isRepeatable,
 					isMergedKey, mergePosition, skipNull, defaultValue, dataType, analyzer, 
-					isDocIndex, isAnalyzed, isSeparable);
+					isDocIndex, isAnalyzed, isSeparable,isCachable, isCompressed, keepPhrase);
 		}
 	}
 

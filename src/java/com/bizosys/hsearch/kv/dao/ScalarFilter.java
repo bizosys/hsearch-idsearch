@@ -65,11 +65,15 @@ public class ScalarFilter extends HSearchScalarFilter {
 
 	@Override
 	public IHSearchTable createTable() {
-		return createTable(inputMapperInstructions);
-		
+		try {
+			return createTable(inputMapperInstructions);
+		} catch (IOException ex) {
+			IdSearchLog.l.fatal(ex);
+			return null;
+		}
 	}
 
-	public static IHSearchTable createTable(HSearchProcessingInstruction inputMapperInstructions) {
+	public static IHSearchTable createTable(HSearchProcessingInstruction inputMapperInstructions) throws IOException {
 		int type = inputMapperInstructions.getOutputType();
 		String hint = inputMapperInstructions.getProcessingHint();
 		boolean isRepeating = hint.startsWith("true");
@@ -101,6 +105,7 @@ public class ScalarFilter extends HSearchScalarFilter {
 				if ( isRepeating ) return new HSearchTableKVStringInverted(isCompressed);
 				return new HSearchTableKVString();
 			case Datatype.FREQUENCY_INDEX:
+				if ( isRepeating ) throw new IOException("Please load Directly for the matching BitSets");
 				return new HSearchTableKVIndex();
 			default:
 				IdSearchLog.l.error("ScalarFilter: Unknown Type : " + type);

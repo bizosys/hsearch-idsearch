@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <classpath>
-	<classpathentry kind="lib" path="/shopgirl/conf"/>
+	<classpathentry kind="lib" path="conf"/>
 	<classpathentry kind="src" path="src/java"/>
 	<classpathentry kind="src" path="examples"/>
 	<classpathentry kind="src" path="src/test"/>
@@ -9,7 +9,7 @@
 	<classpathentry kind="lib" path="lib/hadoop-client-1.2.0.1.3.0.0-107.jar"/>
 	<classpathentry kind="lib" path="lib/hadoop-core-1.2.0.1.3.0.0-107.jar"/>
 	<classpathentry kind="lib" path="lib/hbase-0.94.6.1.3.0.0-107-security.jar"/>
-	<classpathentry kind="lib" path="lib/hsearch-core.jar"/>
+	<classpathentry kind="lib" path="lib/hsearch-core.jar" sourcepath="lib/src-hsearch-core.jar"/>
 	<classpathentry kind="lib" path="lib/hsearch-federated.jar"/>
 	<classpathentry kind="lib" path="lib/log4j-1.2.16.jar"/>
 	<classpathentry kind="lib" path="lib/lucene-analyzers-3.6.2.jar"/>
