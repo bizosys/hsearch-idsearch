@@ -34,6 +34,7 @@ import com.bizosys.hsearch.treetable.client.HSearchQuery;
 import com.bizosys.hsearch.treetable.client.IHSearchTable;
 import com.bizosys.hsearch.util.HSearchLog;
 import com.bizosys.hsearch.util.Hashing;
+import com.bizosys.unstructured.AnalyzerFactory;
 import com.bizosys.unstructured.util.IdSearchLog;
 
 public class StorageReader implements Callable<Map<Integer, Object>> {
@@ -48,7 +49,6 @@ public class StorageReader implements Callable<Map<Integer, Object>> {
 	public byte[] matchingIdsB;
 	public String filterQuery;
 	public HSearchProcessingInstruction instruction = null;
-	public Analyzer analyzer = null;
 	public String fieldName = null;
 	public BitSetOrSet matchingIds = null;
 	
@@ -56,13 +56,11 @@ public class StorageReader implements Callable<Map<Integer, Object>> {
 	boolean isCachable = true;
 
 	public StorageReader(final String tableName, final String rowId, final String filterQuery, 
-			 final HSearchProcessingInstruction instruction, final Analyzer analyzer, 
-			 boolean isCachable) {
+			 final HSearchProcessingInstruction instruction, boolean isCachable) {
 		this.tableName = tableName;
 		this.rowId = rowId;
 		this.filterQuery = filterQuery;
 		this.instruction = instruction;
-		this.analyzer = analyzer;
 		this.isCachable = isCachable;
 	}
 	
@@ -70,7 +68,7 @@ public class StorageReader implements Callable<Map<Integer, Object>> {
 			final BitSetOrSet matchingIds, final byte[] matchingIdsB, 
 			final String fieldName, final String filterQuery, 
 			final HSearchProcessingInstruction instruction, 
-			final Analyzer analyzer, boolean isCachable) {
+			boolean isCachable) {
 		
 		this.tableName = tableName;
 		this.rowId = rowId;
@@ -79,7 +77,6 @@ public class StorageReader implements Callable<Map<Integer, Object>> {
 		this.fieldName = fieldName;
 		this.filterQuery = filterQuery;
 		this.instruction = instruction;
-		this.analyzer = analyzer;
 		this.isCachable = isCachable;
 	}
 
@@ -221,6 +218,7 @@ public class StorageReader implements Callable<Map<Integer, Object>> {
 			if ( 0 == qLen) {
 				throw new IOException(filterQuery + " > Query is Null/Blank while processing field " + fieldName );
 			}
+			Analyzer analyzer = AnalyzerFactory.getInstance().getAnalyzer(fieldName);
 			QueryParser qp = new QueryParser(Version.LUCENE_36, "K", analyzer);
 			Query q = null;
 			q = qp.parse(query);
@@ -321,7 +319,9 @@ public class StorageReader implements Callable<Map<Integer, Object>> {
 			if ( 0 == qLen) {
 				throw new IOException(filterQuery + " > Query is Null/Blank while processing field " + fieldName );
 			}
+			Analyzer analyzer = AnalyzerFactory.getInstance().getAnalyzer(fieldName);
 			QueryParser qp = new QueryParser(Version.LUCENE_36, "K", analyzer);
+			
 			Query q = null;
 			q = qp.parse(query);
 			Set<Term> terms = new LinkedHashSet<Term>();

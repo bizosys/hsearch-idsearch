@@ -33,7 +33,6 @@ import com.bizosys.hsearch.kv.impl.FieldMapping.Field;
 import com.bizosys.hsearch.util.Hashing;
 import com.bizosys.hsearch.util.LuceneUtil;
 import com.bizosys.unstructured.AnalyzerFactory;
-import com.bizosys.unstructured.util.IdSearchLog;
 
 public class KVMapperBase {
     	
@@ -66,13 +65,7 @@ public class KVMapperBase {
 	String rowVal = "";
 	String mergeId = "";
 
-	int wordhash;
-	String wordhashStr;
-	char firstChar;
-	char lastChar;
-	QueryParser qp = null;
-	Query q = null;
-	Analyzer analyzer = null;
+	Map<String, QueryParser> fieldNameWithQueryParser = new HashMap<String, QueryParser>();
 
 	public KV onMap(KV kv ) {
 		return kv;
@@ -85,14 +78,10 @@ public class KVMapperBase {
 		String path = conf.get(KVIndexer.XML_FILE_PATH);
 		StringBuilder sb = new StringBuilder();
 		
-		analyzer = AnalyzerFactory.getInstance().getDefault();
-		if ( IdSearchLog.l.isDebugEnabled()) {
-			IdSearchLog.l.debug("Using Analyzer :" + analyzer);
-		}
-		qp = new QueryParser(Version.LUCENE_36, "K", analyzer);
 		
 		
 		try {
+
 			BufferedReader br = null;
 			Path hadoopPath = new Path(path);
 			FileSystem fs = FileSystem.get(conf);
@@ -107,11 +96,17 @@ public class KVMapperBase {
 			} else {
 				fm = FieldMapping.getInstance(path);
 			}
+
+			AnalyzerFactory.getInstance().init(fm);
+
 		} catch (FileNotFoundException fex) {
 			System.err.println("Cannot read from path " + path);
 			throw new IOException(fex);
 		} catch (ParseException pex) {
 			System.err.println("Cannot Parse File " + path);
+			throw new IOException(pex);
+		} catch (Exception pex) {
+			System.err.println("Error : " + path);
 			throw new IOException(pex);
 		}
 		
@@ -219,11 +214,19 @@ public class KVMapperBase {
     
     @SuppressWarnings({ "rawtypes", "unchecked" })
 	public void mapFreeTextSet(Field fld, Context context) throws IOException, InterruptedException{
-    	try {
+		
+    	QueryParser qp = getQueryParser(fld);
+    	
+    	int wordhash;
+    	String wordhashStr;
+    	char firstChar;
+    	char lastChar;    	
+
+		try {
 			Set<Term> terms = new HashSet<Term>();
 			if( !isFieldNull){
 				fldValue = LuceneUtil.escapeLuceneSpecialCharacters(fldValue);
-				q = qp.parse(fldValue);
+				Query q = qp.parse(fldValue);
 				q.extractTerms(terms);				
 			}
 			
@@ -248,6 +251,18 @@ public class KVMapperBase {
 			e.printStackTrace();
 		}
     }
+
+	private QueryParser getQueryParser(Field fld) {
+		QueryParser qp = null;
+    	Analyzer analyzer = AnalyzerFactory.getInstance().getAnalyzer(fld.name);
+		if ( fieldNameWithQueryParser.containsKey(fld.name)) { 
+			qp = fieldNameWithQueryParser.get(fld.name);
+		} else {
+	    	qp = new QueryParser(Version.LUCENE_36, "K", analyzer);
+	    	fieldNameWithQueryParser.put(fld.name, qp);
+		}
+		return qp;
+	}
     
     @SuppressWarnings({ "rawtypes", "unchecked" })
 	public void mapFreeTextBitset(Field fld, Context context) throws IOException, InterruptedException{
@@ -255,7 +270,8 @@ public class KVMapperBase {
 			Set<Term> terms = new LinkedHashSet<Term>();
 			if( !isFieldNull){
 				fldValue = LuceneUtil.escapeLuceneSpecialCharacters(fldValue);
-				q = qp.parse(fldValue);
+		    	QueryParser qp = getQueryParser(fld);
+		    	Query q = qp.parse(fldValue);
 				q.extractTerms(terms);				
 			}
 			

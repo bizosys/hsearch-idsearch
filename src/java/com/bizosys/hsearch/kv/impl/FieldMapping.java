@@ -38,6 +38,7 @@ import org.xml.sax.SAXException;
 import org.xml.sax.helpers.DefaultHandler;
 
 import com.bizosys.hsearch.util.HSearchLog;
+import com.bizosys.unstructured.AnalyzerFactory;
 import com.bizosys.unstructured.util.IdSearchLog;
 
 public class FieldMapping extends DefaultHandler {
@@ -177,6 +178,8 @@ public class FieldMapping extends DefaultHandler {
 			saxParser = saxFactory.newSAXParser();
 			saxParser.parse(new InputSource(new StringReader(xmlString)), this);
 			
+			AnalyzerFactory.getInstance().init(this);
+			
 		} catch (Exception e) {
 			HSearchLog.l.fatal("File Path: ", e);
 			throw new ParseException(e.getMessage(), 0);
@@ -192,6 +195,9 @@ public class FieldMapping extends DefaultHandler {
 			saxParser = saxFactory.newSAXParser();
 			File file = new File(filePath);
 			saxParser.parse(file, this);
+			
+			AnalyzerFactory.getInstance().init(this);
+			
 			
 		} catch (Exception e) {
 			HSearchLog.l.fatal("File Path:" + filePath , e);

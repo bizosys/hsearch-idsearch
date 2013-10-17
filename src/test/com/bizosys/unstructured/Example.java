@@ -57,21 +57,20 @@ public class Example {
 		 
 		String INDEX_NAME = "Documents";
 
-		Analyzer analyzer = getAnalyzer();
-		AnalyzerFactory analyzers = AnalyzerFactory.getInstance().setDefault(analyzer);
+		AnalyzerFactory.getInstance().setDefaultAnalyzer(getAnalyzer());
 
 		IndexWriter writer = new IndexWriter(new HSearchTableDocuments());
 		 try {
-			 writer.addDocument(1, doc, "emp", analyzers);
+			 writer.addDocument(1, doc, "emp", AnalyzerFactory.getInstance());
     	} finally {
-    		analyzers.close();
+    		AnalyzerFactory.getInstance().close();
     	}
 
 		HBaseTableSchema.getInstance().getSchema(); 
 		//writer.commit("merge1", INDEX_NAME);
 		if ( null != writer) writer.close();
 		
-		Analyzer qAnalyzer = getAnalyzer();
+		Analyzer qAnalyzer = AnalyzerFactory.getInstance().getAnalyzer("emp");
 		Map<String, String> multiqueryParts = new HashMap<String, String>();
 		String multiQuery = new IndexSearcher().searchQueryPartsFill(
 			INDEX_NAME, "*", "*:Abinash", qAnalyzer, multiqueryParts);
@@ -83,7 +82,6 @@ public class Example {
 	}
 
 	public static Analyzer getAnalyzer() {
-		Analyzer analyzer = new CustomAnalyzer();
-		return analyzer;
+		return new CustomAnalyzerExample();
 	}
 }

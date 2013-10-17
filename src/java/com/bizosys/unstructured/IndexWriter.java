@@ -407,7 +407,7 @@ public class IndexWriter {
     		
     		if ( field.isTokenized()) {
         		StringReader sr = new StringReader(field.stringValue());
-        		TokenStream stream = analyzers.getAnalyzer(documentType, field.name()).tokenStream(field.name(), sr);
+        		TokenStream stream = analyzers.getAnalyzer(field.name()).tokenStream(field.name(), sr);
         		tokenize(stream, docId, docType , docFilter, fieldType, uniqueTokens);
         		sr.close();
     		} else {

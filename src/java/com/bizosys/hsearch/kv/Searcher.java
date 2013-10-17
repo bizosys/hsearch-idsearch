@@ -37,8 +37,6 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 import java.util.regex.Pattern;
 
-import org.apache.lucene.analysis.Analyzer;
-
 import com.bizosys.hsearch.byteutils.SortedBytesBitset;
 import com.bizosys.hsearch.federate.BitSetOrSet;
 import com.bizosys.hsearch.federate.FederatedSearch;
@@ -77,7 +75,6 @@ public class Searcher {
 	private Map<String, Set<Object>> facetsMap = null;
 	private Map<String, List<HsearchFacet>> pivotFacetsMap = null;
 	public KVDataSchemaRepository repository = KVDataSchemaRepository.getInstance();
-	public Analyzer analyzer = null;
 	
 	
 	public static boolean DEBUG_ENABLED = HSearchLog.l.isDebugEnabled();
@@ -85,11 +82,10 @@ public class Searcher {
 	
 	private boolean checkForAllWords = false;
 		
-	public Searcher(final String schemaName, final FieldMapping fm, final Analyzer analyzer){
+	public Searcher(final String schemaName, final FieldMapping fm){
 		this.schemaRepositoryName = schemaName;
 		this.repository.add(schemaRepositoryName, fm);
 		this.resultset = new HashSet<KVRowI>();
-		this.analyzer = analyzer;
 	}
 	
 	public final void setCheckForAllWords(final boolean checkForAllWords) {
@@ -286,6 +282,7 @@ public class Searcher {
 		String isCompressed = null;
 		
 		init();
+		
 		for (String field : selectFieldsA) {
 			rowId = mergeId + "_" + field;
 			if ( ! dataScheme.fldWithDataTypeMapping.containsKey(field) ) {
@@ -303,8 +300,9 @@ public class Searcher {
 				isRepeatable + "\t" + isCompressed);
 			
 			String filterQuery = "*|*";
+			
 			StorageReader reader = new StorageReader(dataRepository, rowId, 
-				matchIds, matchingIdsB, field, filterQuery, instruction, analyzer, fld.isCachable);
+				matchIds, matchingIdsB, field, filterQuery, instruction, fld.isCachable);
 			Future<Map<Integer, Object>> future = ES.submit(reader);
 
 			fieldWithfuture.put(field, future);
@@ -504,7 +502,7 @@ public class Searcher {
 					outputType, isRepeatable + "\t" + isCompressed);
 				
 				StorageReader reader = new StorageReader(dataRepository, rowId,
-					filterQuery, instruction, analyzer, fld.isCachable);
+					filterQuery, instruction, fld.isCachable);
 				
 				BitSet readingIds = null;
 				

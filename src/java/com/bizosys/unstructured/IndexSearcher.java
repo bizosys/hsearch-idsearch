@@ -132,7 +132,7 @@ public class IndexSearcher {
 		String query, Map<String, String> multiQueryParts) throws Exception {
 		
 		return searchQueryPartsFill(indexName, docType, query, 
-				AnalyzerFactory.getInstance().getDefault(), multiQueryParts );
+				AnalyzerFactory.getInstance().getAnalyzer("unknown"), multiQueryParts );
 	}	
 	
 	

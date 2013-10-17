@@ -22,6 +22,7 @@ package com.bizosys.hsearch.kv.impl;
 import java.io.IOException;
 import java.text.ParseException;
 import java.util.ArrayList;
+import java.util.BitSet;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
@@ -57,11 +58,12 @@ public class KVDocIndexer {
     	Field.Index index = isAnalyzed ? Field.Index.ANALYZED : Field.Index.NOT_ANALYZED;
     	AnalyzerFactory factory = AnalyzerFactory.getInstance();
     	try {
-        	if(null != analyzer)
-        		factory.setDefault(analyzer);
-			
+        	
+    		if(null != analyzer) 
+        		factory.setDefaultAnalyzer(analyzer);
+        	
 		} catch (Exception e) {
-			e.printStackTrace();
+			e.printStackTrace(System.err);
 		}
 		for (Integer docId : docIdWithFieldValue.keySet()) {
 		    Document lucenDoc = new Document();
@@ -177,15 +179,15 @@ public class KVDocIndexer {
 		ftypes.put("lname", 2);
 		indexer.addFieldTypes(ftypes);
 
-    	indexer.addToIndex(AnalyzerFactory.getInstance().getDefault(), "emp", "fname", docIdWithFieldValue1, true);
-    	indexer.addToIndex(AnalyzerFactory.getInstance().getDefault(), "emp", "lname", docIdWithFieldValue2, true);
+    	indexer.addToIndex(AnalyzerFactory.getInstance().getAnalyzer("fname"),
+    		"emp", "fname", docIdWithFieldValue1, true);
+    	indexer.addToIndex(AnalyzerFactory.getInstance().getAnalyzer("lname"), 
+    		"emp", "lname", docIdWithFieldValue2, true);
     	
     	byte[] ser = indexer.toBytes();
     	    	
-    	BitSetOrSet ids2 = indexer.search(ser, AnalyzerFactory.getInstance().getDefault(), "emp", "fname", "Subhendu Abinash");
-    	for (Object a : ids2.getDocumentIds()) {
-			System.out.println("p " + a.toString());
-		}    	
+    	BitSetOrSet ids2 = indexer.search(ser, AnalyzerFactory.getInstance().getAnalyzer("fname"), "emp", "fname", "Pramod");
+		System.out.println(ids2.getDocumentIds());
 	}
     
 }

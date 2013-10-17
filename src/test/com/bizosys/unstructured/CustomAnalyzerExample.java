@@ -41,9 +41,7 @@ import org.apache.lucene.document.Fieldable;
 import org.apache.lucene.util.CharsRef;
 import org.apache.lucene.util.Version;
 
-import com.bizosys.hsearch.storage.donotmodify.HSearchTableDocuments;
-
-public class CustomAnalyzer extends Analyzer {
+public class CustomAnalyzerExample extends Analyzer {
 
 	@Override
 	public TokenStream tokenStream(String field, Reader reader)  {
@@ -84,7 +82,7 @@ public class CustomAnalyzer extends Analyzer {
 	public static void main(String[] args) throws Exception {
 		Document doc = new Document();
 		doc.add(new Field("description", "Abinash", Field.Store.NO, Field.Index.ANALYZED));
-		Analyzer analyzer = new CustomAnalyzer();
+		Analyzer analyzer = new CustomAnalyzerExample();
 
 		for (Fieldable field : doc.getFields() ) {
     		StringReader sr = new StringReader(field.stringValue());

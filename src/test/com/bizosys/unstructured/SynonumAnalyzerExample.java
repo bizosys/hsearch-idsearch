@@ -17,7 +17,7 @@
 * See the License for the specific language governing permissions and
 * limitations under the License.
 */
-package com.bizosys.hsearch.embedded;
+package com.bizosys.unstructured;
 
 import java.io.StringReader;
 import java.util.HashMap;
@@ -30,14 +30,17 @@ import org.apache.lucene.document.Document;
 import org.apache.lucene.document.Field;
 import org.apache.lucene.document.Fieldable;
 
-public class CustomAnalyzerExample {
+import com.bizosys.unstructured.CustomAnalyzerExample;
+
+public class SynonumAnalyzerExample {
 
 	public static void main(String[] args) throws Exception {
 		Document doc = new Document();
 		doc.add(new Field("description", "bengalure is a good city", Field.Store.NO, Field.Index.ANALYZED));
 		Map<String, String> syn = new HashMap<String, String>();
 		syn.put("bangalore", "bengalure|bangaluru");
-		Analyzer analyzer = new CustomAnalyzer(null, syn);
+		Analyzer analyzer = new SynonumAnalyzer();
+		//analyzer.load(null, syn);
 
 		for (Fieldable field : doc.getFields() ) {
     		StringReader sr = new StringReader(field.stringValue());

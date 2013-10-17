@@ -7,9 +7,6 @@ import java.util.Set;
 import junit.framework.TestCase;
 import junit.framework.TestFerrari;
 
-import org.apache.lucene.analysis.standard.StandardAnalyzer;
-import org.apache.lucene.util.Version;
-
 import com.bizosys.hsearch.federate.BitSetOrSet;
 import com.bizosys.hsearch.kv.impl.FieldMapping;
 import com.bizosys.unstructured.util.IdSearchLog;
@@ -71,7 +68,7 @@ public class ExamResultSearch extends TestCase {
 
 	public final void testSanity() throws Exception {
 		long start = System.currentTimeMillis();
-		Searcher searcher = new Searcher("test", fm, null);
+		Searcher searcher = new Searcher("test", fm);
 		KVRowI aBlankRow = new ExamResult();
 
 		IEnricher enricher = null;
@@ -85,7 +82,7 @@ public class ExamResultSearch extends TestCase {
 	
 	public final void testRepeatable() throws Exception {
 		long start = System.currentTimeMillis();
-		Searcher searcher = new Searcher("test", fm, null);
+		Searcher searcher = new Searcher("test", fm);
 		KVRowI aBlankRow = new ExamResult();
 
 		IEnricher enricher = null;
@@ -99,7 +96,7 @@ public class ExamResultSearch extends TestCase {
 
 	public final void testMultipleFilters() throws Exception {
 		long start = System.currentTimeMillis();
-		Searcher searcher = new Searcher("test", fm, null);
+		Searcher searcher = new Searcher("test", fm);
 		KVRowI aBlankRow = new ExamResult();
 
 		IEnricher enricher = null;
@@ -113,7 +110,7 @@ public class ExamResultSearch extends TestCase {
 
 	public final void testSorting() throws Exception {
 		long start = System.currentTimeMillis();
-		Searcher searcher = new Searcher("test", fm, new StandardAnalyzer(Version.LUCENE_36));
+		Searcher searcher = new Searcher("test", fm);
 		KVRowI aBlankRow = new ExamResult();
 		IEnricher enricher = null;
 		searcher.search(fm.tableName, "A", "sex,age,location,marks",null, aBlankRow, enricher);
@@ -130,7 +127,7 @@ public class ExamResultSearch extends TestCase {
 
 	public final void testComboSearchWithfacet() throws Exception {
 		long start = System.currentTimeMillis();
-		Searcher searcher = new Searcher("test", fm, null);
+		Searcher searcher = new Searcher("test", fm);
 		KVRowI aBlankRow = new ExamResult();
 
 		IEnricher enricher = null;
@@ -152,7 +149,7 @@ public class ExamResultSearch extends TestCase {
 
 	public final void testFacet() throws Exception {
 		long start = System.currentTimeMillis();
-		Searcher searcher = new Searcher("test", fm, null);
+		Searcher searcher = new Searcher("test", fm);
 		KVRowI aBlankRow = new ExamResult();
 
 		Map<String, Set<Object>> facetResult = searcher.facet(fm.tableName, "B", "age,marks,location", "location:BTM Layout", aBlankRow);
@@ -165,7 +162,7 @@ public class ExamResultSearch extends TestCase {
 
 	public final void testPivotFacet() throws Exception {
 		long start = System.currentTimeMillis();
-		Searcher searcher = new Searcher("test", fm, null);
+		Searcher searcher = new Searcher("test", fm);
 		KVRowI aBlankRow = new ExamResult();
 
 		Map<String, List<HsearchFacet>> facetResult = searcher.pivotFacet(fm.tableName, "B", "age,role|age,marks", "location:BTM Layout", aBlankRow);
@@ -178,7 +175,7 @@ public class ExamResultSearch extends TestCase {
 
 	public final void testFreeTextSearch() throws Exception {
 		long start = System.currentTimeMillis();
-		Searcher searcher = new Searcher("test", fm, new StandardAnalyzer(Version.LUCENE_36));
+		Searcher searcher = new Searcher("test", fm);
 		searcher.setCheckForAllWords(true);
 		KVRowI aBlankRow = new ExamResult();
 		IEnricher enricher = null;
@@ -193,7 +190,7 @@ public class ExamResultSearch extends TestCase {
 
 	public final void testFreeTextStored() throws Exception {
 		long start = System.currentTimeMillis();
-		Searcher searcher = new Searcher("test", fm, new StandardAnalyzer(Version.LUCENE_36));
+		Searcher searcher = new Searcher("test", fm);
 		KVRowI aBlankRow = new ExamResult();
 		IEnricher enricher = null;
 		searcher.search(fm.tableName, "A", "empid,age,commentsVal","comments:Tremendous", aBlankRow, enricher);
@@ -216,7 +213,7 @@ public class ExamResultSearch extends TestCase {
 
 	public final void testFreeTextNotStored() throws Exception  {
 		long start = System.currentTimeMillis();
-		Searcher searcher = new Searcher("test", fm, new StandardAnalyzer(Version.LUCENE_36));
+		Searcher searcher = new Searcher("test", fm);
 		KVRowI aBlankRow = new ExamResult();
 		IEnricher enricher = null;
 		searcher.search(fm.tableName, "A", "age,remarks","remarks:fabulous", aBlankRow, enricher);
@@ -230,7 +227,7 @@ public class ExamResultSearch extends TestCase {
 	}
 
 	public final void testFreeTextWithNumericals() throws Exception {
-		Searcher searcher = new Searcher("test", fm, new StandardAnalyzer(Version.LUCENE_36));
+		Searcher searcher = new Searcher("test", fm);
 		KVRowI aBlankRow = new ExamResult();
 		IEnricher enricher = null;
 		searcher.search(fm.tableName, "A", "age,location,marks,comments","comments:Tremendous", aBlankRow, enricher);
@@ -241,7 +238,7 @@ public class ExamResultSearch extends TestCase {
 	}	
 	
 	public final void testNullQuery() throws Exception {
-		Searcher searcher = new Searcher(fm.tableName, fm, new StandardAnalyzer(Version.LUCENE_36));
+		Searcher searcher = new Searcher(fm.tableName, fm);
 		KVRowI aBlankRow = new ExamResult();
 		IEnricher enricher = null;
 		searcher.search(fm.tableName, "A", "age","remarks:study", aBlankRow, enricher);
@@ -252,7 +249,7 @@ public class ExamResultSearch extends TestCase {
 	
 	public final void testPhraseQuery() throws Exception {
 		long start = System.currentTimeMillis();
-		Searcher searcher = new Searcher(fm.tableName, fm, new StandardAnalyzer(Version.LUCENE_36));
+		Searcher searcher = new Searcher(fm.tableName, fm);
 		searcher.setCheckForAllWords(true);
 		KVRowI aBlankRow = new ExamResult();
 		IEnricher enricher = null;
@@ -270,7 +267,7 @@ public class ExamResultSearch extends TestCase {
 
 	public final void testUnknownWord() throws Exception {
 		long start = System.currentTimeMillis();
-		Searcher searcher = new Searcher(fm.tableName, fm, new StandardAnalyzer(Version.LUCENE_36));
+		Searcher searcher = new Searcher(fm.tableName, fm);
 		KVRowI aBlankRow = new ExamResult();
 		IEnricher enricher = null;
 		searcher.search(fm.tableName, "A", "commentsVal","comments:'unknown'", aBlankRow, enricher);
@@ -285,7 +282,7 @@ public class ExamResultSearch extends TestCase {
 
 	public final void testUnknownKnownWord() throws Exception {
 		long start = System.currentTimeMillis();
-		Searcher searcher = new Searcher(fm.tableName, fm, new StandardAnalyzer(Version.LUCENE_36));
+		Searcher searcher = new Searcher(fm.tableName, fm);
 		searcher.setCheckForAllWords(true);
 		KVRowI aBlankRow = new ExamResult();
 		IEnricher enricher = null;
@@ -301,7 +298,7 @@ public class ExamResultSearch extends TestCase {
 
 	public final void testLemos() throws Exception {
 		long start = System.currentTimeMillis();
-		Searcher searcher = new Searcher(fm.tableName, fm, new StandardAnalyzer(Version.LUCENE_36));
+		Searcher searcher = new Searcher(fm.tableName, fm);
 		KVRowI aBlankRow = new ExamResult();
 		IEnricher enricher = null;
 		searcher.search(fm.tableName, "A", "commentsVal","comments:boys", aBlankRow, enricher);
@@ -309,9 +306,9 @@ public class ExamResultSearch extends TestCase {
 
 		long end = System.currentTimeMillis();
 		for (KVRowI kvRowI : mergedResult) {
-			System.out.println(kvRowI.getId() + "\t" +  kvRowI.getValue("commentsVal"));
+			assertTrue(kvRowI.getValue("commentsVal").toString().indexOf("boy") >= 0 );
 		}
-		assertEquals(0, mergedResult.size());
+		assertEquals(33, mergedResult.size());
 	}		
 
 }
