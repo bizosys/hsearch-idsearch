@@ -66,8 +66,6 @@ public class FieldMapping extends DefaultHandler {
 		
 		public boolean isDocIndex;
 
-		public boolean isSeparable = false;
-
 		public boolean isCachable = true;
 		
 		public Field() {
@@ -82,7 +80,7 @@ public class FieldMapping extends DefaultHandler {
 		public Field(String name,String sourceName, int sourceSeq, boolean isIndexable,boolean isStored,
 				boolean isRepeatable, boolean isMergedKey, int mergePosition,
 				boolean skipNull, String defaultValue, String fieldType, String analyzer, 
-				boolean isDocIndex, boolean isAnalyzed, boolean isSeparable, boolean isCachable,
+				boolean isDocIndex, boolean isAnalyzed, boolean isCachable,
 				boolean isCompressed, boolean keepPhrase) {
 			
 			this.name = name;
@@ -100,7 +98,6 @@ public class FieldMapping extends DefaultHandler {
 			this.isAnalyzed = isAnalyzed;
 			this.isDocIndex = isDocIndex;
 			
-			this.isSeparable = isSeparable;
 			this.isCachable = isCachable;
 			this.isCompressed = isCompressed;
 			this.keepPhrase = keepPhrase;
@@ -136,6 +133,7 @@ public class FieldMapping extends DefaultHandler {
 	public String familyName = null;
 	public char fieldSeparator = '|';
 	public String version = "0";
+	public boolean append = false;
 	
 	@Deprecated
 	public static FieldMapping getInstance(){
@@ -223,6 +221,10 @@ public class FieldMapping extends DefaultHandler {
 			String fldVal = attributes.getValue("version");
 			version = (null == fldVal) ? "0" : (fldVal.length() == 0) ? "0" : fldVal;
 			if ( null == fldVal ) IdSearchLog.l.info("Version is missing, Taking 0"); 
+			
+			fldVal = attributes.getValue("append");
+			append = (null == fldVal) ? false : fldVal.equals("true");
+			
 		}
 		if (qName.equalsIgnoreCase("field")) {
 
@@ -272,10 +274,6 @@ public class FieldMapping extends DefaultHandler {
 			boolean isAnalyzed = ( null == fldVal) ? true : fldVal.equalsIgnoreCase("true");
 			boolean isDocIndex = (null == analyzer) ? false : analyzer.length() > 0;
 
-			fldVal = attributes.getValue("isSeparable");
-			if ( null == fldVal) IdSearchLog.l.debug("Missing " + name + " separablity (isSeparable) Setting to false");
-			boolean isSeparable = ( null == fldVal) ? false : fldVal.equalsIgnoreCase("true");
-			
 			fldVal = attributes.getValue("compress");
 			boolean isCompressed = ( null == fldVal) ? false : fldVal.equalsIgnoreCase("true");
 
@@ -287,7 +285,7 @@ public class FieldMapping extends DefaultHandler {
 
 			field = new Field(name, sourceName, sourceSeq, isIndexable, isStored, isRepeatable,
 					isMergedKey, mergePosition, skipNull, defaultValue, dataType, analyzer, 
-					isDocIndex, isAnalyzed, isSeparable,isCachable, isCompressed, keepPhrase);
+					isDocIndex, isAnalyzed, isCachable, isCompressed, keepPhrase);
 		}
 	}
 

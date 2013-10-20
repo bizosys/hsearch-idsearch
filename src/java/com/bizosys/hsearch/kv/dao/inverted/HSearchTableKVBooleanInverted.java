@@ -106,6 +106,15 @@ public final class HSearchTableKVBooleanInverted implements IHSearchTable {
     		table.put(value, bits);
     	}
     }
+    
+    public void put(final BitSet keys, final Boolean value) {
+    	if ( table.containsKey(value)) {
+    		table.get(value).or(keys);
+    	} else {
+    		table.put(value, keys);
+    	}
+    }
+    
 
     @Override
     public final void get(final byte[] input, final HSearchQuery query, final IHSearchPlugin pluginI) throws IOException, NumberFormatException {
@@ -200,6 +209,13 @@ public final class HSearchTableKVBooleanInverted implements IHSearchTable {
         		:
         		new Cell2<BitSet, Boolean>(
         		SortedBytesBitset.getInstance(), SortedBytesBoolean.getInstance()); 
-	}   
+	}
 
+
+    public void parse(byte[] data, Cell2Visitor<BitSet, Boolean> visitor) throws IOException {
+		Cell2<BitSet, Boolean> cell2 = createCell2();
+		cell2.data = new BytesSection(data);
+		cell2.process(visitor);
+    }
+    
 }

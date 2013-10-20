@@ -6,6 +6,7 @@ import java.io.InputStreamReader;
 import java.util.Arrays;
 import java.util.BitSet;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Set;
 
 import org.apache.hadoop.conf.Configuration;
@@ -18,6 +19,8 @@ import org.apache.hadoop.io.Text;
 import org.iq80.snappy.Snappy;
 
 import com.bizosys.hsearch.byteutils.SortedBytesBitset;
+import com.bizosys.hsearch.hbase.HReader;
+import com.bizosys.hsearch.hbase.NVBytes;
 import com.bizosys.hsearch.kv.KVIndexer;
 import com.bizosys.hsearch.kv.KVIndexer.KV;
 import com.bizosys.hsearch.kv.dao.plain.HSearchTableKVIndex;
@@ -82,7 +85,18 @@ public class KVReducer extends TableReducer<Text, Text, ImmutableBytesWritable> 
     	Field fld = fm.sourceSeqWithField.get(sourceSeq);
 		char dataTypeChar = KVIndexer.dataTypesPrimitives.get(dataType);
 		
-		byte[] finalData = cookBytes(rowKey, values, fld, dataTypeChar);
+		List<NVBytes> cells = null;
+		byte[] existingData = null;
+		if ( fm.append ) {
+			cells = HReader.getCompleteRow(fm.tableName, rowKey.getBytes());
+			if ( null != cells) {
+				if ( cells.size() > 0 ) {
+					NVBytes nvBytes = cells.get(0);
+					if ( null != nvBytes ) existingData = nvBytes.data;
+				}
+			}
+		}
+		byte[] finalData = cookBytes(rowKey, values, existingData, fld, dataTypeChar);
 		if(null == finalData) return;
 
 		Put put = new Put(rowKey.getBytes());
@@ -91,7 +105,7 @@ public class KVReducer extends TableReducer<Text, Text, ImmutableBytesWritable> 
         context.write(null, put);
 	}
 
-	private byte[] cookBytes(String key, Iterable<Text> values, 
+	private byte[] cookBytes(String key, Iterable<Text> values, byte[] existingData,
 			Field fld, char dataTypeChar) throws IOException {
 		
 		byte[] finalData = null;
@@ -103,7 +117,7 @@ public class KVReducer extends TableReducer<Text, Text, ImmutableBytesWritable> 
 		switch (dataTypeChar) {
 
 			case 't':
-				finalData = IndexFieldString.cook(values, repeatable, compressed);
+				finalData = IndexFieldString.cook(values, existingData, repeatable, compressed);
 				break;
 
 			case 'e':
@@ -114,32 +128,32 @@ public class KVReducer extends TableReducer<Text, Text, ImmutableBytesWritable> 
 				boolean skipSingle = ( key.charAt(key.length() - 1) == '*');
 				
 				finalData = ( repeatable ) ? 
-					indexTextBitset(skipSingle, values, analyzed, fieldName, compressed) : 
-					indexTextSet(skipSingle, values, analyzed, fieldName);
+					indexTextBitset(skipSingle, existingData, values, analyzed, fieldName, compressed) : 
+					indexTextSet(skipSingle, existingData,  values, analyzed, fieldName);
 				break;
 
 			case 'i':
-				finalData = IndexFieldInteger.cook(values, repeatable, compressed);
+				finalData = IndexFieldInteger.cook(values, existingData, repeatable, compressed);
 				break;
 
 			case 'f':
-				finalData = IndexFieldFloat.cook(values, repeatable, compressed);
+				finalData = IndexFieldFloat.cook(values, existingData, repeatable, compressed);
 				break;
 
 			case 'd':
-				finalData = IndexFieldDouble.cook(values, repeatable, compressed);
+				finalData = IndexFieldDouble.cook(values, existingData, repeatable, compressed);
 				break;
 
 			case 'l':
-				finalData = IndexFieldLong.cook(values, repeatable, compressed);
+				finalData = IndexFieldLong.cook(values, existingData, repeatable, compressed);
 				break;
 			
 			case 'b':
-				finalData = IndexFieldBoolean.cook(values, repeatable, compressed);
+				finalData = IndexFieldBoolean.cook(values, existingData, repeatable, compressed);
 				break;
 
 			case 'c':
-				finalData = IndexFieldByte.cook(values, repeatable, compressed);
+				finalData = IndexFieldByte.cook(values, existingData, repeatable, compressed);
 				break;
 
 			default:
@@ -149,13 +163,19 @@ public class KVReducer extends TableReducer<Text, Text, ImmutableBytesWritable> 
 	}
 	
 	Set<Integer> records = new HashSet<Integer>(3);
-	public byte[] indexTextSet(boolean skipSingle, Iterable<Text> values, boolean isAnalyzed, String fieldName) throws IOException {
+	public byte[] indexTextSet(boolean skipSingle, byte[] existingData, Iterable<Text> values,   
+		boolean isAnalyzed, String fieldName) throws IOException {
 		
 		byte[] finalData = null;
 		int containerKey = 0;
 		int containervalue = 0;
 		String[] resultValue = new String[2];
 		HSearchTableKVIndex table = new HSearchTableKVIndex();
+		
+		if ( null != existingData) {
+			throw new IOException("Append is not supported for the non repetable analyzed fields");
+		}
+		
 		String line = null;
 		
 		int docType = 1;
@@ -190,11 +210,23 @@ public class KVReducer extends TableReducer<Text, Text, ImmutableBytesWritable> 
 		return finalData;
 	}
 	
-	public byte[] indexTextBitset(boolean skipSingle, Iterable<Text> values, boolean isAnalyzed, String fieldName, boolean isCompressed) throws IOException {
+	public byte[] indexTextBitset(boolean skipSingle, byte[] existingData, 
+		Iterable<Text> values, boolean isAnalyzed, String fieldName, boolean isCompressed) throws IOException {
 		
 		byte[] finalData = null;
 		int containerKey = 0;
-		BitSet foundIds = new BitSet();
+		
+		BitSet foundIds = null;
+		int existingDataLen = ( null == existingData) ? 0 : existingData.length;
+		if ( existingDataLen > 0 ) {
+			byte[] uncompressedData = existingData;
+			if ( isCompressed ) {
+				uncompressedData = Snappy.uncompress(existingData, 0 , existingDataLen);
+			} 
+			foundIds = SortedBytesBitset.getInstanceBitset().bytesToBitSet(uncompressedData, 0);
+		} else {
+			foundIds = new BitSet();
+		}
 		
 		for (Text text : values) {
 			if ( null == text) continue;

@@ -29,16 +29,16 @@ public class ExamResultSearch extends TestCase {
 		} else if  ( modes[2].equals(mode) ) {
 			t.setUp();
 			
-			t.testFreeTextSearch();
+			t.testSorting();
 			/**
+			t.testFreeTextNotStored();
+			t.testFreeTextSearch();
 			t.testRepeatable();
 			t.testMultipleFilters();
-			t.testFacet();
 			t.testPivotFacet();
-			t.testSorting();
-
+			t.testFacet();
 			t.testFreeTextStored();
-			t.testFreeTextNotStored();
+
 			*/
 			
 			/*

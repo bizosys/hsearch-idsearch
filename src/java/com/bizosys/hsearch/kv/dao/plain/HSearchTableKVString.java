@@ -1,6 +1,7 @@
 package com.bizosys.hsearch.kv.dao.plain;
 
 import java.io.IOException;
+import java.util.BitSet;
 
 import com.bizosys.hsearch.byteutils.SortedBytesInteger;
 import com.bizosys.hsearch.byteutils.SortedBytesString;
@@ -135,7 +136,7 @@ public class HSearchTableKVString implements IHSearchTable {
     public void put(Integer key, String value) {
         table.add(key, value);
     }
-
+    
     @Override
     public void get(byte[] input, HSearchQuery query, IHSearchPlugin pluginI) throws IOException, NumberFormatException {
     	iterate(input, query, pluginI, MODE_COLS);
@@ -219,5 +220,12 @@ public class HSearchTableKVString implements IHSearchTable {
     public void clear() throws IOException {
         table.getMap().clear();
     }
+    
+    public void parse(byte[] data, Cell2Visitor<Integer, String> visitor) throws IOException {
+		Cell2<Integer, String> cell2 = createBlankTable();
+		cell2.data = new BytesSection(data);
+		cell2.process(visitor);
+    }
+    
 
 }

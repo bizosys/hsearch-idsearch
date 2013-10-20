@@ -221,4 +221,10 @@ public class HSearchTableKVLong implements IHSearchTable {
         table.getMap().clear();
     }
 
+    public void parse(byte[] data, Cell2Visitor<Integer, Long> cell2Visitor) throws IOException {
+		Cell2<Integer, Long> cell2 = createBlankTable();
+		cell2.data = new BytesSection(data);
+		cell2.process(cell2Visitor);
+    }
+
 }

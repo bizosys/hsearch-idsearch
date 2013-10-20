@@ -339,7 +339,8 @@ public class StorageReader implements Callable<Map<Integer, Object>> {
 					findATerm(checkForAllWords, isCompressed, isCached,
 						destination, rowIdPrefix, isVirgin, phrase);
 					BitSet result = destination.getDocumentSequences();
-					if ( result.cardinality() > 0 ) return destination.getDocumentSequences();
+					int resultT = ( null == result) ? 0 : result.cardinality(); 
+					if (  resultT > 0 ) return destination.getDocumentSequences();
 				}
 			}
 			

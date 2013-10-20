@@ -104,6 +104,15 @@ public class HSearchTableKVFloatInverted implements IHSearchTable {
 			table.put(value, bits);
 		}
 	}
+	
+    public void put(final BitSet keys, final Float value) {
+    	if ( table.containsKey(value)) {
+    		table.get(value).or(keys);
+    	} else {
+    		table.put(value, keys);
+    	}
+    }
+	
 
 	@Override
 	public void get(byte[] input, HSearchQuery query, IHSearchPlugin pluginI) throws IOException, NumberFormatException {
@@ -198,5 +207,13 @@ public class HSearchTableKVFloatInverted implements IHSearchTable {
 				:
 					new Cell2<BitSet, Float>(
 							SortedBytesBitset.getInstance(), SortedBytesFloat.getInstance()); 
-	}    
+	}
+
+    public void parse(byte[] data, Cell2Visitor<BitSet, Float> visitor) throws IOException {
+		Cell2<BitSet, Float> cell2 = createCell2();
+		cell2.data = new BytesSection(data);
+		cell2.process(visitor);
+    }
+
+
 }

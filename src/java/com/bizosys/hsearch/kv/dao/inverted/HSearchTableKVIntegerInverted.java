@@ -107,6 +107,14 @@ public class HSearchTableKVIntegerInverted implements IHSearchTable {
     	}
     }
 
+    public void put(final BitSet keys, final Integer value) {
+    	if ( table.containsKey(value)) {
+    		table.get(value).or(keys);
+    	} else {
+    		table.put(value, keys);
+    	}
+    }
+
     @Override
     public void get(byte[] input, HSearchQuery query, IHSearchPlugin pluginI) throws IOException, NumberFormatException {
     	iterate(input, query, pluginI, MODE_COLS);
@@ -201,4 +209,10 @@ public class HSearchTableKVIntegerInverted implements IHSearchTable {
 					new Cell2<BitSet, Integer>(
 							SortedBytesBitset.getInstance(), SortedBytesInteger.getInstance()); 
 	}
+    
+    public void parse(byte[] data, Cell2Visitor<BitSet, Integer> visitor) throws IOException {
+		Cell2<BitSet, Integer> cell2 = createCell2();
+		cell2.data = new BytesSection(data);
+		cell2.process(visitor);
+    }
 }

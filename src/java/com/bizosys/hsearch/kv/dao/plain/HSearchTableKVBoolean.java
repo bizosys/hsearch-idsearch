@@ -220,4 +220,12 @@ public final class HSearchTableKVBoolean implements IHSearchTable {
     public void clear() throws IOException {
         table.getMap().clear();
     }
+
+
+    public void parse(byte[] data, Cell2Visitor<Integer, Boolean> visitor) throws IOException {
+		Cell2<Integer, Boolean> cell2 = createBlankTable();
+		cell2.data = new BytesSection(data);
+		cell2.process(visitor);
+    }
+
 }

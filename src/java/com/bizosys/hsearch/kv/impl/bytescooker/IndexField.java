@@ -40,5 +40,6 @@ public abstract class IndexField {
 	}
 	
 	public abstract void add(int key, String val);
+	public abstract void append(byte[] vals) throws IOException;
 	public abstract byte[] getBytes() throws IOException;	
 }

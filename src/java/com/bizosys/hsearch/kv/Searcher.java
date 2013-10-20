@@ -47,6 +47,7 @@ import com.bizosys.hsearch.functions.GroupSortedObject.FieldType;
 import com.bizosys.hsearch.functions.GroupSorter;
 import com.bizosys.hsearch.functions.GroupSorter.GroupSorterSequencer;
 import com.bizosys.hsearch.hbase.HReader;
+import com.bizosys.hsearch.kv.dao.DataBlock;
 import com.bizosys.hsearch.kv.impl.Datatype;
 import com.bizosys.hsearch.kv.impl.FieldMapping;
 import com.bizosys.hsearch.kv.impl.FieldMapping.Field;
@@ -75,7 +76,6 @@ public class Searcher {
 	private Map<String, Set<Object>> facetsMap = null;
 	private Map<String, List<HsearchFacet>> pivotFacetsMap = null;
 	public KVDataSchemaRepository repository = KVDataSchemaRepository.getInstance();
-	
 	
 	public static boolean DEBUG_ENABLED = HSearchLog.l.isDebugEnabled();
 	public static boolean INFO_ENABLED = HSearchLog.l.isInfoEnabled();
@@ -238,6 +238,17 @@ public class Searcher {
 			
 			FederatedSearch ff = createFederatedSearch();
 			BitSetOrSet mixedQueryMatchedIds = ff.execute(whereQuery, queryDetails);
+			
+			/**
+			 * Remove the delete Ids
+			 */
+			BitSet deleteRecords = DataBlock.getPinnedBitSets(
+				this.repository.get(this.schemaRepositoryName).fm.tableName, 
+				DataBlock.getDeleteId( mergeId ) );
+			
+			if ( null != deleteRecords) {
+				mixedQueryMatchedIds.getDocumentSequences().andNot(deleteRecords);
+			}
 
 			return mixedQueryMatchedIds;
 			

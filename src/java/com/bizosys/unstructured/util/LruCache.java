@@ -7,6 +7,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Timer;
 import java.util.TimerTask;
+import java.util.concurrent.ConcurrentHashMap;
 
 import com.bizosys.hsearch.util.HSearchConfig;
  
@@ -26,15 +27,20 @@ public class LruCache {
  
 	
 	Map<String, byte[]> syncedLruMap = null;
-	private long allowedSizeInBytes; // Maximum number of items in the cache.
+	Map<String, Object> syncedPinnedMap = null;
 
+	private long allowedSizeInBytes; // Maximum number of items in the cache.
+	private int allowedPinnedObjects = 100; // Maximum number of items in the cache.
 
     private Timer cacheRefreshTimer = null;
     private CacheRefreshAgent cacheRefreshAgent = null;
 
     private LruCache(int lruCacheMb, int cacheRefreshDurationInSecs) {
     	
-		syncedLruMap = Collections.synchronizedMap(new LruMap());		
+		syncedLruMap = Collections.synchronizedMap(new LruMap());
+		syncedPinnedMap = Collections.synchronizedMap(
+				new LinkedHashMap<String, Object>(96 , 1.5f, true) );
+		
         this.allowedSizeInBytes = lruCacheMb * 1024 * 1024;
         long useForCache = Runtime.getRuntime().totalMemory() /2 ; 
         if ( useForCache < this.allowedSizeInBytes ) {
@@ -58,14 +64,22 @@ public class LruCache {
     	return this.syncedLruMap.get(key);
     }
 
+    public Object getPinned(String key) {
+    	return this.syncedPinnedMap.get(key);
+    }
+
     public void clear() {
     	this.syncedLruMap.clear();
+    	this.syncedPinnedMap.clear();
     }
     
     public boolean containsKey(String key) {
     	return this.syncedLruMap.containsKey(key);
     }
         
+    public boolean containsPinnedKey(String key) {
+    	return this.syncedPinnedMap.containsKey(key);
+    }
 
     public void put(String key, byte[] val) {
     	
@@ -91,6 +105,22 @@ public class LruCache {
         	IdSearchLog.l.info("Cache Eviction: " + deleteIds.toString());
     	}
     	syncedLruMap.put(key, val);
+    }
+
+    public void putPinned(String key, Object val) {
+		String deleteId = null;
+    	if ( this.syncedPinnedMap.size() > allowedPinnedObjects) {
+        	for (Map.Entry<String, Object> entry : syncedPinnedMap.entrySet()) {
+            	deleteId = entry.getKey();
+            	break;
+    		}
+    	}
+    	
+    	if ( null != deleteId) {
+    		syncedPinnedMap.remove(deleteId);
+        	IdSearchLog.l.info("Pinned Cache Eviction: " + deleteId.toString());
+    	}
+    	syncedPinnedMap.put(key, val);
     }
     
     @Override
@@ -213,6 +243,11 @@ public class LruCache {
     	System.out.println("STATE:\n" + cache.toString());
     	cache.clear();
     	System.out.println("CLEARED:" + cache.toString());
+    	
+    	for ( int i=0; i<5000; i++) {
+        	cache.putPinned("A" + i, new Integer(1));
+    	}
+    	System.out.println( cache.getPinned("A4999") );
     	
     }
 }

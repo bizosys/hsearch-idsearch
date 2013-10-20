@@ -219,5 +219,11 @@ public class HSearchTableKVInteger implements IHSearchTable {
     public void clear() throws IOException {
         table.getMap().clear();
     }
-
+    
+    public void parse(byte[] data, Cell2Visitor<Integer, Integer> visitor) throws IOException {
+		Cell2<Integer, Integer> cell2 = createBlankTable();
+		cell2.data = new BytesSection(data);
+		cell2.process(visitor);
+    }
+    
 }

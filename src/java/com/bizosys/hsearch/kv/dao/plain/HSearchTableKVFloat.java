@@ -221,4 +221,10 @@ public class HSearchTableKVFloat implements IHSearchTable {
         table.getMap().clear();
     }
 
+    public void parse(byte[] data, Cell2Visitor<Integer, Float> visitor) throws IOException {
+		Cell2<Integer, Float> cell2 = createBlankTable();
+		cell2.data = new BytesSection(data);
+		cell2.process(visitor);
+    }
+
 }
