@@ -1,7 +1,6 @@
 package com.bizosys.hsearch.kv.impl;
 
 import java.io.IOException;
-import java.util.BitSet;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -21,6 +20,7 @@ import org.iq80.snappy.Snappy;
 import com.bizosys.hsearch.byteutils.SortedBytesArray;
 import com.bizosys.hsearch.byteutils.SortedBytesBitset;
 import com.bizosys.hsearch.federate.BitSetOrSet;
+import com.bizosys.hsearch.federate.BitSetWrapper;
 import com.bizosys.hsearch.federate.FederatedSearchException;
 import com.bizosys.hsearch.idsearch.config.DocumentTypeCodes;
 import com.bizosys.hsearch.idsearch.config.FieldTypeCodes;
@@ -133,11 +133,11 @@ public class StorageReader implements Callable<Map<Integer, Object>> {
 	 * @return
 	 * @throws IOException
 	 */
-	public final BitSet readStorageIds() throws IOException {
+	public final BitSetWrapper readStorageIds() throws IOException {
 		byte[] data = null;
 		try {
 			
-			BitSet bitSets = null;
+			BitSetWrapper bitSets = null;
 			if ( isCachable) {
 				byte[] dataA = DataBlock.getBlock(tableName, rowId, isCachable);
 				int size = ( null == dataA) ? 0 : 1;
@@ -156,11 +156,11 @@ public class StorageReader implements Callable<Map<Integer, Object>> {
 				Collection<byte[]> dataL = SortedBytesArray.getInstanceArr().parse(data).values();
 				byte[] dataChunk = dataL.isEmpty() ? null : dataL.iterator().next();
 				if ( null != dataChunk ) {
-					bitSets = SortedBytesBitset.getInstanceBitset().bytesToBitSet(dataChunk, 0);
+					bitSets = SortedBytesBitset.getInstanceBitset().bytesToBitSet(dataChunk, 0, dataChunk.length);
 				}
 			}
 		
-			if ( null == bitSets)  bitSets = new BitSet(0);
+			if ( null == bitSets)  bitSets = new BitSetWrapper(0);
 			return bitSets;
 		
 		} catch (Exception e) {
@@ -171,18 +171,18 @@ public class StorageReader implements Callable<Map<Integer, Object>> {
 		}
 	}
 
-	public final BitSet readStorageTextIds(Field fld,
+	public final BitSetWrapper readStorageTextIds(Field fld,
 		boolean checkForAllWords, final String fieldName) throws IOException{
 		
 		if ( fld.isRepeatable ) {
 			return readStorageTextIdsBitset(checkForAllWords, 
-				fld.keepPhrase, fld.isCompressed, fld.isCachable, fieldName);
+				fld.biWord, fld.isCompressed, fld.isCachable, fieldName);
 		} else {
 			return readStorageTextIdsSet(checkForAllWords, fieldName);
 		}
 	}
 	
-	private final BitSet readStorageTextIdsSet(final boolean checkForAllWords, final String fieldName) throws IOException{
+	private final BitSetWrapper readStorageTextIdsSet(final boolean checkForAllWords, final String fieldName) throws IOException{
 
 		StringBuilder sb = new StringBuilder();
 		String docType = "*";
@@ -262,7 +262,7 @@ public class StorageReader implements Callable<Map<Integer, Object>> {
 						break;
 					}
 					
-					BitSet bitSets = SortedBytesBitset.getInstanceBitset().bytesToBitSet(dataChunk, 0);
+					BitSetWrapper bitSets = SortedBytesBitset.getInstanceBitset().bytesToBitSet(dataChunk, 0, dataChunk.length);
 					
 					if ( isVirgin ) {
 						destination.setDocumentSequences(bitSets);
@@ -279,7 +279,7 @@ public class StorageReader implements Callable<Map<Integer, Object>> {
 					if ( size == 0 ) continue;
 					dataChunk = dataL.isEmpty() ? null : dataL.iterator().next();
 					if ( dataChunk == null ) continue;
-					BitSet bitSets = SortedBytesBitset.getInstanceBitset().bytesToBitSet(dataChunk, 0);
+					BitSetWrapper bitSets = SortedBytesBitset.getInstanceBitset().bytesToBitSet(dataChunk, 0, dataChunk.length);
 					if(isVirgin){
 						destination.setDocumentSequences(bitSets);
 						isVirgin = false;
@@ -303,7 +303,7 @@ public class StorageReader implements Callable<Map<Integer, Object>> {
 		} 
 	}
 	
-	private final BitSet readStorageTextIdsBitset(final boolean checkForAllWords, 
+	private final BitSetWrapper readStorageTextIdsBitset(final boolean checkForAllWords, 
 		final boolean keepPhrase, boolean isCompressed, 
 		boolean isCached, final String fieldName) throws IOException{
 
@@ -338,7 +338,7 @@ public class StorageReader implements Callable<Map<Integer, Object>> {
 						
 					findATerm(checkForAllWords, isCompressed, isCached,
 						destination, rowIdPrefix, isVirgin, phrase);
-					BitSet result = destination.getDocumentSequences();
+					BitSetWrapper result = destination.getDocumentSequences();
 					int resultT = ( null == result) ? 0 : result.cardinality(); 
 					if (  resultT > 0 ) return destination.getDocumentSequences();
 				}
@@ -399,7 +399,7 @@ public class StorageReader implements Callable<Map<Integer, Object>> {
 				return -1;
 			}
 			
-			BitSet bitSets = SortedBytesBitset.getInstanceBitset().bytesToBitSet(dataChunk, 0);
+			BitSetWrapper bitSets = SortedBytesBitset.getInstanceBitset().bytesToBitSet(dataChunk, 0, dataChunk.length);
 			
 			if ( isVirgin ) {
 				destination.setDocumentSequences(bitSets);
@@ -414,8 +414,8 @@ public class StorageReader implements Callable<Map<Integer, Object>> {
 		} else {
 			if ( size == 0 ) return (isVirgin ? 1 : 0 );					
 
-			BitSet bitSets = SortedBytesBitset.getInstanceBitset().
-				bytesToBitSet(dataChunk, 0);
+			BitSetWrapper bitSets = SortedBytesBitset.getInstanceBitset().
+				bytesToBitSet(dataChunk, 0, dataChunk.length);
 			
 			if(isVirgin){
 				destination.setDocumentSequences(bitSets);

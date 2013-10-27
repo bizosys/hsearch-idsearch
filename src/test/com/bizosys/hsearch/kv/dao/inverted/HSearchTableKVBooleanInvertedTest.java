@@ -1,11 +1,11 @@
 package com.bizosys.hsearch.kv.dao.inverted;
 
 import java.io.IOException;
-import java.util.BitSet;
 
 import junit.framework.TestCase;
 import junit.framework.TestFerrari;
 
+import com.bizosys.hsearch.federate.BitSetWrapper;
 import com.bizosys.hsearch.kv.dao.MapperKVBase;
 import com.bizosys.hsearch.kv.dao.MapperKVBaseEmpty;
 import com.bizosys.hsearch.kv.impl.FieldMapping;
@@ -71,12 +71,12 @@ public class HSearchTableKVBooleanInvertedTest extends TestCase {
 			}
 
 			@Override
-			public boolean onRowKey(BitSet ids) {
+			public boolean onRowKey(BitSetWrapper ids) {
 				return false;
 			}
 
 			@Override
-			public boolean onRowCols(BitSet ids, Object value) {
+			public boolean onRowCols(BitSetWrapper ids, Object value) {
 				return false;
 			}
 

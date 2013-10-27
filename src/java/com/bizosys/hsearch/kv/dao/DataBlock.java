@@ -1,13 +1,13 @@
 package com.bizosys.hsearch.kv.dao;
 
 import java.io.IOException;
-import java.util.BitSet;
 
 import org.apache.hadoop.hbase.client.Result;
 import org.apache.hadoop.hbase.client.ResultScanner;
 import org.apache.hadoop.hbase.client.Scan;
 
 import com.bizosys.hsearch.byteutils.SortedBytesBitset;
+import com.bizosys.hsearch.federate.BitSetWrapper;
 import com.bizosys.hsearch.hbase.HBaseFacade;
 import com.bizosys.hsearch.hbase.HTableWrapper;
 import com.bizosys.hsearch.treetable.client.HSearchProcessingInstruction;
@@ -21,18 +21,18 @@ public class DataBlock {
 		return mergeId + "[[[deletes]]]";
 	}
 	
-	public static BitSet getPinnedBitSets (
+	public static BitSetWrapper getPinnedBitSets (
 		String tableName, String rowId) throws IOException {
 
-		BitSet dataBits = null;
+		BitSetWrapper dataBits = null;
 			
 		LruCache cache = LruCache.getInstance();
 		if ( cache.containsKey(rowId)) {
-			dataBits = (BitSet) cache.getPinned(rowId);
+			dataBits = (BitSetWrapper) cache.getPinned(rowId);
 		} else {
 			
 			byte[] dataA = getAllValuesIPC(tableName, rowId.getBytes());
-			dataBits = SortedBytesBitset.getInstanceBitset().bytesToBitSet(dataA, 0);
+			dataBits = SortedBytesBitset.getInstanceBitset().bytesToBitSet(dataA, 0, dataA.length);
 			cache.putPinned(rowId, dataBits);
 		}
 		return dataBits;

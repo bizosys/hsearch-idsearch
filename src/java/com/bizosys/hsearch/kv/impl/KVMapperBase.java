@@ -5,9 +5,11 @@ import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.text.ParseException;
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.LinkedHashSet;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
@@ -31,11 +33,13 @@ import com.bizosys.hsearch.kv.KVIndexer;
 import com.bizosys.hsearch.kv.KVIndexer.KV;
 import com.bizosys.hsearch.kv.impl.FieldMapping.Field;
 import com.bizosys.hsearch.util.Hashing;
+import com.bizosys.hsearch.util.LineReaderUtil;
 import com.bizosys.hsearch.util.LuceneUtil;
 import com.bizosys.unstructured.AnalyzerFactory;
 
 public class KVMapperBase {
     	
+	private static final char PLUS = '+';
 	private static final byte[] LONG_0 = Storable.putLong(0);
 	private static class Counter{
 		public long seekPointer = -1;
@@ -78,8 +82,6 @@ public class KVMapperBase {
 		String path = conf.get(KVIndexer.XML_FILE_PATH);
 		StringBuilder sb = new StringBuilder();
 		
-		
-		
 		try {
 
 			BufferedReader br = null;
@@ -120,7 +122,7 @@ public class KVMapperBase {
 	
     @SuppressWarnings({ "rawtypes", "unchecked" })
 	protected void map(String[] result, Context context) throws IOException, InterruptedException {
-    	
+
     	//get mergeId 
     	mergeId = createMergeId(result);
     	
@@ -152,7 +154,16 @@ public class KVMapperBase {
     		
     		if ( fld.isMergedKey ) continue;
     		
-    		fldValue = result[neededIndex];
+    		if ( fld.isDocIndex ) {
+    			boolean hasExpression = ( null == fld.expression) ? false : (fld.expression.trim().length() > 0 );
+    			if ( hasExpression ) {
+    	    		fldValue = evalExpression(fld.expression, result);
+    			} else {
+        			fldValue =  result[neededIndex];
+    			}
+    		} else {
+    			fldValue =  result[neededIndex];
+    		}
     		
     		isFieldNull =  (fldValue == null) ? true : (fldValue.length() == 0 );
     		if ( fld.skipNull ) {
@@ -211,7 +222,25 @@ public class KVMapperBase {
 		}
 		return rowId;
     }
-    
+
+	public final String evalExpression(final String sourceNames, final String[] result){
+		List<String> names = new ArrayList<String>();
+		LineReaderUtil.fastSplit(names, sourceNames, PLUS);
+		appender.delete(0, appender.capacity());
+		String tempValue = null;
+		boolean isEmpty = false;
+		for (String name : names) {
+			Field fld = fm.nameWithField.get(name);
+			tempValue = result[fld.sourceSeq];
+			isEmpty = (null == tempValue) ? true : tempValue.length() == 0;
+			if(isEmpty)
+				continue;
+			appender.append(tempValue).append(" ");
+		}
+		
+		return appender.toString();
+	}
+
     @SuppressWarnings({ "rawtypes", "unchecked" })
 	public void mapFreeTextSet(Field fld, Context context) throws IOException, InterruptedException{
 		
@@ -264,10 +293,14 @@ public class KVMapperBase {
 		return qp;
 	}
     
-    @SuppressWarnings({ "rawtypes", "unchecked" })
+	Set<Term> terms = new LinkedHashSet<Term>();
+
+	@SuppressWarnings({ "rawtypes", "unchecked" })
 	public void mapFreeTextBitset(Field fld, Context context) throws IOException, InterruptedException{
-    	try {
-			Set<Term> terms = new LinkedHashSet<Term>();
+
+		terms.clear();
+		
+		try {
 			if( !isFieldNull){
 				fldValue = LuceneUtil.escapeLuceneSpecialCharacters(fldValue);
 		    	QueryParser qp = getQueryParser(fld);
@@ -297,7 +330,7 @@ public class KVMapperBase {
     			
     			context.write(new Text(rowKey), new Text(rowVal));
     			
-    			if ( ! fld.keepPhrase ) continue;
+    			if ( ! fld.biWord && !fld.triWord) continue;
 
     			/**
     			 * Do Three phrase word

@@ -1,9 +1,9 @@
 package com.bizosys.hsearch.kv.dao;
 
 import java.io.IOException;
-import java.util.BitSet;
 import java.util.Map;
 
+import com.bizosys.hsearch.federate.BitSetWrapper;
 import com.bizosys.hsearch.kv.impl.ComputeKV;
 import com.bizosys.hsearch.treetable.client.HSearchProcessingInstruction;
 
@@ -17,7 +17,7 @@ public class KvRowReaderFactory {
 		
 		Map<Integer, Object> getFilteredValues(final String tableName, 
 			final byte[] row, final ComputeKV compute, final byte[] matchingIdsB,
-			final BitSet matchingIds, final String filterQuery, 
+			final BitSetWrapper matchingIds, final String filterQuery, 
 			final HSearchProcessingInstruction instruction) throws IOException;
 		
 	}

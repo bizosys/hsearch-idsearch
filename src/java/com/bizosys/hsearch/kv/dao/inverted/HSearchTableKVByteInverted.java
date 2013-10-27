@@ -1,13 +1,13 @@
 package com.bizosys.hsearch.kv.dao.inverted;
 
 import java.io.IOException;
-import java.util.BitSet;
 import java.util.HashMap;
 import java.util.Map;
 
 import com.bizosys.hsearch.byteutils.SortedBytesBitset;
 import com.bizosys.hsearch.byteutils.SortedBytesBitsetCompressed;
 import com.bizosys.hsearch.byteutils.SortedBytesChar;
+import com.bizosys.hsearch.federate.BitSetWrapper;
 import com.bizosys.hsearch.kv.dao.MapperKVBase;
 import com.bizosys.hsearch.treetable.BytesSection;
 import com.bizosys.hsearch.treetable.Cell2;
@@ -28,7 +28,7 @@ public class HSearchTableKVByteInverted implements IHSearchTable {
     
     private boolean isCompressed  = false;
 
-    public static final class Cell2FilterVisitor implements Cell2Visitor<BitSet, Byte> {
+    public static final class Cell2FilterVisitor implements Cell2Visitor<BitSetWrapper, Byte> {
 
         public HSearchQuery query;
         public IHSearchPlugin plugin;
@@ -61,7 +61,7 @@ public class HSearchTableKVByteInverted implements IHSearchTable {
         }
 
         @Override
-        public final void visit(BitSet cell1Key, Byte cell1Val) {
+        public final void visit(BitSetWrapper cell1Key, Byte cell1Val) {
 
         	//We are not looking for the matching keys.
 			MapperKVBase.TablePartsCallback visitor =  tablePartsCallback;
@@ -79,7 +79,7 @@ public class HSearchTableKVByteInverted implements IHSearchTable {
         }
     }
     ///////////////////////////////////////////////////////////////////	
-    Map<Byte,BitSet> table = new HashMap<Byte, BitSet>();
+    Map<Byte,BitSetWrapper> table = new HashMap<Byte, BitSetWrapper>();
 
     public HSearchTableKVByteInverted(boolean isCompressed) {
     	this.isCompressed = isCompressed;
@@ -87,11 +87,11 @@ public class HSearchTableKVByteInverted implements IHSearchTable {
 
     public byte[] toBytes() throws IOException {
     	 if (null == table) return null;
-         Cell2<BitSet, Byte> cell2 = createCell2();
-         for (Map.Entry<Byte, BitSet> entry: table.entrySet()) {
+         Cell2<BitSetWrapper, Byte> cell2 = createCell2();
+         for (Map.Entry<Byte, BitSetWrapper> entry: table.entrySet()) {
  			cell2.add(entry.getValue(),entry.getKey());
  		}
-        cell2.sort(new CellComparator.ByteComparator<BitSet>());
+        cell2.sort(new CellComparator.ByteComparator<BitSetWrapper>());
         return cell2.toBytesOnSortedData();
     }
 
@@ -99,13 +99,13 @@ public class HSearchTableKVByteInverted implements IHSearchTable {
     	if ( table.containsKey(value)) {
     		table.get(value).set(key);
     	} else {
-    		BitSet bits = new BitSet();
+    		BitSetWrapper bits = new BitSetWrapper();
     		bits.set(key);
     		table.put(value, bits);
     	}
     }
     
-    public void put(final BitSet keys, final Byte value) {
+    public void put(final BitSetWrapper keys, final Byte value) {
     	if ( table.containsKey(value)) {
     		table.get(value).or(keys);
     	} else {
@@ -157,7 +157,7 @@ public class HSearchTableKVByteInverted implements IHSearchTable {
 		Byte[] inValues1 =  (query.inValCells[1]) ? (Byte[])query.inValuesAO[1]: null;
 
 	
-		  Cell2<BitSet, Byte> cell2 = createCell2();
+		  Cell2<BitSetWrapper, Byte> cell2 = createCell2();
 	      cell2.data = new BytesSection(input);
 	        
 		if (query.filterCells[1]) {
@@ -200,17 +200,17 @@ public class HSearchTableKVByteInverted implements IHSearchTable {
         table.clear();
     }
     
-    private final Cell2<BitSet, Byte> createCell2() {
+    private final Cell2<BitSetWrapper, Byte> createCell2() {
         
-  		return   (isCompressed) ? new Cell2<BitSet, Byte>(
+  		return   (isCompressed) ? new Cell2<BitSetWrapper, Byte>(
         		SortedBytesBitsetCompressed.getInstance(), SortedBytesChar.getInstance()) 
         		:
-        		new Cell2<BitSet, Byte>(
+        		new Cell2<BitSetWrapper, Byte>(
         		SortedBytesBitset.getInstance(), SortedBytesChar.getInstance()); 
 	}
 
-    public void parse(byte[] data, Cell2Visitor<BitSet, Byte> visitor) throws IOException {
-		Cell2<BitSet, Byte> cell2 = createCell2();
+    public void parse(byte[] data, Cell2Visitor<BitSetWrapper, Byte> visitor) throws IOException {
+		Cell2<BitSetWrapper, Byte> cell2 = createCell2();
 		cell2.data = new BytesSection(data);
 		cell2.process(visitor);
     }

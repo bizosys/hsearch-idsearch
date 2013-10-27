@@ -20,8 +20,7 @@
 
 package com.bizosys.hsearch.kv.dao;
 
-import java.util.BitSet;
-
+import com.bizosys.hsearch.federate.BitSetWrapper;
 import com.bizosys.hsearch.treetable.client.IHSearchPlugin;
 
 public abstract class MapperKVBase implements IHSearchPlugin {
@@ -33,8 +32,8 @@ public abstract class MapperKVBase implements IHSearchPlugin {
         boolean onRowCols( final int key,  final Object value);
         boolean onRowKey(final int id);
         
-        boolean onRowCols(final BitSet ids, final Object value);
-        boolean onRowKey(final BitSet ids);
+        boolean onRowCols(final BitSetWrapper ids, final Object value);
+        boolean onRowKey(final BitSetWrapper ids);
         
         void onReadComplete();
     }

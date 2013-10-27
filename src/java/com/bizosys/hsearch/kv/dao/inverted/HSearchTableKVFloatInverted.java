@@ -1,13 +1,13 @@
 package com.bizosys.hsearch.kv.dao.inverted;
 
 import java.io.IOException;
-import java.util.BitSet;
 import java.util.HashMap;
 import java.util.Map;
 
 import com.bizosys.hsearch.byteutils.SortedBytesBitset;
 import com.bizosys.hsearch.byteutils.SortedBytesBitsetCompressed;
 import com.bizosys.hsearch.byteutils.SortedBytesFloat;
+import com.bizosys.hsearch.federate.BitSetWrapper;
 import com.bizosys.hsearch.kv.dao.MapperKVBase;
 import com.bizosys.hsearch.treetable.BytesSection;
 import com.bizosys.hsearch.treetable.Cell2;
@@ -28,7 +28,7 @@ public class HSearchTableKVFloatInverted implements IHSearchTable {
 
 	private boolean isCompressed  = false;
 	
-	public static final class Cell2FilterVisitor implements Cell2Visitor<BitSet, Float> {
+	public static final class Cell2FilterVisitor implements Cell2Visitor<BitSetWrapper, Float> {
 
 		public HSearchQuery query;
 		public IHSearchPlugin plugin;
@@ -61,7 +61,7 @@ public class HSearchTableKVFloatInverted implements IHSearchTable {
 		}
 
 		@Override
-		public final void visit(BitSet cell1Key, Float cell1Val) {
+		public final void visit(BitSetWrapper cell1Key, Float cell1Val) {
 
 			//We are not looking for the matching keys.
 			MapperKVBase.TablePartsCallback visitor =  tablePartsCallback;
@@ -79,7 +79,7 @@ public class HSearchTableKVFloatInverted implements IHSearchTable {
 		}
 	}
 	///////////////////////////////////////////////////////////////////	
-	Map<Float,BitSet> table = new HashMap<Float, BitSet>();
+	Map<Float,BitSetWrapper> table = new HashMap<Float, BitSetWrapper>();
 
 	public HSearchTableKVFloatInverted(boolean isCompressed) {
     	this.isCompressed = isCompressed;
@@ -87,11 +87,11 @@ public class HSearchTableKVFloatInverted implements IHSearchTable {
 
 	public byte[] toBytes() throws IOException {
 		if (null == table) return null;
-		Cell2<BitSet, Float> cell2 = createCell2();
-		for (Map.Entry<Float, BitSet> entry: table.entrySet()) {
+		Cell2<BitSetWrapper, Float> cell2 = createCell2();
+		for (Map.Entry<Float, BitSetWrapper> entry: table.entrySet()) {
 			cell2.add(entry.getValue(),entry.getKey());
 		}
-		cell2.sort(new CellComparator.FloatComparator<BitSet>());
+		cell2.sort(new CellComparator.FloatComparator<BitSetWrapper>());
 		return cell2.toBytesOnSortedData();
 	}
 
@@ -99,13 +99,13 @@ public class HSearchTableKVFloatInverted implements IHSearchTable {
 		if ( table.containsKey(value)) {
 			table.get(value).set(key);
 		} else {
-			BitSet bits = new BitSet();
+			BitSetWrapper bits = new BitSetWrapper();
 			bits.set(key);
 			table.put(value, bits);
 		}
 	}
 	
-    public void put(final BitSet keys, final Float value) {
+    public void put(final BitSetWrapper keys, final Float value) {
     	if ( table.containsKey(value)) {
     		table.get(value).or(keys);
     	} else {
@@ -157,7 +157,7 @@ public class HSearchTableKVFloatInverted implements IHSearchTable {
 		Float[] inValues1 =  (query.inValCells[1]) ? (Float[])query.inValuesAO[1]: null;
 
 
-		Cell2<BitSet, Float> cell2 = createCell2();
+		Cell2<BitSetWrapper, Float> cell2 = createCell2();
 		cell2.data = new BytesSection(input);
 
 		if (query.filterCells[1]) {
@@ -200,17 +200,17 @@ public class HSearchTableKVFloatInverted implements IHSearchTable {
 		table.clear();
 	}
 
-	private final Cell2<BitSet, Float> createCell2() {
+	private final Cell2<BitSetWrapper, Float> createCell2() {
 
-		return   (isCompressed) ? new Cell2<BitSet, Float>(
+		return   (isCompressed) ? new Cell2<BitSetWrapper, Float>(
 				SortedBytesBitsetCompressed.getInstance(), SortedBytesFloat.getInstance()) 
 				:
-					new Cell2<BitSet, Float>(
+					new Cell2<BitSetWrapper, Float>(
 							SortedBytesBitset.getInstance(), SortedBytesFloat.getInstance()); 
 	}
 
-    public void parse(byte[] data, Cell2Visitor<BitSet, Float> visitor) throws IOException {
-		Cell2<BitSet, Float> cell2 = createCell2();
+    public void parse(byte[] data, Cell2Visitor<BitSetWrapper, Float> visitor) throws IOException {
+		Cell2<BitSetWrapper, Float> cell2 = createCell2();
 		cell2.data = new BytesSection(data);
 		cell2.process(visitor);
     }

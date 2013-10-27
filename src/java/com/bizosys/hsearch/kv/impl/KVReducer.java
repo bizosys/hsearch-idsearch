@@ -4,7 +4,6 @@ import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.util.Arrays;
-import java.util.BitSet;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
@@ -19,6 +18,7 @@ import org.apache.hadoop.io.Text;
 import org.iq80.snappy.Snappy;
 
 import com.bizosys.hsearch.byteutils.SortedBytesBitset;
+import com.bizosys.hsearch.federate.BitSetWrapper;
 import com.bizosys.hsearch.hbase.HReader;
 import com.bizosys.hsearch.hbase.NVBytes;
 import com.bizosys.hsearch.kv.KVIndexer;
@@ -71,10 +71,12 @@ public class KVReducer extends TableReducer<Text, Text, ImmutableBytesWritable> 
 		}
 	}	
 
+	String[] resultKey = new String[3];
+
 	@Override
     protected void reduce(Text key, Iterable<Text> values, Context context) throws IOException, InterruptedException {
 		String keyData = key.toString();
-    	String[] resultKey = new String[3];
+		Arrays.fill(resultKey, null);
 		
     	LineReaderUtil.fastSplit(resultKey, keyData, KVIndexer.FIELD_SEPARATOR);
 		
@@ -216,16 +218,16 @@ public class KVReducer extends TableReducer<Text, Text, ImmutableBytesWritable> 
 		byte[] finalData = null;
 		int containerKey = 0;
 		
-		BitSet foundIds = null;
+		BitSetWrapper foundIds = null;
 		int existingDataLen = ( null == existingData) ? 0 : existingData.length;
 		if ( existingDataLen > 0 ) {
 			byte[] uncompressedData = existingData;
 			if ( isCompressed ) {
 				uncompressedData = Snappy.uncompress(existingData, 0 , existingDataLen);
 			} 
-			foundIds = SortedBytesBitset.getInstanceBitset().bytesToBitSet(uncompressedData, 0);
+			foundIds = SortedBytesBitset.getInstanceBitset().bytesToBitSet(uncompressedData, 0, uncompressedData.length);
 		} else {
-			foundIds = new BitSet();
+			foundIds = new BitSetWrapper();
 		}
 		
 		for (Text text : values) {

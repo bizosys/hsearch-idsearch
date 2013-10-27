@@ -133,6 +133,15 @@ public class --COLUMN-NAME-- extends GroupSortedObject implements KVRowI{
 	public final KVRowI create(final KVDataSchema dataSchema) {
 		return new --COLUMN-NAME--(dataSchema);
 	}
+	
+	@Override
+	public final KVRowI create(final KVDataSchema dataSchema, final Integer id, final String mergeId) {
+		
+		--COLUMN-NAME-- clonedInstance = new --COLUMN-NAME--(dataSchema);
+		clonedInstance.id = id;
+		clonedInstance.mergeId = mergeId;
+		return clonedInstance;
+	}
 
 
 	@Override

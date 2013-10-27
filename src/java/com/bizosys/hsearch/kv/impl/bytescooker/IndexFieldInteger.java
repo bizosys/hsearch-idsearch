@@ -1,10 +1,10 @@
 package com.bizosys.hsearch.kv.impl.bytescooker;
 
 import java.io.IOException;
-import java.util.BitSet;
 
 import org.apache.hadoop.io.Text;
 
+import com.bizosys.hsearch.federate.BitSetWrapper;
 import com.bizosys.hsearch.kv.dao.inverted.HSearchTableKVIntegerInverted;
 import com.bizosys.hsearch.kv.dao.plain.HSearchTableKVInteger;
 import com.bizosys.hsearch.treetable.Cell2Visitor;
@@ -37,10 +37,10 @@ public class IndexFieldInteger {
 				
 				@Override
 				public void append(byte[] data) throws IOException  {
-					table.parse(data, new Cell2Visitor<BitSet, Integer>() {
+					table.parse(data, new Cell2Visitor<BitSetWrapper, Integer>() {
 
 						@Override
-						public void visit(BitSet k, Integer v) {
+						public void visit(BitSetWrapper k, Integer v) {
 							table.put(k, v);
 						}
 					});

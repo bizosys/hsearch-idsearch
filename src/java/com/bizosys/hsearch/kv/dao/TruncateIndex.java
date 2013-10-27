@@ -1,6 +1,5 @@
 package com.bizosys.hsearch.kv.dao;
 
-import java.io.IOException;
 import java.util.List;
 
 import org.apache.hadoop.hbase.client.Delete;
@@ -9,7 +8,6 @@ import org.apache.hadoop.hbase.client.ResultScanner;
 import org.apache.hadoop.hbase.client.Scan;
 
 import com.bizosys.hsearch.hbase.HBaseFacade;
-import com.bizosys.hsearch.hbase.HDML;
 import com.bizosys.hsearch.hbase.HTableWrapper;
 import com.bizosys.hsearch.kv.impl.FieldMapping;
 

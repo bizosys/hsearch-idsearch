@@ -57,7 +57,7 @@ public class ExamResultDataLoader {
 		
 		for ( int i=0; i<100; i++) {
 			
-			 sex = ( i%2 == 0) ? "Male" : "Female";
+			sex = ( i%2 == 0) ? "Male" : "Female";
 	    	sb.append(classz[classzCounter]).append(FIELD_SEPARATOR).append(i).append(FIELD_SEPARATOR).append(ages[agesCounter])
 	    	.append(FIELD_SEPARATOR).append(role[roleCounter]).append(FIELD_SEPARATOR).append(location[locationCounter])
 	    	.append(FIELD_SEPARATOR).append((float)i/10).append(FIELD_SEPARATOR).append(remarks[remarksCounter])

@@ -30,6 +30,7 @@ public interface KVRowI {
 	String getmergeId();
 	KVRowI create();
 	KVRowI create(final KVDataSchema dataSchema);
+	KVRowI create(final KVDataSchema dataSchema, final Integer id, final String mergeId);
 	void setValue(final String fldName, final Object value);
 	Object getValue(final String fldName);
 	TypedObject getValueNative(final String fldName);

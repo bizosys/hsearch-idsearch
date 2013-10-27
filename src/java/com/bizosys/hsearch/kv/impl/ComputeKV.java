@@ -21,7 +21,6 @@ package com.bizosys.hsearch.kv.impl;
 
 import java.io.IOException;
 import java.io.OutputStream;
-import java.util.BitSet;
 import java.util.Map;
 
 import com.bizosys.hsearch.byteutils.SortedBytesArray;
@@ -33,6 +32,7 @@ import com.bizosys.hsearch.byteutils.SortedBytesInteger;
 import com.bizosys.hsearch.byteutils.SortedBytesLong;
 import com.bizosys.hsearch.byteutils.SortedBytesShort;
 import com.bizosys.hsearch.byteutils.SortedBytesString;
+import com.bizosys.hsearch.federate.BitSetWrapper;
 import com.bizosys.hsearch.treetable.Cell2;
 import com.bizosys.hsearch.util.HSearchLog;
 
@@ -254,13 +254,13 @@ public final class ComputeKV implements ICompute {
 		parse(dataChunk, null);
 	}
 	
-	public final void put(final byte[] data, BitSet bitset) throws IOException {
+	public final void put(final byte[] data, BitSetWrapper bitset) throws IOException {
 		for (byte[] dataChunk : SortedBytesArray.getInstanceArr().parse(data).values()) {
 			parse(dataChunk, bitset);
 		}
 	}
 	
-	public final void parse(final byte[] dataChunk, BitSet bitset) throws IOException {
+	public final void parse(final byte[] dataChunk, BitSetWrapper bitset) throws IOException {
 		switch (this.kvType) {
 			case Datatype.BOOLEAN:
 			{

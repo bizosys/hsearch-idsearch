@@ -8,6 +8,7 @@ import junit.framework.TestCase;
 import junit.framework.TestFerrari;
 
 import com.bizosys.hsearch.federate.BitSetOrSet;
+import com.bizosys.hsearch.federate.BitSetWrapper;
 import com.bizosys.hsearch.kv.impl.FieldMapping;
 import com.bizosys.unstructured.util.IdSearchLog;
 import com.oneline.ferrari.TestAll;
@@ -28,8 +29,8 @@ public class ExamResultSearch extends TestCase {
 
 		} else if  ( modes[2].equals(mode) ) {
 			t.setUp();
-			
-			t.testSorting();
+			t.testFacet();
+			//t.testSanity();
 			/**
 			t.testFreeTextNotStored();
 			t.testFreeTextSearch();
@@ -122,42 +123,38 @@ public class ExamResultSearch extends TestCase {
 		String actual = firstRow.getValue("sex") + " " +firstRow.getValue("age") + " " +firstRow.getValue("location") + " " +firstRow.getValue("marks");
 		assertEquals(expected, actual);
 		long end = System.currentTimeMillis();
-//		System.out.println("Fetched " + mergedResult.size() + " results in " + (end - start) + " ms.");
+		System.out.println("Fetched " + mergedResult.size() + " results in " + (end - start) + " ms.");
 	}
 
-	public final void testComboSearchWithfacet() throws Exception {
+	public final void testComboSearchWithFacet() throws Exception {
 		long start = System.currentTimeMillis();
 		Searcher searcher = new Searcher("test", fm);
-		KVRowI aBlankRow = new ExamResult();
-
-		IEnricher enricher = null;
-		BitSetOrSet foundIds = searcher.getIds(fm.tableName, "A", "location:{Hebbal,HSR Layout} AND marks:!2.0");
-		System.out.println("Total Ids Found :" + foundIds.size());
-		System.out.println("Ids :" + foundIds.toString());
-		assertEquals(49, foundIds.size());
-
-		searcher.search(fm.tableName, "A", "age,location,marks","location:{Hebbal}", aBlankRow, enricher);
-		searcher.sort("location","marks");
-		Map<String, Map<Object, FacetCount>> facets = searcher.createFacetCount("age,location");
+		BitSetOrSet foundIds = searcher.getIds(fm.tableName, "A", "location:*");
+		BitSetWrapper matchedIds = foundIds.getDocumentSequences();
+		Map<String, Map<Object, FacetCount>> facets = searcher.createFacetCount(matchedIds, "A", "marks,age,location");
 		Map<Object, FacetCount> countsLoc = facets.get("location");
-		assertEquals(25, countsLoc.get("Hebbal").count);
+		//assertEquals(25, countsLoc.get("Hebbal").count);
 		Map<Object, FacetCount> countsAge = facets.get("age");
-		assertEquals(5, countsAge.get(23).count);
+		//assertEquals(5, countsAge.get(23).count);
+		
 		long end = System.currentTimeMillis();
-		System.out.println("Facetted results in " + (end - start) + " ms.");
+		System.out.println("Facetted results in " + (end - start) + " ms. " + facets);
 	}
 
 	public final void testFacet() throws Exception {
 		long start = System.currentTimeMillis();
 		Searcher searcher = new Searcher("test", fm);
 		KVRowI aBlankRow = new ExamResult();
+		SearcherPluginTest plugin = new SearcherPluginTest(); 
 
-		Map<String, Set<Object>> facetResult = searcher.facet(fm.tableName, "B", "age,marks,location", "location:BTM Layout", aBlankRow);
+		searcher.setPlugin(plugin);
+		searcher.search(
+				fm.tableName, "B", "", "location:BTM Layout", "age,marks,location", aBlankRow);
+
 		long end = System.currentTimeMillis();
-		assertEquals(25, facetResult.get("marks").size());
-		assertEquals(1, facetResult.get("location").size());
-		assertEquals(5, facetResult.get("age").size());
-		//System.out.println("Fetched " + facetResult.size() + "facet sets in " + (end - start) + " ms.");
+		assertEquals(25, plugin.facetResult.get("marks").size());
+		assertEquals(1, plugin.facetResult.get("location").size());
+		assertEquals(5, plugin.facetResult.get("age").size());
 	}
 
 	public final void testPivotFacet() throws Exception {

@@ -3,11 +3,11 @@ package com.bizosys.hsearch.kv.impl.bytescooker;
 import java.io.IOException;
 import java.text.ParseException;
 import java.util.ArrayList;
-import java.util.BitSet;
 import java.util.List;
 
 import org.apache.hadoop.io.Text;
 
+import com.bizosys.hsearch.federate.BitSetWrapper;
 import com.bizosys.hsearch.kv.KVIndexer;
 import com.bizosys.hsearch.kv.dao.MapperKVBase;
 import com.bizosys.hsearch.kv.dao.MapperKVBaseEmpty;
@@ -65,12 +65,12 @@ public class IndexFieldIntegerTest {
 			}
 
 			@Override
-			public boolean onRowKey(BitSet ids) {
+			public boolean onRowKey(BitSetWrapper ids) {
 				return false;
 			}
 
 			@Override
-			public boolean onRowCols(BitSet ids, Object value) {
+			public boolean onRowCols(BitSetWrapper ids, Object value) {
 				System.out.println(ids.cardinality() + "\t" + value.toString());
 				return false;
 			}
@@ -124,12 +124,12 @@ public class IndexFieldIntegerTest {
 			}
 
 			@Override
-			public boolean onRowKey(BitSet ids) {
+			public boolean onRowKey(BitSetWrapper ids) {
 				return false;
 			}
 
 			@Override
-			public boolean onRowCols(BitSet ids, Object value) {
+			public boolean onRowCols(BitSetWrapper ids, Object value) {
 				return false;
 			}
 

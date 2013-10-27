@@ -213,6 +213,15 @@ public class ExamResult extends GroupSortedObject implements KVRowI{
 	public final KVRowI create(final KVDataSchema dataSchema) {
 		return new ExamResult(dataSchema);
 	}
+	
+	@Override
+	public final KVRowI create(final KVDataSchema dataSchema, final Integer id, final String mergeId) {
+		
+		ExamResult clonedInstance = new ExamResult(dataSchema);
+		clonedInstance.id = id;
+		clonedInstance.mergeId = mergeId;
+		return clonedInstance;
+	}
 
 
 	@Override

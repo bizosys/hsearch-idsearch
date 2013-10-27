@@ -62,11 +62,14 @@ public class FieldMapping extends DefaultHandler {
 		public boolean isAnalyzed;
 		public boolean isCompressed;
 
-		public boolean keepPhrase;
+		public boolean biWord;
+		public boolean triWord;
 		
 		public boolean isDocIndex;
 
 		public boolean isCachable = true;
+		
+		public String expression = null;
 		
 		public Field() {
 		}
@@ -81,7 +84,7 @@ public class FieldMapping extends DefaultHandler {
 				boolean isRepeatable, boolean isMergedKey, int mergePosition,
 				boolean skipNull, String defaultValue, String fieldType, String analyzer, 
 				boolean isDocIndex, boolean isAnalyzed, boolean isCachable,
-				boolean isCompressed, boolean keepPhrase) {
+				boolean isCompressed, boolean biWord, boolean triWord, String expression) {
 			
 			this.name = name;
 			this.sourceName = sourceName;
@@ -100,7 +103,10 @@ public class FieldMapping extends DefaultHandler {
 			
 			this.isCachable = isCachable;
 			this.isCompressed = isCompressed;
-			this.keepPhrase = keepPhrase;
+			this.biWord = biWord;
+			this.triWord = triWord; 
+			
+			this.expression = expression;
 		}
 
 		public String toString() {
@@ -112,7 +118,7 @@ public class FieldMapping extends DefaultHandler {
 					.append(skipNull).append('\t').append(defaultValue)
 					.append('\t').append(dataType).append('\t').append(analyzer)
 					.append('\t').append(isCachable).append('\t').append(isCompressed)
-					.append(keepPhrase);
+					.append(biWord).append('\t').append(triWord).append('\t').append(expression);
 
 			return sb.toString();
 		}
@@ -131,9 +137,12 @@ public class FieldMapping extends DefaultHandler {
 	public Map<String, Field> nameWithField = new HashMap<String, Field>();
 	public String tableName = null;
 	public String familyName = null;
+	public String voClass = null;
 	public char fieldSeparator = '|';
 	public String version = "0";
 	public boolean append = false;
+	public boolean delete = false;
+	
 	
 	@Deprecated
 	public static FieldMapping getInstance(){
@@ -212,6 +221,8 @@ public class FieldMapping extends DefaultHandler {
 			familyName = attributes.getValue("familyName");
 			familyName = (null == familyName) ? "1" : (familyName.length() == 0 ? "1" : familyName);
 
+			voClass = attributes.getValue("voClass");
+
 			String separator = attributes.getValue("fieldSeparator");
 			if ( null == separator) fieldSeparator = '\t';
 			else if ( separator.equals("\\t")) fieldSeparator = '\t';
@@ -225,6 +236,9 @@ public class FieldMapping extends DefaultHandler {
 			fldVal = attributes.getValue("append");
 			append = (null == fldVal) ? false : fldVal.equals("true");
 			
+			fldVal = attributes.getValue("delete");
+			delete = (null == fldVal) ? false : fldVal.equals("true");
+
 		}
 		if (qName.equalsIgnoreCase("field")) {
 
@@ -280,12 +294,18 @@ public class FieldMapping extends DefaultHandler {
 			fldVal = attributes.getValue("cache");
 			boolean isCachable = ( null == fldVal) ? true : fldVal.equalsIgnoreCase("true");
 
-			fldVal = attributes.getValue("keepphrase");
-			boolean keepPhrase = ( null == fldVal) ? false : fldVal.equalsIgnoreCase("true");
+			fldVal = attributes.getValue("biword");
+			boolean biWord = ( null == fldVal) ? false : fldVal.equalsIgnoreCase("true");
+
+			fldVal = attributes.getValue("triword");
+			boolean triWord = ( null == fldVal) ? false : fldVal.equalsIgnoreCase("true");
+
+			fldVal = attributes.getValue("expression");
+			String expr = ( null == fldVal) ? null : (fldVal.length() == 0 ) ? null : fldVal;
 
 			field = new Field(name, sourceName, sourceSeq, isIndexable, isStored, isRepeatable,
 					isMergedKey, mergePosition, skipNull, defaultValue, dataType, analyzer, 
-					isDocIndex, isAnalyzed, isCachable, isCompressed, keepPhrase);
+					isDocIndex, isAnalyzed, isCachable, isCompressed, biWord, triWord, expr);
 		}
 	}
 

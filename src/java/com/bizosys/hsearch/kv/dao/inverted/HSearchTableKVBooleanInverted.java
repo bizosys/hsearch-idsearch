@@ -1,13 +1,13 @@
 package com.bizosys.hsearch.kv.dao.inverted;
 
 import java.io.IOException;
-import java.util.BitSet;
 import java.util.HashMap;
 import java.util.Map;
 
 import com.bizosys.hsearch.byteutils.SortedBytesBitset;
 import com.bizosys.hsearch.byteutils.SortedBytesBitsetCompressed;
 import com.bizosys.hsearch.byteutils.SortedBytesBoolean;
+import com.bizosys.hsearch.federate.BitSetWrapper;
 import com.bizosys.hsearch.kv.dao.MapperKVBase;
 import com.bizosys.hsearch.treetable.BytesSection;
 import com.bizosys.hsearch.treetable.Cell2;
@@ -28,7 +28,7 @@ public final class HSearchTableKVBooleanInverted implements IHSearchTable {
     
     private boolean isCompressed  = false;
 
-    public static final class Cell2FilterVisitor implements Cell2Visitor<BitSet, Boolean> {
+    public static final class Cell2FilterVisitor implements Cell2Visitor<BitSetWrapper, Boolean> {
 
         public HSearchQuery query;
         public IHSearchPlugin plugin;
@@ -61,7 +61,7 @@ public final class HSearchTableKVBooleanInverted implements IHSearchTable {
         }
 
         @Override
-        public final void visit(final BitSet cell1Key, final Boolean cell1Val) {
+        public final void visit(final BitSetWrapper cell1Key, final Boolean cell1Val) {
         	
         	//We are not looking for the matching keys.
 			MapperKVBase.TablePartsCallback visitor =  tablePartsCallback;
@@ -79,7 +79,7 @@ public final class HSearchTableKVBooleanInverted implements IHSearchTable {
         }
     }
     ///////////////////////////////////////////////////////////////////	
-    Map<Boolean,BitSet> table = new HashMap<Boolean, BitSet>();
+    Map<Boolean,BitSetWrapper> table = new HashMap<Boolean, BitSetWrapper>();
 
     public HSearchTableKVBooleanInverted(boolean isCompressed) {
     	this.isCompressed = isCompressed;
@@ -87,13 +87,13 @@ public final class HSearchTableKVBooleanInverted implements IHSearchTable {
 
     public final byte[] toBytes() throws IOException {
         if (null == table) return null;
-        Cell2<BitSet, Boolean> cell2 = createCell2();
+        Cell2<BitSetWrapper, Boolean> cell2 = createCell2();
         		
         		
-        for (Map.Entry<Boolean, BitSet> entry: table.entrySet()) {
+        for (Map.Entry<Boolean, BitSetWrapper> entry: table.entrySet()) {
 			cell2.add(entry.getValue(),entry.getKey());
 		}
-        cell2.sort(new CellComparator.BooleanComparator<BitSet>());
+        cell2.sort(new CellComparator.BooleanComparator<BitSetWrapper>());
         return cell2.toBytesOnSortedData();
     }
 
@@ -101,13 +101,13 @@ public final class HSearchTableKVBooleanInverted implements IHSearchTable {
     	if ( table.containsKey(value)) {
     		table.get(value).set(key);
     	} else {
-    		BitSet bits = new BitSet();
+    		BitSetWrapper bits = new BitSetWrapper();
     		bits.set(key);
     		table.put(value, bits);
     	}
     }
     
-    public void put(final BitSet keys, final Boolean value) {
+    public void put(final BitSetWrapper keys, final Boolean value) {
     	if ( table.containsKey(value)) {
     		table.get(value).or(keys);
     	} else {
@@ -158,7 +158,7 @@ public final class HSearchTableKVBooleanInverted implements IHSearchTable {
 		cell2Visitor.inValues0 =  (query.inValCells[0]) ? (Integer[])query.inValuesAO[0]: null;
 		Boolean[] inValues1 =  (query.inValCells[1]) ? (Boolean[])query.inValuesAO[1]: null;
 
-        Cell2<BitSet, Boolean> cell2 =  createCell2();
+        Cell2<BitSetWrapper, Boolean> cell2 =  createCell2();
         		
         cell2.data = new BytesSection(input);
 	
@@ -202,18 +202,18 @@ public final class HSearchTableKVBooleanInverted implements IHSearchTable {
         table.clear();
     }
     
-    private final Cell2<BitSet, Boolean> createCell2() {
+    private final Cell2<BitSetWrapper, Boolean> createCell2() {
     
-  		return   (isCompressed) ? new Cell2<BitSet, Boolean>(
+  		return   (isCompressed) ? new Cell2<BitSetWrapper, Boolean>(
         		SortedBytesBitsetCompressed.getInstance(), SortedBytesBoolean.getInstance()) 
         		:
-        		new Cell2<BitSet, Boolean>(
+        		new Cell2<BitSetWrapper, Boolean>(
         		SortedBytesBitset.getInstance(), SortedBytesBoolean.getInstance()); 
 	}
 
 
-    public void parse(byte[] data, Cell2Visitor<BitSet, Boolean> visitor) throws IOException {
-		Cell2<BitSet, Boolean> cell2 = createCell2();
+    public void parse(byte[] data, Cell2Visitor<BitSetWrapper, Boolean> visitor) throws IOException {
+		Cell2<BitSetWrapper, Boolean> cell2 = createCell2();
 		cell2.data = new BytesSection(data);
 		cell2.process(visitor);
     }

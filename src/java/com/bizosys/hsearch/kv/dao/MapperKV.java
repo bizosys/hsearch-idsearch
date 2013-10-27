@@ -21,11 +21,11 @@
 package com.bizosys.hsearch.kv.dao;
 
 import java.io.IOException;
-import java.util.BitSet;
 import java.util.Collection;
 
 import com.bizosys.hsearch.byteutils.SortedBytesBitset;
 import com.bizosys.hsearch.federate.BitSetOrSet;
+import com.bizosys.hsearch.federate.BitSetWrapper;
 import com.bizosys.hsearch.kv.impl.ComputeFactory;
 import com.bizosys.hsearch.kv.impl.ICompute;
 import com.bizosys.hsearch.treetable.client.HSearchProcessingInstruction;
@@ -37,8 +37,8 @@ public final class MapperKV extends MapperKVBase {
     HSearchProcessingInstruction instruction = null;
 
     public ICompute compute = null;
-    public BitSet matchingIds = null;
-    public BitSet returnIds = new BitSet();
+    public BitSetWrapper matchingIds = null;
+    public BitSetWrapper returnIds = new BitSetWrapper();
     
     @Override
     public final void setOutputType(final HSearchProcessingInstruction outputTypeCode) {
@@ -49,7 +49,7 @@ public final class MapperKV extends MapperKVBase {
 
 	@Override
 	public final void setMergeId(final byte[] matchingIds) throws IOException {
-		this.matchingIds = SortedBytesBitset.getInstanceBitset().bytesToBitSet(matchingIds, 0);
+		this.matchingIds = SortedBytesBitset.getInstanceBitset().bytesToBitSet(matchingIds, 0, matchingIds.length);
 	}
 	
 	
@@ -143,13 +143,13 @@ public final class MapperKV extends MapperKVBase {
 		}
 
         @Override
-		public boolean onRowKey(BitSet ids) {
+		public boolean onRowKey(BitSetWrapper ids) {
         	this.whole.returnIds.or(ids);
 			return true;
 		}
 
 		@Override
-		public boolean onRowCols(BitSet ids, Object value) {
+		public boolean onRowCols(BitSetWrapper ids, Object value) {
 			ids.and(this.whole.matchingIds);
         	for (int id = ids.nextSetBit(0); id >= 0; id = ids.nextSetBit(id+1)) {
         		computation.put(id, value);
