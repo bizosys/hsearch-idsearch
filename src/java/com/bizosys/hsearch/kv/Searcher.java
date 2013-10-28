@@ -184,10 +184,15 @@ public class Searcher {
 		 * Find Matching Ids - END
 		 * Find Facets - START
 		 */
-		if ( null != matchIds) {
-			if ( null != this.plugIn) 	{
+		if ( null != this.plugIn) {
+			
+			int matchIdsFoundT = ( null == matchIds) ? 0 : ( null == matchIds.getDocumentSequences()) ? 0 : matchIds.getDocumentSequences().length();
+			if ( isWhereQueryEmpty && ( matchIdsFoundT > 0 ) ) {
 				Map<String, Map<Object, FacetCount>> facets = createFacetCount(
 					matchIds.getDocumentSequences(), mergeId, facetFields);
+				this.plugIn.onFacets(mergeId, facets);
+			} else {
+				Map<String, Map<Object, FacetCount>> facets = createFacetCount(null, mergeId, facetFields);
 				this.plugIn.onFacets(mergeId, facets);
 			}
 		}
@@ -481,7 +486,7 @@ public class Searcher {
 				
 				@Override
 				public boolean onRowCols(BitSetWrapper ids, Object value) {
-					ids.and(matchedIds);
+					if ( null != matchedIds) ids.and(matchedIds);
 					int idsT = ids.cardinality();
 					if ( idsT > 0 ) facetValues.put(value, new FacetCount(idsT));
 					return false;
@@ -494,7 +499,9 @@ public class Searcher {
 				
 				@Override
 				public boolean onRowCols(int key, Object value) {
-					if ( ! matchedIds.get(key)) return false;
+					if (null != matchedIds) {
+						if ( ! matchedIds.get(key)) return false;
+					}
 					if ( facetValues.containsKey(value)) {
 						facetValues.get(value).count++;
 					} else {
