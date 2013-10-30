@@ -57,7 +57,7 @@ public class FieldMapping extends DefaultHandler {
 		public  int mergePosition;
 		public boolean skipNull;
 		public String defaultValue;
-		private String dataType;
+		public String dataType;
 		public String analyzer;
 		public boolean isAnalyzed;
 		public boolean isCompressed;
@@ -76,8 +76,6 @@ public class FieldMapping extends DefaultHandler {
 		
 		public String getDataType() {
 			return dataType;
-//			if ( "Text".equals(dataType) ) return "String";
-//			else return dataType;
 		}
 
 		public Field(String name,String sourceName, int sourceSeq, boolean isIndexable,boolean isStored,

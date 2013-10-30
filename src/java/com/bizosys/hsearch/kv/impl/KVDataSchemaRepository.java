@@ -56,8 +56,6 @@ public class KVDataSchemaRepository {
 
 		public KVDataSchema(final FieldMapping fm) {
 			this.fm = fm;
-			Map<Integer,Field> seqFields = fm.sourceSeqWithField;
-			
 			String dataType = ""; 
 			for (String fldName : fm.nameWithField.keySet()) {
 				Field fld = fm.nameWithField.get(fldName);

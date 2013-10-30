@@ -76,9 +76,9 @@ public class Searcher {
 	public static final Pattern patternRemoveQuotes = Pattern.compile("\"");
 	
 	private Set<KVRowI> resultset = null;
-	private Map<String, Set<Object>> facetsMap = null;
+	private Map<String, Map<Object, FacetCount>> facetsMap = null;
 	private Map<String, List<HsearchFacet>> pivotFacetsMap = null;
-	public KVDataSchemaRepository repository = KVDataSchemaRepository.getInstance();
+	private KVDataSchemaRepository repository = KVDataSchemaRepository.getInstance();
 	
 	public static boolean DEBUG_ENABLED = HSearchLog.l.isDebugEnabled();
 	public static boolean INFO_ENABLED = HSearchLog.l.isInfoEnabled();
@@ -87,13 +87,18 @@ public class Searcher {
 	private ISearcherPlugin plugIn = null;	
 
 	private Map<Integer,KVRowI> joinedRows = null;
-	
+
 	public Searcher(final String schemaName, final FieldMapping fm){
+		this(schemaName, fm.tableName, fm);
+	}
+	
+	public Searcher(final String schemaName, final String dataRepository, final FieldMapping fm){
 		this.schemaRepositoryName = schemaName;
+		this.dataRepository = dataRepository;
 		this.repository.add(schemaRepositoryName, fm);
 		this.resultset = new HashSet<KVRowI>();
 	}
-	
+
 	public final void setCheckForAllWords(final boolean checkForAllWords) {
 		this.checkForAllWords = checkForAllWords;
 	}
@@ -102,13 +107,12 @@ public class Searcher {
 		this.plugIn = plugIn;
 	}	
 
-	public final Set<String> searchRegex(final String dataRepository,
+	public final Set<String> searchRegex(
 			final String mergeIdPattern, final String selectQuery, String whereQuery,
 			KVRowI blankRow, IEnricher... enrichers) 
 		throws IOException, InterruptedException, ExecutionException, FederatedSearchException, NumberFormatException, ParseException  {
 
 		long start = System.currentTimeMillis();
-		this.dataRepository = dataRepository;
 		List<String> rowIds = HReader.getMatchingRowIds(dataRepository, mergeIdPattern);
 		if ( null == rowIds) return null;
 		if ( rowIds.size() == 0 ) return null;
@@ -140,23 +144,24 @@ public class Searcher {
 		return mergeIds;
 	}
 	
-	public final void search(final String dataRepository, 
+	public final void search(
 			final String mergeId, final String selectQuery, String whereQuery, 
 			final KVRowI blankRow, final IEnricher... enrichers) 
 			throws IOException, InterruptedException, ExecutionException, FederatedSearchException, NumberFormatException, ParseException {
 		
-		this.search(dataRepository, mergeId, selectQuery, whereQuery, null, blankRow, enrichers);
+		this.search(mergeId, selectQuery, whereQuery, null, blankRow, enrichers);
 	}
 	
 	
-	public final void search(final String dataRepository, final String mergeId,  
+	public final void search(final String mergeId,  
 			final String selectQuery, String whereQuery, String facetFields,
 			final KVRowI blankRow, final IEnricher... enrichers) 
 			throws IOException, InterruptedException, ExecutionException, FederatedSearchException, NumberFormatException, ParseException {
 		
-		this.dataRepository = dataRepository;
 		BitSetOrSet matchIds = null;
+		int matchIdsFoundT = 0;
 		boolean isWhereQueryEmpty = ( null == whereQuery) ? true : (whereQuery.length() == 0);
+		boolean isFacetFieldEmpty = ( null == facetFields) ? true : (facetFields.length() == 0);
 		
 		/**
 		 * Find Matching Ids - START
@@ -166,35 +171,35 @@ public class Searcher {
 		if(!isWhereQueryEmpty){
 			whereQuery = parseWhereQuery(mergeId, whereQuery, whereParts);
 			matchIds = getIds(mergeId, whereQuery, whereParts);
-			if(0 == matchIds.size()) return;
+			matchIdsFoundT = ( null == matchIds) ? 0 : ( null == matchIds.getDocumentSequences()) ? 0 : matchIds.getDocumentSequences().size();
+			if(0 == matchIdsFoundT) return;
 		}
 
-		int matchIdsT = (null == matchIds) ?  64 : matchIds.size();
+		int joinedRowSize = (null == matchIds) ?  64 : matchIdsFoundT;
 		if ( null == this.joinedRows)
-			this.joinedRows = new HashMap<Integer, KVRowI>(matchIdsT);
+			this.joinedRows = new HashMap<Integer, KVRowI>(joinedRowSize);
 		else this.joinedRows.clear();
 		
 		if ( null != matchIds) {
 			if ( null != this.plugIn) this.plugIn.onJoin(
 				mergeId, matchIds.getDocumentSequences(), whereParts, this.joinedRows);			
+			matchIdsFoundT = ( null == matchIds) ? 0 : ( null == matchIds.getDocumentSequences()) ? 0 : matchIds.getDocumentSequences().length();
+			if(0 == matchIdsFoundT) return;
 		}
-		
 
 		/**
 		 * Find Matching Ids - END
 		 * Find Facets - START
 		 */
-		if ( null != this.plugIn) {
-			
-			int matchIdsFoundT = ( null == matchIds) ? 0 : ( null == matchIds.getDocumentSequences()) ? 0 : matchIds.getDocumentSequences().length();
-			if ( isWhereQueryEmpty && ( matchIdsFoundT > 0 ) ) {
-				Map<String, Map<Object, FacetCount>> facets = createFacetCount(
-					matchIds.getDocumentSequences(), mergeId, facetFields);
-				this.plugIn.onFacets(mergeId, facets);
-			} else {
-				Map<String, Map<Object, FacetCount>> facets = createFacetCount(null, mergeId, facetFields);
-				this.plugIn.onFacets(mergeId, facets);
-			}
+
+		if(!isFacetFieldEmpty){
+			if ( 0 == matchIdsFoundT) 
+				facetsMap = createFacetCount(null, mergeId, facetFields);
+			else
+				facetsMap = createFacetCount(matchIds.getDocumentSequences(), mergeId, facetFields);
+
+			if ( null != this.plugIn)
+				this.plugIn.onFacets(mergeId, facetsMap);
 		}
 
 		/**
@@ -207,7 +212,7 @@ public class Searcher {
 		}
 		
 		if ( null != selectQuery) 
-			getValues(dataRepository, mergeId, matchIds, selectQuery, blankRow);
+			getValues(mergeId, matchIds, selectQuery, blankRow);
 		
 		if ( null != matchIds) {
 			if ( null != this.plugIn) 	{
@@ -227,16 +232,13 @@ public class Searcher {
 	}
 	
 	@SuppressWarnings("unchecked")
-	public final void getValues(final String dataRepository, 
-			final String mergeId, final BitSetOrSet matchIds, final String selectQuery,  
+	public final void getValues(final String mergeId, final BitSetOrSet matchIds, final String selectQuery,  
 			final KVRowI blankRow, final IEnricher... enrichers) throws IOException, InterruptedException, ExecutionException, FederatedSearchException {
 
 		Map<String, Object> fieldWithDocIdAndValue = null;
 		Set<Integer> documentIds = null;
 		Set<String> fields = null;
 		Map<Integer, Object> result = null;
-
-		this.dataRepository = dataRepository;
 
 		boolean isSelectQueryEmpty = ( null == selectQuery) ? true : (selectQuery.length() == 0);
 		if(!isSelectQueryEmpty) fieldWithDocIdAndValue = getAllSelectFieldValues(
@@ -275,8 +277,7 @@ public class Searcher {
 		resultset.addAll(joinedRows.values());
 	}
 
-	public final BitSetOrSet getIds(final String dataRepository, final String mergeId, String whereQuery) throws IOException {
-		this.dataRepository = dataRepository;
+	public final BitSetOrSet getIds(final String mergeId, String whereQuery) throws IOException {
 		Map<String, QueryPart> whereQueryParts = new HashMap<String, QueryPart>();
 		whereQuery = parseWhereQuery(mergeId, whereQuery, whereQueryParts);
 		return getIds(mergeId, whereQuery, whereQueryParts);
@@ -343,11 +344,13 @@ public class Searcher {
 		int outputType = -1;
 		String isRepeatable = null;
 		String isCompressed = null;
+		boolean isEmpty = ( null == mergeId) ? true : (mergeId.length() == 0);
+		String rowKey = ( isEmpty) ? "" : mergeId + "_";
 		
 		init();
 		
 		for (String field : selectFieldsA) {
-			rowId = mergeId + "_" + field;
+			rowId = rowKey + field;
 			if ( ! dataScheme.fldWithDataTypeMapping.containsKey(field) ) {
 				throw new IOException("Unknown Field on select clause " + field);
 			}
@@ -435,6 +438,9 @@ public class Searcher {
 		return this.resultset;
 	}
 
+	public final Map<String, Map<Object, FacetCount>> getFacetResult() {
+		return this.facetsMap;
+	}
 	public final Map<String, Map<Object, FacetCount>> createFacetCount(
 		final BitSetWrapper matchedIds, final String mergeId, final String facetFields) 
 		throws NumberFormatException, IOException, ParseException {
@@ -452,9 +458,11 @@ public class Searcher {
 		
 		Map<String, Map<Object, FacetCount>> facets = new HashMap<String, Map<Object, FacetCount>>();
 		
+		boolean isEmpty = ( null == mergeId) ? true : (mergeId.length() == 0);
+		String rowKey = ( isEmpty) ? "" : mergeId + "_";
 		for (String field : facetFieldLst) {
 			
-			rowId = mergeId + "_" + field;
+			rowId = rowKey + field;
 			fld = dataScheme.fm.nameWithField.get(field);
 			byte[] bytes = DataBlock.getBlock(dataRepository, rowId, true);
 			if(null == bytes) continue;
@@ -543,7 +551,7 @@ public class Searcher {
 					throw new IOException("Unknown data repository for query " + queryId);
 				}
 				
-				KVDataSchema dataScheme = repository.get(schemaRepositoryName);;
+				KVDataSchema dataScheme = repository.get(schemaRepositoryName);
 				String field = rowId.substring(rowId.lastIndexOf('_') + 1);
 				if ( null == field) {
 					String msg = "Field can not be null - " + rowId + "\n" + (dataScheme.fldWithDataTypeMapping + "\t" + field);
@@ -592,6 +600,8 @@ public class Searcher {
 		int totalQueries = 0;
 		String fieldName = "";
 		String fieldQuery = "";
+		String rowKey = "";
+		boolean isEmpty = false;
 
 		for (String splittedQuery : splittedQueries) {
 			splittedQuery = splittedQuery.trim();
@@ -604,7 +614,10 @@ public class Searcher {
 			}
 			fieldName = splittedQuery.substring(0,colonIndex);
 			fieldQuery = "*|" + splittedQuery.substring(colonIndex + 1,splittedQuery.length());
-			QueryPart qpart = new QueryPart(mergeId + "_" + fieldName);
+    		isEmpty = ( null == mergeId) ? true : (mergeId.length() == 0);
+    		rowKey = ( isEmpty) ? fieldName : mergeId + "_" + fieldName;
+			QueryPart qpart = new QueryPart(rowKey);
+
 			qpart.setParam("query", fieldQuery);
 			qpart.setParam("allwords", this.checkForAllWords);
 			queryDetails.put(queryId, qpart);
@@ -613,13 +626,14 @@ public class Searcher {
 	}
 
 
-	public final Map<String, List<HsearchFacet>> pivotFacet(final String dataRepository, final String mergeId, final String pivotFacetFields, final String facetQuery, final KVRowI aBlankrow) throws IOException, ParseException, InterruptedException, ExecutionException, FederatedSearchException{
+	public final Map<String, List<HsearchFacet>> pivotFacet(final String mergeId, final String pivotFacetFields, 
+		final String facetQuery, final KVRowI aBlankrow) throws Exception{
 		String[] pivotFacets = pivotFacetFields.split("\\|");
 		pivotFacetsMap = new HashMap<String, List<HsearchFacet>>();
 		IEnricher enricher = null;
 		for (String aPivotFacet : pivotFacets) {
 			String[] fields = patternComma.split(aPivotFacet);
-			search(dataRepository, mergeId, aPivotFacet, facetQuery, aBlankrow, enricher);
+			search(mergeId, aPivotFacet, facetQuery, aBlankrow, enricher);
 			Set<KVRowI> result = getResult();
 			HsearchFacet root = new HsearchFacet("root", new TypedObject("root"), new ArrayList<HsearchFacet>());
 			HsearchFacet current = root;

@@ -368,7 +368,7 @@ public class KVShell {
 			fm.parseXMLString(schemaStr);
 
 			IEnricher enricher = null;
-			if(null == searcher)searcher = new Searcher(fm.tableName, fm);
+			if(null == searcher)searcher = new Searcher("kvTest", fm.tableName, fm);
 			
 			searcher.search(fm.tableName, arguments[1], arguments[2], arguments[3], blankRow, enricher);
 			String[] selectFields = arguments[2].split(",");

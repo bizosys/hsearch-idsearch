@@ -78,6 +78,7 @@ public class HSearchTableKVIntegerInvertedTest extends TestCase {
 
 			@Override
 			public boolean onRowCols(BitSetWrapper ids, Object value) {
+				System.out.println(ids.toString() + "\t" + value.toString());
 				return false;
 			}
 

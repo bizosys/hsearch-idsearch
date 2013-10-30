@@ -12,7 +12,7 @@ public class --COLUMN-NAME-- extends GroupSortedObject implements KVRowI{
 	
 	public String mergeId = null;
 	public int id = -1;
---PARAMS--
+@Expose --PARAMS--
 		
 	KVDataSchema dataSchema = null;
 	

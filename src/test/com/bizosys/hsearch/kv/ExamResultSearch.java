@@ -73,7 +73,7 @@ public class ExamResultSearch extends TestCase {
 		KVRowI aBlankRow = new ExamResult();
 
 		IEnricher enricher = null;
-		searcher.search(fm.tableName, "A", "age,location,marks","age:25", aBlankRow, enricher);
+		searcher.search("A", "age,location,marks","age:25", aBlankRow, enricher);
 		Set<KVRowI> mergedResult = searcher.getResult();
 
 		long end = System.currentTimeMillis();
@@ -87,7 +87,7 @@ public class ExamResultSearch extends TestCase {
 		KVRowI aBlankRow = new ExamResult();
 
 		IEnricher enricher = null;
-		searcher.search(fm.tableName, "A", "sex,age","age:22", aBlankRow, enricher);
+		searcher.search("A", "sex,age","age:22", aBlankRow, enricher);
 		Set<KVRowI> mergedResult = searcher.getResult();
 
 		long end = System.currentTimeMillis();
@@ -101,7 +101,7 @@ public class ExamResultSearch extends TestCase {
 		KVRowI aBlankRow = new ExamResult();
 
 		IEnricher enricher = null;
-		searcher.search(fm.tableName, "A", "age,location,marks","age:25 AND location:{Hebbal,HSR Layout} AND marks:!6.8", aBlankRow, enricher);
+		searcher.search( "A", "age,location,marks","age:25 AND location:{Hebbal,HSR Layout} AND marks:!6.8", aBlankRow, enricher);
 		searcher.sort("location","marks");
 		Set<KVRowI> mergedResult = searcher.getResult();
 		assertEquals(9, mergedResult.size());
@@ -114,7 +114,7 @@ public class ExamResultSearch extends TestCase {
 		Searcher searcher = new Searcher("test", fm);
 		KVRowI aBlankRow = new ExamResult();
 		IEnricher enricher = null;
-		searcher.search(fm.tableName, "A", "sex,age,location,marks",null, aBlankRow, enricher);
+		searcher.search("A", "sex,age,location,marks",null, aBlankRow, enricher);
 		searcher.sort("sex","^age","^location","^marks");
 		Set<KVRowI> mergedResult = searcher.getResult();
 		assertEquals(50, mergedResult.size());
@@ -129,7 +129,7 @@ public class ExamResultSearch extends TestCase {
 	public final void testComboSearchWithFacet() throws Exception {
 		long start = System.currentTimeMillis();
 		Searcher searcher = new Searcher("test", fm);
-		BitSetOrSet foundIds = searcher.getIds(fm.tableName, "A", "location:*");
+		BitSetOrSet foundIds = searcher.getIds("A", "location:*");
 		BitSetWrapper matchedIds = foundIds.getDocumentSequences();
 		Map<String, Map<Object, FacetCount>> facets = searcher.createFacetCount(matchedIds, "A", "marks,age,location");
 		Map<Object, FacetCount> countsLoc = facets.get("location");
@@ -148,8 +148,7 @@ public class ExamResultSearch extends TestCase {
 		SearcherPluginTest plugin = new SearcherPluginTest(); 
 
 		searcher.setPlugin(plugin);
-		searcher.search(
-				fm.tableName, "B", "", "location:BTM Layout", "age,marks,location", aBlankRow);
+		searcher.search("B", "", "location:BTM Layout", "age,marks,location", aBlankRow);
 
 		long end = System.currentTimeMillis();
 		assertEquals(25, plugin.facetResult.get("marks").size());
@@ -162,7 +161,7 @@ public class ExamResultSearch extends TestCase {
 		Searcher searcher = new Searcher("test", fm);
 		KVRowI aBlankRow = new ExamResult();
 
-		Map<String, List<HsearchFacet>> facetResult = searcher.pivotFacet(fm.tableName, "B", "age,role|age,marks", "location:BTM Layout", aBlankRow);
+		Map<String, List<HsearchFacet>> facetResult = searcher.pivotFacet("B", "age,role|age,marks", "location:BTM Layout", aBlankRow);
 		long end = System.currentTimeMillis();
 
 		int size = facetResult.get("age,marks").size();
@@ -176,7 +175,7 @@ public class ExamResultSearch extends TestCase {
 		searcher.setCheckForAllWords(true);
 		KVRowI aBlankRow = new ExamResult();
 		IEnricher enricher = null;
-		searcher.search(fm.tableName, "A", "age,location,marks","remarks:authentic AND age:25", aBlankRow, enricher);
+		searcher.search("A", "age,location,marks","remarks:authentic AND age:25", aBlankRow, enricher);
 		searcher.sort("location","marks");
 		Set<KVRowI> mergedResult = searcher.getResult();
 		long end = System.currentTimeMillis();
@@ -190,7 +189,7 @@ public class ExamResultSearch extends TestCase {
 		Searcher searcher = new Searcher("test", fm);
 		KVRowI aBlankRow = new ExamResult();
 		IEnricher enricher = null;
-		searcher.search(fm.tableName, "A", "empid,age,commentsVal","comments:Tremendous", aBlankRow, enricher);
+		searcher.search("A", "empid,age,commentsVal","comments:Tremendous", aBlankRow, enricher);
 		Set<KVRowI> mergedResult = searcher.getResult();
 
 		long end = System.currentTimeMillis();
@@ -213,7 +212,7 @@ public class ExamResultSearch extends TestCase {
 		Searcher searcher = new Searcher("test", fm);
 		KVRowI aBlankRow = new ExamResult();
 		IEnricher enricher = null;
-		searcher.search(fm.tableName, "A", "age,remarks","remarks:fabulous", aBlankRow, enricher);
+		searcher.search("A", "age,remarks","remarks:fabulous", aBlankRow, enricher);
 		Set<KVRowI> mergedResult = searcher.getResult();
 
 		assertEquals(16, mergedResult.size());
@@ -227,7 +226,7 @@ public class ExamResultSearch extends TestCase {
 		Searcher searcher = new Searcher("test", fm);
 		KVRowI aBlankRow = new ExamResult();
 		IEnricher enricher = null;
-		searcher.search(fm.tableName, "A", "age,location,marks,comments","comments:Tremendous", aBlankRow, enricher);
+		searcher.search("A", "age,location,marks,comments","comments:Tremendous", aBlankRow, enricher);
 		searcher.sort("location","marks");
 		Set<KVRowI> mergedResult = searcher.getResult();
 
@@ -238,7 +237,7 @@ public class ExamResultSearch extends TestCase {
 		Searcher searcher = new Searcher(fm.tableName, fm);
 		KVRowI aBlankRow = new ExamResult();
 		IEnricher enricher = null;
-		searcher.search(fm.tableName, "A", "age","remarks:study", aBlankRow, enricher);
+		searcher.search("A", "age","remarks:study", aBlankRow, enricher);
 		Set<KVRowI> mergedResult = searcher.getResult();
 
 		assertEquals(16, mergedResult.size());
@@ -250,7 +249,7 @@ public class ExamResultSearch extends TestCase {
 		searcher.setCheckForAllWords(true);
 		KVRowI aBlankRow = new ExamResult();
 		IEnricher enricher = null;
-		searcher.search(fm.tableName, "A", "commentsVal","comments:'tremendous boy'", aBlankRow, enricher);
+		searcher.search("A", "commentsVal","comments:'tremendous boy'", aBlankRow, enricher);
 		Set<KVRowI> mergedResult = searcher.getResult();
 
 		long end = System.currentTimeMillis();
@@ -267,7 +266,7 @@ public class ExamResultSearch extends TestCase {
 		Searcher searcher = new Searcher(fm.tableName, fm);
 		KVRowI aBlankRow = new ExamResult();
 		IEnricher enricher = null;
-		searcher.search(fm.tableName, "A", "commentsVal","comments:'unknown'", aBlankRow, enricher);
+		searcher.search("A", "commentsVal","comments:'unknown'", aBlankRow, enricher);
 		Set<KVRowI> mergedResult = searcher.getResult();
 
 		long end = System.currentTimeMillis();
@@ -283,7 +282,7 @@ public class ExamResultSearch extends TestCase {
 		searcher.setCheckForAllWords(true);
 		KVRowI aBlankRow = new ExamResult();
 		IEnricher enricher = null;
-		searcher.search(fm.tableName, "A", "commentsVal","comments:'unknown boy'", aBlankRow, enricher);
+		searcher.search("A", "commentsVal","comments:'unknown boy'", aBlankRow, enricher);
 		Set<KVRowI> mergedResult = searcher.getResult();
 
 		long end = System.currentTimeMillis();
@@ -298,7 +297,7 @@ public class ExamResultSearch extends TestCase {
 		Searcher searcher = new Searcher(fm.tableName, fm);
 		KVRowI aBlankRow = new ExamResult();
 		IEnricher enricher = null;
-		searcher.search(fm.tableName, "A", "commentsVal","comments:boys", aBlankRow, enricher);
+		searcher.search("A", "commentsVal","comments:boys", aBlankRow, enricher);
 		Set<KVRowI> mergedResult = searcher.getResult();
 
 		long end = System.currentTimeMillis();

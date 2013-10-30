@@ -22,7 +22,6 @@ package com.bizosys.hsearch.kv.impl;
 import java.io.IOException;
 import java.text.ParseException;
 import java.util.ArrayList;
-import java.util.BitSet;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;

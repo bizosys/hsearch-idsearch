@@ -17,7 +17,6 @@
 * See the License for the specific language governing permissions and
 * limitations under the License.
 */
-
 package com.bizosys.unstructured;
 
 import java.io.BufferedReader;
@@ -28,8 +27,6 @@ import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.io.Reader;
 import java.io.StringReader;
-import java.net.URISyntaxException;
-import java.net.URL;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -39,7 +36,6 @@ import java.util.Set;
 
 import org.apache.lucene.analysis.Analyzer;
 import org.apache.lucene.analysis.LowerCaseFilter;
-import org.apache.lucene.analysis.PorterStemFilter;
 import org.apache.lucene.analysis.StopFilter;
 import org.apache.lucene.analysis.TokenStream;
 import org.apache.lucene.analysis.Tokenizer;
@@ -56,8 +52,7 @@ import org.apache.lucene.util.Version;
 import com.bizosys.hsearch.util.LineReaderUtil;
 import com.bizosys.unstructured.util.IdSearchLog;
 
-
-public class SynonumAnalyzer extends Analyzer {
+public class StopwordAndSynonumAnalyzer extends Analyzer {
 	
 	Set<String> stopwords = null;
 	Map<String, String> conceptWithPipeSeparatedSynonums = null;
@@ -65,52 +60,39 @@ public class SynonumAnalyzer extends Analyzer {
 	
 	List<String> tempList = new ArrayList<String>();
 	
-	public SynonumAnalyzer() {
+	
+	public StopwordAndSynonumAnalyzer() throws IOException {
+		load();
 	}
 	
-	public void init() throws IOException {
-		File stopwordsFile = getFile("stopwords.txt");
-		if ( ! stopwordsFile.exists() ) {
-			IdSearchLog.l.debug("Stopword file is not found.");
-			stopwordsFile = null;
-		}
-		File conceptFile = getFile("concepts.txt");
-		if ( ! conceptFile.exists() ) {
-			IdSearchLog.l.debug("Concept file is not found.");
-			conceptFile = null;
-		}
-		
-		load(stopwordsFile, conceptFile);	
-
-	}
-	
-	public void init(Set<String> stopwords, Map<String, String> concepts) throws IOException {
+	public StopwordAndSynonumAnalyzer(Set<String> stopwords, Map<String, String> conceptWithPipeSeparatedSynonum, char conceptWordSeparator) {
 		this.stopwords = stopwords;
-		this.conceptWithPipeSeparatedSynonums = concepts;
+		this.conceptWithPipeSeparatedSynonums = conceptWithPipeSeparatedSynonum;
+		this.conceptWordSeparator = conceptWordSeparator;
 	}
-	
 
 	@Override
 	public TokenStream tokenStream(String field, Reader reader) {
 
 		Tokenizer tokenizer = new StandardTokenizer(Version.LUCENE_36, reader);
 		TokenStream ts = new LowerCaseFilter(Version.LUCENE_36, tokenizer);
-		SynonymMap smap = null;
+		 SynonymMap smap = null;
 		 try {
 			 if ( null != this.conceptWithPipeSeparatedSynonums) {
 				 SynonymMap.Builder sb = new SynonymMap.Builder(true); 
 				 for (String concept : this.conceptWithPipeSeparatedSynonums.keySet()) {
 					 tempList.clear();
-					 LineReaderUtil.fastSplit(tempList, this.conceptWithPipeSeparatedSynonums.get(concept), '|');
+					 LineReaderUtil.fastSplit(tempList, this.conceptWithPipeSeparatedSynonums.get(concept),
+							 this.conceptWordSeparator);
 					 for (String syn : tempList) {
 						 sb.add(new CharsRef(syn), new CharsRef(concept), false); 
 					 }
 				}
-				smap = sb.build(); 
+				smap = sb.build();
 				if ( null != smap) ts = new SynonymFilter(ts, smap, true);
 			 }
 
-			ts = new PorterStemFilter(ts);
+			//ts = new PorterStemFilter(ts);
 			if ( null != stopwords) {
 				ts = new StopFilter(Version.LUCENE_36, ts, stopwords );
 			} 
@@ -122,47 +104,29 @@ public class SynonumAnalyzer extends Analyzer {
 			 throw new NullPointerException(ex.toString());
 		 }
 	}
+
+	public void load() throws IOException {
+		String stopFile = this.getClass().getClassLoader().getResource("stopwords.txt").getPath();
+		String synFile = this.getClass().getClassLoader().getResource("synonums.txt").getPath();
+		
+		load(stopFile, synFile);
+	}
 	
-    public static File getFile(String fileName) 
-    {
-		File aFile = new File(fileName);
-		if (aFile.exists()) return aFile;
-		
-		aFile = new File("/" + fileName);
-		if (aFile.exists()) return aFile;
-
-		try {
-			URL resource = SynonumAnalyzer.class.getClassLoader().getResource(fileName);
-			if ( resource != null) aFile = new File(resource.toURI());
-		} 
-		catch (URISyntaxException ex) {
-			throw new RuntimeException(ex);
-		}
-
-		if (aFile.exists()) return aFile;
-
-		throw new RuntimeException("SynonumAnalyzer > File does not exist :" + fileName);
-	}	
-    
-	public void load(File stopwordFile, File synonumFile) throws IOException {
-		
+	public void load(String stopwordFileName, String synonumFileName) throws IOException {
+		File stopwordFile = new File(stopwordFileName);
 		this.stopwords = new HashSet<String>();
 		this.conceptWithPipeSeparatedSynonums = new HashMap<String, String>();
 		
-		/*****************
-		 * STOPWORD FILE READING
-		 ******************/		
-		if ( null != stopwordFile) {
-			
+		{
 			BufferedReader reader = null;
 			InputStream stream = null;
 			try {
-				stream = new FileInputStream(synonumFile); 
+				stream = new FileInputStream(stopwordFile); 
 				reader = new BufferedReader ( new InputStreamReader (stream) );
 				String line = null;
 				while((line=reader.readLine())!=null) {
 					if (line.length() == 0) continue;
-					stopwords.add(line);
+					this.stopwords.add(line);
 				}
 			} 
 			
@@ -170,7 +134,6 @@ public class SynonumAnalyzer extends Analyzer {
 			{
 				throw new IOException(ex);
 			} 
-			
 			finally 
 			{
 				try {if ( null != reader ) reader.close();
@@ -179,12 +142,11 @@ public class SynonumAnalyzer extends Analyzer {
 				} catch (Exception ex) {IdSearchLog.l.warn(ex);}
 			}
 		}
-		
 		/*****************
 		 * CONCEPT FILE READING
 		 ******************/
-		if ( null != synonumFile) {
-			
+		{
+			File synonumFile = new File(synonumFileName);
 			BufferedReader reader = null;
 			InputStream stream = null;
 			try {
@@ -196,6 +158,7 @@ public class SynonumAnalyzer extends Analyzer {
 				while((line=reader.readLine())!=null) {
 					if (line.length() == 0) continue;
 					concepts.clear();
+					
 					int index1 = line.indexOf(this.conceptWordSeparator);
 					if (index1 >= 0) {
 						String left = line.substring(0, index1);
@@ -218,22 +181,25 @@ public class SynonumAnalyzer extends Analyzer {
 			}		
 		}
 		
-	}    
+	}
 	
-	public static void main(String[] args) throws Exception {
+	public static void main(String[] args) throws IOException {
+		
 		Document doc = new Document();
-		doc.add(new Field("description", "hadoop_search", Field.Store.NO, Field.Index.ANALYZED));
-		SynonumAnalyzer analyzer = new SynonumAnalyzer();
-		analyzer.init();
+		doc.add(new Field("description", "bengalure is a good city", Field.Store.NO, Field.Index.ANALYZED));
+		Analyzer analyzer = new StopwordAndSynonumAnalyzer();
 
 		for (Fieldable field : doc.getFields() ) {
     		StringReader sr = new StringReader(field.stringValue());
     		TokenStream stream = analyzer.tokenStream(field.name(), sr);
-    		CharTermAttribute termA = (CharTermAttribute)stream.getAttribute(CharTermAttribute.class);
+    		CharTermAttribute  termA = (CharTermAttribute)stream.getAttribute(CharTermAttribute.class);
     		while ( stream.incrementToken()) {
-    			System.out.println( termA.toString() );
+    			System.out.println( "Term:" + termA.toString() );
     		}
     		sr.close();
-		}
-	}	
+		}	
+		
+		analyzer.close();
+		
+	}
 }
