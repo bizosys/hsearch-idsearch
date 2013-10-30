@@ -39,7 +39,7 @@ public class SynonumAnalyzerExample {
 		doc.add(new Field("description", "bengalure is a good city", Field.Store.NO, Field.Index.ANALYZED));
 		Map<String, String> syn = new HashMap<String, String>();
 		syn.put("bangalore", "bengalure|bangaluru");
-		Analyzer analyzer = new SynonumAnalyzer();
+		Analyzer analyzer = new StopwordAndSynonumAnalyzer();
 		//analyzer.load(null, syn);
 
 		for (Fieldable field : doc.getFields() ) {

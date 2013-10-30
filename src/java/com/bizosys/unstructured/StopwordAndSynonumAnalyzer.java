@@ -106,9 +106,9 @@ public class StopwordAndSynonumAnalyzer extends Analyzer {
 	}
 
 	public void load() throws IOException {
-		String stopFile = this.getClass().getClassLoader().getResource("stopwords.txt").getPath();
-		String synFile = this.getClass().getClassLoader().getResource("synonums.txt").getPath();
-		
+		ClassLoader classLoader = Thread.currentThread().getContextClassLoader();
+		String stopFile = classLoader.getResource("stopwords.txt").getPath();
+		String synFile = classLoader.getResource("synonums.txt").getPath();
 		load(stopFile, synFile);
 	}
 	
