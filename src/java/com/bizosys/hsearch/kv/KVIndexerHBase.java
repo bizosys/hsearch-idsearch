@@ -48,13 +48,6 @@ import com.bizosys.hsearch.kv.impl.KVReducer;
 
 public class KVIndexerHBase {
 
-	public static String XML_FILE_PATH = "CONFIG_XMLFILE_LOCATION";
-	public static String TABLE_NAME = "Table";
-	public static final String INCREMENTAL_ROW = "auto";
-	public static char FIELD_SEPARATOR = '|';
-	public static byte[] FAM_NAME = "1".getBytes();
-	public static byte[] COL_NAME = new byte[]{0};
-
 	public static class KV {
 
 		public Object key;
@@ -86,19 +79,19 @@ public class KVIndexerHBase {
  
     	if(args.length < 2){
             System.out.println("Please enter valid number of arguments.");
-            System.out.println("Usage : KVIndexer <<Input Table>> <<XML File Configuration>>");
+            System.out.println("Usage : KVIndexer <<Input Table>> <<XML File Configuration>> <<Indexer Plugin>>");
             System.exit(1);
         }
     	
     	String inputTable = args[0];
+    	String schemaPath = args[1];
+    	String indexerPlugin = ( args.length > 2) ? args[3] : null;
 
     	if (null == inputTable || inputTable.trim().isEmpty()) {
             System.out.println("Please enter proper table");
             System.exit(1);
         }
  
-    	String schemaPath = args[1];
-    	
 		Configuration conf = HBaseConfiguration.create();
 
 		StringBuilder sb = new StringBuilder(8192);
@@ -120,8 +113,9 @@ public class KVIndexerHBase {
     	if ( !admin.tableExists(outputTableName))
     		createTable(outputTableName, fm.familyName);
 
-		conf.set(XML_FILE_PATH, schemaPath);
-		conf.set(TABLE_NAME, outputTableName);
+		conf.set(KVIndexer.XML_FILE_PATH, schemaPath);
+		conf.set(KVIndexer.TABLE_NAME, outputTableName);
+		conf.set(KVIndexer.PLUGIN_CLASS_NAME, indexerPlugin);
 		
 		Job job = new Job(conf,"KVIndexerHBase");
 		job.setJarByClass(KVIndexerHBase.class);     // class that contains mapper and reducer
