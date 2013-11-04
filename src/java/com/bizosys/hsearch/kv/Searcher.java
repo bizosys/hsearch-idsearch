@@ -567,8 +567,7 @@ public class Searcher {
 				String isRepeatable = fld.isRepeatable ? "true" : "false";
 				String isCompressed = fld.isCompressed ? "true" : "false";
 
-				boolean isTextSearch = fld.isDocIndex && !fld.isStored;
-				
+				boolean isTextSearch = fld.isDocIndex;
 				
 				HSearchProcessingInstruction instruction = new HSearchProcessingInstruction(HSearchProcessingInstruction.PLUGIN_CALLBACK_ID, 
 					outputType, isRepeatable + "\t" + isCompressed);

@@ -283,7 +283,7 @@ public class FieldMapping extends DefaultHandler {
 			String analyzer = ( null == fldVal) ? "" : fldVal;
 			
 			fldVal = attributes.getValue("analyzed");
-			boolean isAnalyzed = ( null == fldVal) ? true : fldVal.equalsIgnoreCase("true");
+			boolean isAnalyzed = ( null == fldVal) ? false : fldVal.equalsIgnoreCase("true");
 			boolean isDocIndex = (null == analyzer) ? false : analyzer.length() > 0;
 
 			fldVal = attributes.getValue("compress");

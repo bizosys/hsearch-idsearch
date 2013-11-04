@@ -134,7 +134,7 @@ public class ColGenerator {
 				break;
 			}
 
-			params += "\tpublic " + fld.getDataType() + " " + fld.name.toLowerCase() + fieldValue +";\n";
+			params += "\t@Expose public " + fld.getDataType() + " " + fld.name.toLowerCase() + fieldValue +";\n";
 			setters += "\t\tcase "+ fld.sourceSeq + ":\n\t\t\t this."+fld.name.toLowerCase()+" = " + casted + ";\n\t\t break;\n";
 			getters += "\t\tcase "+ fld.sourceSeq + ":\n\t\t\t return this."+fld.name.toLowerCase()+";\n";
 			gettersNative += "\t\tcase "+ fld.sourceSeq + ":\n\t\t\t return new TypedObject(this."+fld.name.toLowerCase()+");\n";
@@ -220,5 +220,4 @@ public class ColGenerator {
 		}
 		ColGenerator.generate(fm, "/tmp", "Column");
 	}
-
 }

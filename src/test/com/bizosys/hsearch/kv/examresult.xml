@@ -10,7 +10,7 @@
 		<!--the below free text field can only be searched but not fetched because stored is false.-->
 
 		<field name="remarks" stored="false" repeatable="true" compress="false" sourcesequence="6" sourcename="remarks" type="String" analyzer="org.apache.lucene.analysis.standard.StandardAnalyzer" analyzed = "true" indexed="true" mergekey="false" mergeposition=""  skipNull="false" defaultValue="-2147483648" biword="true" triword="true" />
-		<field name="comments" stored="false" repeatable="true" sourcesequence="7" sourcename="comments" type="String" analyzer="com.bizosys.unstructured.SynonumAnalyzer" analyzed = "true" indexed="true" mergekey="false" mergeposition=""  skipNull="false" defaultValue="-2147483648" biword="false" triword="false" />
+		<field name="comments" stored="false" repeatable="true" sourcesequence="7" sourcename="comments" type="String" analyzer="com.bizosys.unstructured.StopwordAndSynonumAnalyzer" analyzed = "true" indexed="true" mergekey="false" mergeposition=""  skipNull="false" defaultValue="-2147483648" biword="true" triword="true" />
 		<field name="sex" sourcesequence="8" sourcename="sex" type="String" analyzer="" analyzed = "" indexed="true" stored="true" repeatable="true" mergekey="false" mergeposition=""  skipNull="false" defaultValue="true" />
 
 		<field name="commentsVal" stored="true" sourcesequence="9" sourcename="comments" type="String" analyzer="" analyzed = "false" indexed="true" repeatable="false" mergekey="false" mergeposition=""  skipNull="false" defaultValue="-2147483648" />

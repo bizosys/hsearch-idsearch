@@ -7,12 +7,14 @@ import com.bizosys.hsearch.kv.impl.TypedObject;
 import com.bizosys.hsearch.kv.KVRowI;
 
 import com.bizosys.unstructured.util.IdSearchLog;
+import com.google.gson.annotations.Expose;
+
 
 public class --COLUMN-NAME-- extends GroupSortedObject implements KVRowI{
 	
 	public String mergeId = null;
 	public int id = -1;
-@Expose --PARAMS--
+--PARAMS--
 		
 	KVDataSchema dataSchema = null;
 	

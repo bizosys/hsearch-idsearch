@@ -35,11 +35,13 @@ import org.apache.hadoop.mapreduce.lib.input.FileInputFormat;
 import org.apache.hadoop.mapreduce.lib.input.TextInputFormat;
 
 import com.bizosys.hsearch.kv.impl.KVMapper;
+import com.bizosys.hsearch.kv.impl.KVPlugin;
 import com.bizosys.hsearch.kv.impl.KVReducer;
 
 public class KVIndexer {
 
 	public static String XML_FILE_PATH = "CONFIG_XMLFILE_LOCATION";
+	public static String PLUGIN_CLASS_NAME = "PLUGIN_CLASS_NAME";
 	public static String TABLE_NAME = "Table";
 	public static final String INCREMENTAL_ROW = "auto";
 	public static char FIELD_SEPARATOR = '|';
@@ -68,6 +70,33 @@ public class KVIndexer {
 		dataTypesPrimitives.put("boolean", 'b');
 		dataTypesPrimitives.put("byte", 'c');
 	}
+	
+	public static KVPlugin createPluginClass(Configuration conf) throws IOException{
+		
+		KVPlugin plugin = null;
+		String pluginClassName = conf.get(KVIndexer.PLUGIN_CLASS_NAME);
+		int isPlugin = (null == pluginClassName) ? 0 : pluginClassName.trim().length();
+		if ( isPlugin == 0) return null;
+		
+		try {
+			Object pluginObj = Class.forName(pluginClassName).newInstance();
+			if ( pluginObj instanceof KVPlugin) {
+				plugin = ( KVPlugin ) pluginObj;
+			} else {
+				throw new IOException("Unknown Plugin class - " + pluginClassName);
+			}
+		} catch (ClassCastException ex) {
+			throw new IOException("Unknown Plugin class - " + pluginClassName, ex);
+		} catch (InstantiationException e) {
+			throw new IOException("Unknown Plugin class - " + pluginClassName, e);
+		} catch (IllegalAccessException e) {
+			throw new IOException("Unknown Plugin class - " + pluginClassName, e);
+		} catch (ClassNotFoundException e) {
+			throw new IOException("Unknown Plugin class - " + pluginClassName, e);
+		}
+		
+		return plugin;
+	}
 
     public void execute( String[] args) throws IOException, InterruptedException, ClassNotFoundException {
     	execute(KVMapper.class, KVReducer.class, args);
@@ -77,11 +106,14 @@ public class KVIndexer {
  
     	if(args.length < 3){
             System.out.println("Please enter valid number of arguments.");
-            System.out.println("Usage : KVIndexer <<Input File Path>> <<XML File Configuration>> <<Destination Table>>");
+            System.out.println("Usage : KVIndexer <<Input File Path>> <<XML File Configuration>> <<Destination Table>> <<Plugin VO Class Name>>");
             System.exit(1);
         }
     	
-    	String inputFile = args[0];
+    	String inputFile = ( args.length > 0 ) ? args[0] : "";
+    	String xmlFilePath = ( args.length > 1 ) ? args[1] : "";
+    	String tableName = ( args.length > 2 ) ? args[2] : "";
+    	String pluginClassName = ( args.length > 3 ) ? args[3] : "";
 
     	if (null == inputFile || inputFile.trim().isEmpty()) {
             System.out.println("Please enter proper path");
@@ -89,8 +121,9 @@ public class KVIndexer {
         }
  
 		Configuration conf = HBaseConfiguration.create();
-		conf.set(XML_FILE_PATH, args[1]);
-		conf.set(TABLE_NAME, args[2]);
+		conf.set(XML_FILE_PATH, xmlFilePath);
+		conf.set(TABLE_NAME, tableName);
+		conf.set(PLUGIN_CLASS_NAME, pluginClassName);
 		
         Job job = new Job(conf, "HSearch Key Value indexer");
         job.setJarByClass(this.getClass());

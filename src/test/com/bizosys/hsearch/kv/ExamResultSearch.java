@@ -292,6 +292,7 @@ public class ExamResultSearch extends TestCase {
 		assertEquals(0, mergedResult.size());
 	}		
 
+	/**
 	public final void testLemos() throws Exception {
 		long start = System.currentTimeMillis();
 		Searcher searcher = new Searcher(fm.tableName, fm);
@@ -305,6 +306,7 @@ public class ExamResultSearch extends TestCase {
 			assertTrue(kvRowI.getValue("commentsVal").toString().indexOf("boy") >= 0 );
 		}
 		assertEquals(33, mergedResult.size());
-	}		
+	}	
+	*/	
 
 }

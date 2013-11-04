@@ -52,7 +52,6 @@ import com.bizosys.hsearch.util.Hashing;
 
 public class IndexWriter {
 
-	private AnalyzerFactory analyzers = null;
 	private static String unknownDocumentType = "-";
 	
 	private static final int FREQUENCY_TABLE = 0;
@@ -396,8 +395,6 @@ public class IndexWriter {
 
 	public void addDocument(int docId, Document doc, String documentType, DocumentMetadata docFilter,  
 		AnalyzerFactory analyzers, Map<String, IndexRow> uniqueTokens ) throws CorruptIndexException, IOException, InstantiationException {
-
-		this.analyzers = analyzers;
 
 		int docType = sConf.getDocumentTypeCodes().getCode(documentType);
 		

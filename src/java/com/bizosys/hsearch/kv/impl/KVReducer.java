@@ -37,6 +37,7 @@ import org.apache.hadoop.io.Text;
 import org.iq80.snappy.Snappy;
 
 import com.bizosys.hsearch.byteutils.SortedBytesBitset;
+import com.bizosys.hsearch.byteutils.SortedBytesBitsetCompressed;
 import com.bizosys.hsearch.federate.BitSetWrapper;
 import com.bizosys.hsearch.hbase.HReader;
 import com.bizosys.hsearch.hbase.NVBytes;
@@ -61,6 +62,7 @@ public class KVReducer extends TableReducer<Text, Text, ImmutableBytesWritable> 
 	
 	Set<Integer> neededPositions = null; 
 	FieldMapping fm = null;
+	KVPlugin plugin = null;
 
 	@Override
 	protected void setup(Context context)
@@ -84,6 +86,10 @@ public class KVReducer extends TableReducer<Text, Text, ImmutableBytesWritable> 
 			KVIndexer.FIELD_SEPARATOR = fm.fieldSeparator;
 			conf.set(KVIndexer.TABLE_NAME, fm.tableName);
 			
+			this.plugin = KVIndexer.createPluginClass(conf);
+			if ( null != this.plugin ) this.plugin.setFieldMapping(fm);
+			
+			
 		} catch (Exception e) {
 			System.err.println("Cannot read from path " + path);
 			throw new IOException("Cannot read from path " + path);
@@ -94,6 +100,7 @@ public class KVReducer extends TableReducer<Text, Text, ImmutableBytesWritable> 
 
 	@Override
     protected void reduce(Text key, Iterable<Text> values, Context context) throws IOException, InterruptedException {
+
 		String keyData = key.toString();
 		Arrays.fill(resultKey, null);
 		
@@ -105,6 +112,12 @@ public class KVReducer extends TableReducer<Text, Text, ImmutableBytesWritable> 
     	
     	Field fld = fm.sourceSeqWithField.get(sourceSeq);
 		char dataTypeChar = KVIndexer.dataTypesPrimitives.get(dataType);
+
+		if ( null != this.plugin) {
+			boolean continueIndexing = this.plugin.reduce(rowKey, dataTypeChar, sourceSeq, values );
+			if ( !continueIndexing ) return;
+		}
+		
 		
 		List<NVBytes> cells = null;
 		byte[] existingData = null;
@@ -117,16 +130,17 @@ public class KVReducer extends TableReducer<Text, Text, ImmutableBytesWritable> 
 				}
 			}
 		}
-		byte[] finalData = cookBytes(rowKey, values, existingData, fld, dataTypeChar);
+		StringBuilder rowKeyText = new StringBuilder(rowKey);
+		byte[] finalData = cookBytes(rowKeyText, values, existingData, fld, dataTypeChar);
 		if(null == finalData) return;
 
-		Put put = new Put(rowKey.getBytes());
+		Put put = new Put(rowKeyText.toString().getBytes());
         put.add(KVIndexer.FAM_NAME,KVIndexer.COL_NAME, finalData);
         
         context.write(null, put);
 	}
 
-	private byte[] cookBytes(String key, Iterable<Text> values, byte[] existingData,
+	private byte[] cookBytes(StringBuilder key, Iterable<Text> values, byte[] existingData,
 			Field fld, char dataTypeChar) throws IOException {
 		
 		byte[] finalData = null;
@@ -146,8 +160,13 @@ public class KVReducer extends TableReducer<Text, Text, ImmutableBytesWritable> 
 				/**
 				 * Skip multi phrases which are only sighted once.
 				 */
-				boolean skipSingle = ( key.charAt(key.length() - 1) == '*');
-				
+				int keyLen = key.length();
+				boolean skipSingle = false;
+				if ( keyLen > 1) {
+					skipSingle = ( key.charAt(keyLen - 1) == '*');
+					if ( skipSingle ) key = key.deleteCharAt(keyLen - 1);
+				}
+				 
 				finalData = ( repeatable ) ? 
 					indexTextBitset(skipSingle, existingData, values, analyzed, fieldName, compressed) : 
 					indexTextSet(skipSingle, existingData,  values, analyzed, fieldName);
@@ -256,13 +275,14 @@ public class KVReducer extends TableReducer<Text, Text, ImmutableBytesWritable> 
 		}
 		
 		if ( skipSingle && foundIds.cardinality() < 2) return null;
-
-		finalData = SortedBytesBitset.getInstanceBitset().bitSetToBytes(foundIds);
-		if ( null == finalData) return finalData;
 		
-		if ( isCompressed ) {
-			return Snappy.compress(finalData);
-		} 
+		if(isCompressed)
+			finalData = SortedBytesBitsetCompressed.getInstanceBitset().bitSetToBytes(foundIds);
+		else
+			finalData = SortedBytesBitset.getInstanceBitset().bitSetToBytes(foundIds);
+		
+		if ( null == finalData) return finalData;
+		 
 		return finalData;
 	}	
 	

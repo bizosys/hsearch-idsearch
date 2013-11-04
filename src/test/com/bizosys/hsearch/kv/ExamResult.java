@@ -7,19 +7,21 @@ import com.bizosys.hsearch.kv.impl.TypedObject;
 import com.bizosys.hsearch.kv.KVRowI;
 
 import com.bizosys.unstructured.util.IdSearchLog;
+import com.google.gson.annotations.Expose;
+
 
 public class ExamResult extends GroupSortedObject implements KVRowI{
 	
 	public String mergeId = null;
 	public int id = -1;
-	public int empid = 0;
-	public String sex = null;
-	public String classz = null;
-	public float marks = 0.0f;
-	public String location = null;
-	public int age = 0;
-	public String commentsval = null;
-	public String role = null;
+	@Expose public int empid = 0;
+	@Expose public String sex = null;
+	@Expose public String classz = null;
+	@Expose public float marks = 0.0f;
+	@Expose public String location = null;
+	@Expose public int age = 0;
+	@Expose public String commentsval = null;
+	@Expose public String role = null;
 
 		
 	KVDataSchema dataSchema = null;

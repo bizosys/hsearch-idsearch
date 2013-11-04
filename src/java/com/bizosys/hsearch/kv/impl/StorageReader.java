@@ -195,7 +195,7 @@ public class StorageReader implements Callable<Map<Integer, Object>> {
 		
 		if ( fld.isRepeatable ) {
 			return readStorageTextIdsBitset(checkForAllWords, 
-				fld.biWord, fld.isCompressed, fld.isCachable, fieldName);
+				fld.biWord, fld.triWord, fld.isCompressed, fld.isCachable, fieldName);
 		} else {
 			return readStorageTextIdsSet(checkForAllWords, fieldName);
 		}
@@ -323,7 +323,7 @@ public class StorageReader implements Callable<Map<Integer, Object>> {
 	}
 	
 	private final BitSetWrapper readStorageTextIdsBitset(final boolean checkForAllWords, 
-		final boolean keepPhrase, boolean isCompressed, 
+		final boolean biWord, final boolean triWord, boolean isCompressed, 
 		boolean isCached, final String fieldName) throws IOException{
 
 		BitSetOrSet destination  = new BitSetOrSet();
@@ -347,20 +347,19 @@ public class StorageReader implements Callable<Map<Integer, Object>> {
 			q.extractTerms(terms);
 			boolean isVirgin = true;
 			
-			if ( keepPhrase && checkForAllWords) {
-				int termsT = terms.size();
-				if ( termsT == 2 || termsT == 3) {
-					Iterator<Term> itr = terms.iterator();
-					String phrase = ( termsT == 2 ) ? 
-						itr.next() + " " + itr.next() : 
-						itr.next() + " " + itr.next() + " " + itr.next();
-						
-					findATerm(checkForAllWords, isCompressed, isCached,
-						destination, rowIdPrefix, isVirgin, phrase);
-					BitSetWrapper result = destination.getDocumentSequences();
-					int resultT = ( null == result) ? 0 : result.cardinality(); 
-					if (  resultT > 0 ) return destination.getDocumentSequences();
-				}
+			int termsT = terms.size();
+
+			if ( (biWord || triWord) && checkForAllWords && ( termsT == 2 || termsT == 3)) {
+				Iterator<Term> itr = terms.iterator();
+				String phrase = ( termsT == 2 ) ? 
+					itr.next().text() + " " + itr.next().text() : 
+					itr.next().text() + " " + itr.next().text() + " " + itr.next().text();
+					
+				findATerm(checkForAllWords, isCompressed, isCached,
+					destination, rowIdPrefix, isVirgin, phrase);
+				BitSetWrapper result = destination.getDocumentSequences();
+				int resultT = ( null == result) ? 0 : result.cardinality(); 
+				if (  resultT > 0 ) return destination.getDocumentSequences();
 			}
 			
 			for (Term term : terms) {

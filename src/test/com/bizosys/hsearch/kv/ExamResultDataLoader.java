@@ -87,7 +87,9 @@ public class ExamResultDataLoader {
 		
 		KVIndexerLocal indexer = new KVIndexerLocal();
 		try {
-			indexer.index(sb.toString(), schemaPath, false);
+			System.out.println("Starting indexing");
+			indexer.index(sb.toString(), schemaPath, false, "com.bizosys.hsearch.kv.KVPluginDummy");
+			System.out.println("All Data loaded");
 		} catch (IOException e) {
 			e.printStackTrace(System.err);
 			System.err.println("Problem in indexing " + e.getMessage());

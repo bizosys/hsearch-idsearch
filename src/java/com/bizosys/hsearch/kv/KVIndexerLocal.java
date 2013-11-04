@@ -59,20 +59,29 @@ public class KVIndexerLocal {
 		}
     }
     	
-	
     public void index(String data, String schemaPath, boolean skipHeader) throws IOException, InterruptedException, ParseException {
+    	index(data, schemaPath, skipHeader, null);
+    }
+	
+    public void index(String data, String schemaPath, boolean skipHeader, String pluginClass) throws IOException, InterruptedException, ParseException {
 
     	FieldMapping fm = FieldMapping.getInstance(schemaPath);
 
     	//create table in hbase
+    	System.out.println("Accessing HBase");
 		HBaseAdmin admin =  HBaseFacade.getInstance().getAdmin();
+    	System.out.println(" Creating Table " + fm.tableName);
     	if ( !admin.tableExists(fm.tableName))
     		createTable(fm.tableName, fm.familyName);
+    	System.out.println(fm.tableName + " Table is created");
     	
 		
 		KVMapperLocal mapper = new KVMapperLocal();
 		LocalMapContext ctxM = mapper.getContext();
 		ctxM.getConfiguration().set(KVIndexer.XML_FILE_PATH, schemaPath);
+		if ( null != pluginClass)
+			ctxM.getConfiguration().set(KVIndexer.PLUGIN_CLASS_NAME, pluginClass);
+		
 		mapper.setupRouter(ctxM);
 
 		List<String> records = new ArrayList<String>();
@@ -90,6 +99,8 @@ public class KVIndexerLocal {
 		KVReducerLocal reducer = new KVReducerLocal();
 		LocalReduceContext ctxR = reducer.getContext();
 		ctxR.getConfiguration().set(KVIndexer.XML_FILE_PATH, schemaPath);
+		if ( null != pluginClass)
+			ctxR.getConfiguration().set(KVIndexer.PLUGIN_CLASS_NAME, pluginClass);
 		reducer.setupRouter(ctxR);
 		
 		for (String key : ctxM.values.keySet()) {
