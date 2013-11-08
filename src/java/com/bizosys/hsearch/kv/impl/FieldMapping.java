@@ -69,6 +69,8 @@ public class FieldMapping extends DefaultHandler {
 
 		public boolean isCachable = true;
 		
+		public boolean isSourceUrl = false;
+
 		public String expression = null;
 		
 		public Field() {
@@ -82,7 +84,8 @@ public class FieldMapping extends DefaultHandler {
 				boolean isRepeatable, boolean isMergedKey, int mergePosition,
 				boolean skipNull, String defaultValue, String fieldType, String analyzer, 
 				boolean isDocIndex, boolean isAnalyzed, boolean isCachable,
-				boolean isCompressed, boolean biWord, boolean triWord, String expression) {
+				boolean isCompressed, boolean biWord, boolean triWord, 
+				boolean isSourceUrl, String expression) {
 			
 			this.name = name;
 			this.sourceName = sourceName;
@@ -105,6 +108,7 @@ public class FieldMapping extends DefaultHandler {
 			this.triWord = triWord; 
 			
 			this.expression = expression;
+			this.isSourceUrl = isSourceUrl;
 		}
 
 		public String toString() {
@@ -301,9 +305,12 @@ public class FieldMapping extends DefaultHandler {
 			fldVal = attributes.getValue("expression");
 			String expr = ( null == fldVal) ? null : (fldVal.length() == 0 ) ? null : fldVal;
 
+			fldVal = attributes.getValue("sourceurl");
+			boolean sourceurl = ( null == fldVal) ? false : fldVal.equalsIgnoreCase("true");
+			
 			field = new Field(name, sourceName, sourceSeq, isIndexable, isStored, isRepeatable,
 					isMergedKey, mergePosition, skipNull, defaultValue, dataType, analyzer, 
-					isDocIndex, isAnalyzed, isCachable, isCompressed, biWord, triWord, expr);
+					isDocIndex, isAnalyzed, isCachable, isCompressed, biWord, triWord, sourceurl, expr);
 		}
 	}
 
