@@ -23,6 +23,7 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
 
+import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.io.LongWritable;
 import org.apache.hadoop.io.Text;
 import org.apache.hadoop.mapreduce.Mapper;
@@ -34,14 +35,25 @@ public class KVMapper extends Mapper<LongWritable, Text, Text, Text> {
     	
 	private KVMapperBase kBase = new KVMapperBase();
 	String[] result = null;
+	boolean isSkipHeader = false;
 
 	@Override
 	protected void setup(Context context) throws IOException, InterruptedException {
+		Configuration conf = context.getConfiguration();
+		String skipHeader = conf.get(KVIndexer.SKIP_HEADER);
+		if ( null != skipHeader) {
+			isSkipHeader = "true".equals(skipHeader);
+		}
 		kBase.setup(context);
 	}
 	
     @Override
     protected void map(LongWritable key, Text value, Context context) throws IOException, InterruptedException {
+    	
+    	if ( isSkipHeader ) {
+			isSkipHeader = false;
+    		if ( 0 == key.get()) return;
+    	}
     	
     	if ( null == result) {
     		ArrayList<String> resultL = new ArrayList<String>();

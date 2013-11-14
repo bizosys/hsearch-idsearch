@@ -27,6 +27,7 @@ import java.io.StringReader;
 import java.text.ParseException;
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
@@ -89,6 +90,7 @@ public class KVMapperBase {
 	String mergeId = "";
 	
 	KVPlugin plugin = null;
+	Set<String> mergeKeys = new HashSet<String>();
 
 	public KV onMap(KV kv ) {
 		return kv;
@@ -146,6 +148,10 @@ public class KVMapperBase {
 
 		//get mergeId 
 		mergeId = createMergeId(result);
+		if(!mergeKeys.contains(mergeId)){
+			mergeKeys.add(mergeId);
+			context.write(new Text(KVIndexer.MERGEKEY_ROW), new Text(mergeId));
+		}
 
 		//get incremetal value for id
 		if(ids.containsKey(mergeId)){
@@ -206,7 +212,7 @@ public class KVMapperBase {
 
 			if(fld.isStored) {
 				boolean isEmpty = ( null == mergeId) ? true : (mergeId.length() == 0);
-				rowKey = ( isEmpty) ? fld.name : mergeId + fld.name;
+				rowKey = ( isEmpty) ? fld.name : mergeId + "_" + fld.name;
 				appender.delete(0, appender.capacity());
 				rowKey = appender.append(rowKey).append( KVIndexer.FIELD_SEPARATOR)
 					.append(fld.getDataType()).append(KVIndexer.FIELD_SEPARATOR)
@@ -241,11 +247,15 @@ public class KVMapperBase {
 			megedKeyArr[mergePosition] = rowIdMap.get(mergePosition);
 		}
 
-		boolean isEmpty = false;
+		boolean isFirst = true;
 		for (int j = 0; j < megedKeyArr.length; j++) {
-			isEmpty = ( null == megedKeyArr[j]) ? true : (megedKeyArr[j].length() == 0);
-			if(isEmpty)rowId += "-1" + "_";
-			else rowId += megedKeyArr[j] + "_";
+	
+			if(isFirst)
+				isFirst = false;
+			else
+				rowId = rowId + "_";
+	
+			rowId = rowId + megedKeyArr[j]; 
 		}
 		return rowId;
 	}
@@ -297,7 +307,7 @@ public class KVMapperBase {
 
 				appender.delete(0, appender.capacity());
 				//below is hardcoded datatype for free text search.
-				rowKey = appender.append(mergeId).append(firstChar).append('_').append(lastChar)
+				rowKey = appender.append(mergeId).append("_").append(firstChar).append('_').append(lastChar)
 					.append(KVIndexer.FIELD_SEPARATOR).append("text")
 					.append( KVIndexer.FIELD_SEPARATOR ).append(fld.sourceSeq).toString();
 
@@ -338,7 +348,7 @@ public class KVMapperBase {
 				 * Row Key is mergeidFIELDwordhashStr
 				 */
 				boolean isEmpty = ( null == mergeId) ? true : (mergeId.length() == 0);
-				String rowKeyPrefix = ( isEmpty) ? fld.name : mergeId + fld.name;
+				String rowKeyPrefix = ( isEmpty) ? fld.name : mergeId + "_" + fld.name;
 
 				rowKey = appender.append(rowKeyPrefix).append(termWord).append(KVIndexer.FIELD_SEPARATOR)
 						.append("text").append( KVIndexer.FIELD_SEPARATOR )

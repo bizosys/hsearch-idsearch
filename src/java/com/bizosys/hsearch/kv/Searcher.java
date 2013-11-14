@@ -23,6 +23,7 @@ package com.bizosys.hsearch.kv;
 import java.io.IOException;
 import java.text.ParseException;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.LinkedHashSet;
@@ -36,6 +37,7 @@ import java.util.concurrent.Future;
 import java.util.regex.Pattern;
 
 import com.bizosys.hsearch.byteutils.SortedBytesBitset;
+import com.bizosys.hsearch.byteutils.SortedBytesString;
 import com.bizosys.hsearch.federate.BitSetOrSet;
 import com.bizosys.hsearch.federate.BitSetWrapper;
 import com.bizosys.hsearch.federate.FederatedSearch;
@@ -107,45 +109,43 @@ public class Searcher {
 		this.plugIn = plugIn;
 	}	
 
-	public final Set<String> searchRegex(
-			final String mergeIdPattern, final String selectQuery, String whereQuery,
+	public final Set<String> getMergeIds() throws IOException {
+		
+		Set<String> mergeKeys = new HashSet<String>();
+
+		byte[] mergeKeysB = HReader.getScalar(dataRepository, KVIndexer.FAM_NAME, KVIndexer.COL_NAME, KVIndexer.MERGEKEY_ROW.getBytes());
+		
+		SortedBytesString.getInstance().parse(mergeKeysB).addAll(mergeKeys);
+
+		return mergeKeys;
+	}	
+	
+	public final void searchRegex(final String mergeIdPattern, final String selectQuery, String whereQuery,
 			KVRowI blankRow, IEnricher... enrichers) 
 		throws IOException, InterruptedException, ExecutionException, FederatedSearchException, NumberFormatException, ParseException  {
 
-		long start = System.currentTimeMillis();
-		List<String> rowIds = HReader.getMatchingRowIds(dataRepository, mergeIdPattern);
-		if ( null == rowIds) return null;
-		if ( rowIds.size() == 0 ) return null;
-		
-		Set<String> mergeIds = new HashSet<String>();
-		int lastIndex = -1;
-		for (String mergeIdWithFieldId : rowIds) {
-			lastIndex = mergeIdWithFieldId.lastIndexOf('_');
-			mergeIds.add(  mergeIdWithFieldId.substring(0, lastIndex) );
-		}
-		
-		if ( DEBUG_ENABLED) {
-			long end = System.currentTimeMillis();
-			int mergeIdsT = ( null == mergeIds) ? 0 : mergeIds.size();
-			HSearchLog.l.debug( mergeIdPattern +  " rows regex matched total = " + mergeIdsT + " in Time ms, " + (end - start));
-			start = end;
-		}
-		
+		Set<String> mergeIds = getMergeIds();
+		List<String> matchedMergeId = new ArrayList<String>();
+		Pattern patternMergeIds = Pattern.compile(mergeIdPattern);
 		for (String mergeId : mergeIds) {
-			search(dataRepository, mergeId, selectQuery, whereQuery, blankRow, enrichers);
-			if ( null != joinedRows) joinedRows.clear();
+			if(patternMergeIds.matcher(mergeId).matches())
+				matchedMergeId.add(mergeId);
 		}
-
-		if ( DEBUG_ENABLED) {
-			long end = System.currentTimeMillis();
-			HSearchLog.l.debug( mergeIdPattern +  " fields retrieved in Time ms, " + (end - start));
-		}
+		search(matchedMergeId, selectQuery, whereQuery, blankRow, enrichers);
 		
-		return mergeIds;
 	}
 	
-	public final void search(
-			final String mergeId, final String selectQuery, String whereQuery, 
+	public final void search(final Collection<String> mergeIds, final String selectQuery, String whereQuery,
+			KVRowI blankRow, IEnricher... enrichers) throws NumberFormatException, IOException, InterruptedException, ExecutionException, FederatedSearchException, ParseException{
+
+		for (String mergeId : mergeIds) {
+			search(mergeId, selectQuery, whereQuery, blankRow, enrichers);
+			if ( null != this.joinedRows) this.joinedRows.clear();
+		}
+	}
+
+	
+	public final void search(final String mergeId, final String selectQuery, String whereQuery, 
 			final KVRowI blankRow, final IEnricher... enrichers) 
 			throws IOException, InterruptedException, ExecutionException, FederatedSearchException, NumberFormatException, ParseException {
 		
@@ -194,12 +194,12 @@ public class Searcher {
 
 		if(!isFacetFieldEmpty){
 			if ( 0 == matchIdsFoundT) 
-				facetsMap = createFacetCount(null, mergeId, facetFields);
+				this.facetsMap = createFacetCount(null, mergeId, facetFields);
 			else
-				facetsMap = createFacetCount(matchIds.getDocumentSequences(), mergeId, facetFields);
+				this.facetsMap = createFacetCount(matchIds.getDocumentSequences(), mergeId, facetFields);
 
 			if ( null != this.plugIn)
-				this.plugIn.onFacets(mergeId, facetsMap);
+				this.plugIn.onFacets(mergeId, this.facetsMap);
 		}
 
 		/**
@@ -263,18 +263,18 @@ public class Searcher {
 
 			for (Integer id : documentIds) {
 				
-				if (joinedRows.containsKey(id)){
-					aRow = joinedRows.get(id);
+				if (this.joinedRows.containsKey(id)){
+					aRow = this.joinedRows.get(id);
 				} else {
 					aRow = blankRow.create(dataSchema, id, mergeId);
-					joinedRows.put(id, aRow);
+					this.joinedRows.put(id, aRow);
 				}
 				aRow.setValue(field, result.get(id));
 
 			}
 		}
 
-		resultset.addAll(joinedRows.values());
+		this.resultset.addAll(this.joinedRows.values());
 	}
 
 	public final BitSetOrSet getIds(final String mergeId, String whereQuery) throws IOException {
@@ -422,13 +422,13 @@ public class Searcher {
 		for (GroupSorterSequencer seq : sortSequencer) {
 			gs.setSorter(seq);
 		}
-		int resultsetT = resultset.size();
+		int resultsetT = this.resultset.size();
 		GroupSortedObject[] sortedContainer = new GroupSortedObject[resultsetT];
-		resultset.toArray(sortedContainer);
+		this.resultset.toArray(sortedContainer);
 		gs.sort(sortedContainer);
-		resultset = new LinkedHashSet<KVRowI>();
+		this.resultset = new LinkedHashSet<KVRowI>();
 		for (int j=0; j < resultsetT; j++) {
-			resultset.add((KVRowI)sortedContainer[j]);
+			this.resultset.add((KVRowI)sortedContainer[j]);
 		}
 
 		return this.resultset;
@@ -526,9 +526,9 @@ public class Searcher {
 	}		
 
 	public final void clear() {
-		if(null != resultset)resultset.clear();
-		if(null != facetsMap)facetsMap.clear();
-		if(null != pivotFacetsMap)pivotFacetsMap.clear();
+		if(null != this.resultset)this.resultset.clear();
+		if(null != this.facetsMap)this.facetsMap.clear();
+		if(null != this.pivotFacetsMap)this.pivotFacetsMap.clear();
 	}
 	
 	private FederatedSearch createFederatedSearch() {
@@ -628,7 +628,7 @@ public class Searcher {
 	public final Map<String, List<HsearchFacet>> pivotFacet(final String mergeId, final String pivotFacetFields, 
 		final String facetQuery, final KVRowI aBlankrow) throws Exception{
 		String[] pivotFacets = pivotFacetFields.split("\\|");
-		pivotFacetsMap = new HashMap<String, List<HsearchFacet>>();
+		this.pivotFacetsMap = new HashMap<String, List<HsearchFacet>>();
 		IEnricher enricher = null;
 		for (String aPivotFacet : pivotFacets) {
 			String[] fields = patternComma.split(aPivotFacet);
@@ -643,10 +643,10 @@ public class Searcher {
 		        current = root;			
 			}
 			this.pivotFacetsMap.put(aPivotFacet, root.getinternalFacets());
-			resultset.clear();
+			this.resultset.clear();
 		}
 		
-		return pivotFacetsMap;
+		return this.pivotFacetsMap;
 	}
 	
 }

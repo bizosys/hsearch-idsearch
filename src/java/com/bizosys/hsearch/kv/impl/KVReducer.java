@@ -22,6 +22,7 @@ package com.bizosys.hsearch.kv.impl;
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStreamReader;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashSet;
 import java.util.List;
@@ -38,6 +39,7 @@ import org.iq80.snappy.Snappy;
 
 import com.bizosys.hsearch.byteutils.SortedBytesBitset;
 import com.bizosys.hsearch.byteutils.SortedBytesBitsetCompressed;
+import com.bizosys.hsearch.byteutils.SortedBytesString;
 import com.bizosys.hsearch.federate.BitSetWrapper;
 import com.bizosys.hsearch.hbase.HReader;
 import com.bizosys.hsearch.hbase.NVBytes;
@@ -107,29 +109,38 @@ public class KVReducer extends TableReducer<Text, Text, ImmutableBytesWritable> 
     	LineReaderUtil.fastSplit(resultKey, keyData, KVIndexer.FIELD_SEPARATOR);
 		
     	String rowKey = resultKey[0];
-    	String dataType = resultKey[1].toLowerCase();
-    	int sourceSeq = Integer.parseInt(resultKey[2]);
+    	String dataType = null;
+    	int sourceSeq = 0;
+    	Field fld = null;
+    	char dataTypeChar = '-';
     	
-    	Field fld = fm.sourceSeqWithField.get(sourceSeq);
-		char dataTypeChar = KVIndexer.dataTypesPrimitives.get(dataType);
+    	if(!rowKey.equalsIgnoreCase(KVIndexer.MERGEKEY_ROW)){
 
+    		dataType = resultKey[1].toLowerCase();
+    		sourceSeq = Integer.parseInt(resultKey[2]);
+    		fld = fm.sourceSeqWithField.get(sourceSeq);
+    		dataTypeChar = KVIndexer.dataTypesPrimitives.get(dataType);
+    		
+    	}
+    	
 		if ( null != this.plugin) {
 			boolean continueIndexing = this.plugin.reduce(rowKey, dataTypeChar, sourceSeq, values );
 			if ( !continueIndexing ) return;
 		}
 		
-		
-		List<NVBytes> cells = null;
 		byte[] existingData = null;
-		if ( fm.append ) {
-			cells = HReader.getCompleteRow(fm.tableName, rowKey.getBytes());
+		
+		if ( fm.append ){
+			List<NVBytes> cells = HReader.getCompleteRow(fm.tableName, rowKey.getBytes());
 			if ( null != cells) {
 				if ( cells.size() > 0 ) {
 					NVBytes nvBytes = cells.get(0);
 					if ( null != nvBytes ) existingData = nvBytes.data;
 				}
 			}
+
 		}
+		
 		StringBuilder rowKeyText = new StringBuilder(rowKey);
 		byte[] finalData = cookBytes(rowKeyText, values, existingData, fld, dataTypeChar);
 		if(null == finalData) return;
@@ -144,10 +155,17 @@ public class KVReducer extends TableReducer<Text, Text, ImmutableBytesWritable> 
 			Field fld, char dataTypeChar) throws IOException {
 		
 		byte[] finalData = null;
-		String fieldName = fld.name;
-		boolean compressed = fld.isCompressed;
-		boolean repeatable = fld.isRepeatable;
-		boolean analyzed = fld.isAnalyzed;
+		String fieldName = null;
+		boolean compressed = false;
+		boolean repeatable = false;
+		boolean analyzed = false;
+
+		if(null != fld){
+			fieldName = fld.name;
+			compressed = fld.isCompressed;
+			repeatable = fld.isRepeatable;
+			analyzed = fld.isAnalyzed;
+		}
 		
 		switch (dataTypeChar) {
 
@@ -197,7 +215,14 @@ public class KVReducer extends TableReducer<Text, Text, ImmutableBytesWritable> 
 				break;
 
 			default:
+			{
+				List<String> mergeKeys = new ArrayList<String>();
+				for (Text mergeKey : values) {
+					mergeKeys.add(mergeKey.toString());
+				}
+				finalData = SortedBytesString.getInstance().toBytes(mergeKeys);
 				break;
+			}
 		}
 		return finalData;
 	}
