@@ -34,6 +34,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
+import org.apache.hadoop.fs.FileSystem;
+import org.apache.hadoop.fs.Path;
 import org.apache.lucene.analysis.Analyzer;
 import org.apache.lucene.analysis.LowerCaseFilter;
 import org.apache.lucene.analysis.StopFilter;
@@ -54,6 +56,7 @@ import com.bizosys.unstructured.util.IdSearchLog;
 
 public class StopwordAndSynonumAnalyzer extends Analyzer {
 	
+	private static final boolean DEBUG_ENABLED = IdSearchLog.l.isDebugEnabled();
 	Set<String> stopwords = null;
 	Map<String, String> conceptWithPipeSeparatedSynonums = null;
 	char conceptWordSeparator = '|';
@@ -106,23 +109,80 @@ public class StopwordAndSynonumAnalyzer extends Analyzer {
 	}
 
 	public void load() throws IOException {
-		ClassLoader classLoader = Thread.currentThread().getContextClassLoader();
-		String stopFile = classLoader.getResource("stopwords.txt").getPath();
-		String synFile = classLoader.getResource("synonums.txt").getPath();
-		load(stopFile, synFile);
+		
+		InputStream stopwordStream = null;
+		InputStream synonumStream = null;
+		
+		org.apache.hadoop.conf.Configuration conf = 
+			new org.apache.hadoop.conf.Configuration();
+		FileSystem fs = FileSystem.get(conf);
+		if ( null != fs) {
+			Path stopPath = new Path("stopwords.txt");
+			if ( fs.exists(stopPath) ) {
+				if ( DEBUG_ENABLED) IdSearchLog.l.debug(
+					"Loading Stopword file from HDFS :" + stopPath.toString());
+				stopwordStream = fs.open(stopPath);
+			} else {
+				if ( DEBUG_ENABLED) IdSearchLog.l.debug(
+					"Stopword file not available in HDFS :" + stopPath.toString());
+			}
+			
+			Path synPath = new Path("synonums.txt");
+			if ( fs.exists(synPath) ) {
+				synonumStream = fs.open(synPath);
+				if ( DEBUG_ENABLED) IdSearchLog.l.debug(
+						"Loading Synonum file from HDFS :" + stopPath.toString());
+			} else {
+				if ( DEBUG_ENABLED) IdSearchLog.l.debug(
+						"Synonum file not available in HDFS :" + stopPath.toString());
+			}
+		}
+		
+		ClassLoader classLoader = null;
+		
+		if ( null == stopwordStream || null == synonumStream) {
+			classLoader =Thread.currentThread().getContextClassLoader();
+		}
+		
+		if ( null == stopwordStream) {
+			String stopFile = classLoader.getResource("stopwords.txt").getPath();
+			File stopwordFile = new File(stopFile);
+			if ( stopwordFile.exists()) {
+				stopwordStream = new FileInputStream(stopwordFile);
+				if ( DEBUG_ENABLED) IdSearchLog.l.debug(
+						"Loading Stopword file from Local :" + stopwordFile.getAbsolutePath());
+			} else {
+				if ( DEBUG_ENABLED) IdSearchLog.l.debug(
+						"Stopword file not available at :" + stopwordFile.getAbsolutePath());
+			}
+			
+		}
+
+
+		if ( null == synonumStream) {
+			String synFileName = classLoader.getResource("synonums.txt").getPath();
+			File synFile = new File(synFileName);
+			if ( synFile.exists()) {
+				synonumStream = new FileInputStream(synFile);
+				if ( DEBUG_ENABLED) IdSearchLog.l.debug(
+						"Loading Synonum file from Local :" + synFile.getAbsolutePath());
+			} else {
+				if ( DEBUG_ENABLED) IdSearchLog.l.debug(
+						"Synonum file not available at :" + synFile.getAbsolutePath());
+			}
+		}
+		
+		load(stopwordStream, synonumStream);
 	}
 	
-	public void load(String stopwordFileName, String synonumFileName) throws IOException {
-		File stopwordFile = new File(stopwordFileName);
+	public void load(InputStreamReader stopwordStream, InputStreamReader synonumStream) throws IOException {
 		this.stopwords = new HashSet<String>();
 		this.conceptWithPipeSeparatedSynonums = new HashMap<String, String>();
 		
 		{
 			BufferedReader reader = null;
-			InputStream stream = null;
 			try {
-				stream = new FileInputStream(stopwordFile); 
-				reader = new BufferedReader ( new InputStreamReader (stream) );
+				reader = new BufferedReader ( stopwordStream );
 				String line = null;
 				while((line=reader.readLine())!=null) {
 					if (line.length() == 0) continue;
@@ -138,7 +198,7 @@ public class StopwordAndSynonumAnalyzer extends Analyzer {
 			{
 				try {if ( null != reader ) reader.close();
 				} catch (Exception ex) {IdSearchLog.l.warn(ex);}
-				try {if ( null != stream) stream.close();
+				try {if ( null != stopwordStream) stopwordStream.close();
 				} catch (Exception ex) {IdSearchLog.l.warn(ex);}
 			}
 		}
@@ -146,12 +206,9 @@ public class StopwordAndSynonumAnalyzer extends Analyzer {
 		 * CONCEPT FILE READING
 		 ******************/
 		{
-			File synonumFile = new File(synonumFileName);
 			BufferedReader reader = null;
-			InputStream stream = null;
 			try {
-				stream = new FileInputStream(synonumFile); 
-				reader = new BufferedReader ( new InputStreamReader (stream) );
+				reader = new BufferedReader ( synonumStream );
 				String line = null;
 				
 				List<String> concepts = new ArrayList<String>();
@@ -176,11 +233,77 @@ public class StopwordAndSynonumAnalyzer extends Analyzer {
 			{
 				try {if ( null != reader ) reader.close();
 				} catch (Exception ex) {IdSearchLog.l.warn(ex);}
-				try {if ( null != stream) stream.close();
+				try {if ( null != synonumStream) synonumStream.close();
 				} catch (Exception ex) {IdSearchLog.l.warn(ex);}
 			}		
 		}
 		
+	}	
+	
+	public void load(InputStream stopwordStream, InputStream synonumStream) throws IOException {
+		this.stopwords = new HashSet<String>();
+		this.conceptWithPipeSeparatedSynonums = new HashMap<String, String>();
+		
+		if ( null != stopwordStream) loadStopwords(stopwordStream);
+		if ( null != synonumStream) loadSynonums(synonumStream);
+	}
+
+	private void loadSynonums(InputStream synonumStream) throws IOException {
+		BufferedReader reader = null;
+		try {
+			reader = new BufferedReader ( new InputStreamReader (synonumStream) );
+			String line = null;
+			
+			List<String> concepts = new ArrayList<String>();
+			while((line=reader.readLine())!=null) {
+				if (line.length() == 0) continue;
+				concepts.clear();
+				
+				int index1 = line.indexOf(this.conceptWordSeparator);
+				if (index1 >= 0) {
+					String left = line.substring(0, index1);
+					conceptWithPipeSeparatedSynonums.put(left, line.substring(index1+1));
+				} else {
+					throw new IOException("Invalid Concept file format[" + line + "]");
+				}
+			}
+		} 
+		catch (Exception ex) 
+		{
+			throw new IOException(ex);
+		} 
+		finally 
+		{
+			try {if ( null != reader ) reader.close();
+			} catch (Exception ex) {IdSearchLog.l.warn(ex);}
+			try {if ( null != synonumStream) synonumStream.close();
+			} catch (Exception ex) {IdSearchLog.l.warn(ex);}
+		}
+	}
+
+	private void loadStopwords(InputStream stopwordStream) throws IOException {
+		BufferedReader reader = null;
+		try {
+			reader = new BufferedReader ( new InputStreamReader (stopwordStream) );
+			String line = null;
+			while((line=reader.readLine())!=null) {
+				if (line.length() == 0) continue;
+				this.stopwords.add(line);
+			}
+		} 
+		
+		catch (Exception ex) 
+		{
+			throw new IOException(ex);
+		} 
+		
+		finally 
+		{
+			try {if ( null != reader ) reader.close();
+			} catch (Exception ex) {IdSearchLog.l.warn(ex);}
+			try {if ( null != stopwordStream) stopwordStream.close();
+			} catch (Exception ex) {IdSearchLog.l.warn(ex);}
+		}
 	}
 	
 	public static void main(String[] args) throws IOException {

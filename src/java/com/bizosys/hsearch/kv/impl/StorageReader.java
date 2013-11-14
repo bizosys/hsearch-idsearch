@@ -183,8 +183,11 @@ public class StorageReader implements Callable<Map<Integer, Object>> {
 			return bitSets;
 		
 		} catch (Exception e) {
-			String msg = ( null == data) ? "Null Data" :  new String(data);
-			msg = e.getMessage()  + "\n" + msg ;
+			String msg = "Row Id = " + rowId + "\n"; 
+			msg = msg + "Filter Query = " + filterQuery + "\n"; 
+			msg = msg + (( null == data) ? "Null Data" :  new String(data)) + "\n";
+			msg = "Error :" + e.getMessage();
+			IdSearchLog.l.fatal(msg);
 			IOException ioException = new IOException(msg, e);
 			throw ioException;
 		}
