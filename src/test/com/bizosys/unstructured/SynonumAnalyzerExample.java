@@ -30,8 +30,6 @@ import org.apache.lucene.document.Document;
 import org.apache.lucene.document.Field;
 import org.apache.lucene.document.Fieldable;
 
-import com.bizosys.unstructured.CustomAnalyzerExample;
-
 public class SynonumAnalyzerExample {
 
 	public static void main(String[] args) throws Exception {
@@ -39,7 +37,7 @@ public class SynonumAnalyzerExample {
 		doc.add(new Field("description", "bengalure is a good city", Field.Store.NO, Field.Index.ANALYZED));
 		Map<String, String> syn = new HashMap<String, String>();
 		syn.put("bangalore", "bengalure|bangaluru");
-		Analyzer analyzer = new StopwordAndSynonumAnalyzer();
+		Analyzer analyzer = new StopwordAndSynonymAnalyzer();
 		//analyzer.load(null, syn);
 
 		for (Fieldable field : doc.getFields() ) {

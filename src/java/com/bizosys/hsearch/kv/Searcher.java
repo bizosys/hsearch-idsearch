@@ -86,6 +86,7 @@ public class Searcher {
 	public static boolean INFO_ENABLED = HSearchLog.l.isInfoEnabled();
 	
 	private boolean checkForAllWords = false;
+	private SearcherPluginOffset pageCalculator = new SearcherPluginOffset();	
 	private ISearcherPlugin plugIn = null;	
 
 	private Map<Integer,KVRowI> joinedRows = null;
@@ -107,6 +108,10 @@ public class Searcher {
 	
 	public final void setPlugin(ISearcherPlugin plugIn) {
 		this.plugIn = plugIn;
+	}	
+
+	public final void setPage(int offset, int pageSize) {
+		this.pageCalculator.set(offset, pageSize);
 	}	
 
 	public final Set<String> getMergeIds() throws IOException {
@@ -152,7 +157,35 @@ public class Searcher {
 		this.search(mergeId, selectQuery, whereQuery, null, blankRow, enrichers);
 	}
 	
-	
+	public final void search(final String mergeId, final String selectQuery, String whereQuery,String facetFields,String sortFields, 
+			final KVRowI blankRow, final IEnricher... enrichers) 
+			throws IOException, InterruptedException, ExecutionException, FederatedSearchException, NumberFormatException, ParseException {
+		
+		int sortFieldsT = ( null == sortFields ) ? 0 : sortFields.trim().length(); 
+		if ( 0 == sortFieldsT) {
+			this.search(mergeId, selectQuery, whereQuery,facetFields, blankRow, enrichers);
+			return;
+		}
+		
+		this.pageCalculator.onSortMode = true;
+		StringBuilder sortSelect = new StringBuilder(sortFields.length());
+		for (char aChar : sortFields.toCharArray()) {
+			if ( aChar == '^') continue;
+			sortSelect.append(aChar);
+		}
+		this.search(mergeId, sortSelect.toString(), whereQuery, facetFields, blankRow, enrichers);
+
+		if ( null != this.plugIn) this.plugIn.beforeSort(mergeId, this.resultset);
+		this.sort(patternComma.split(sortFields));
+		if ( null != this.plugIn) this.plugIn.afterSort(mergeId, this.resultset);
+		
+		this.getValuesAfterSorting(mergeId, selectQuery, blankRow, enrichers);
+		
+		//Resort
+		this.sort(sortFields);
+		
+	}
+
 	public final void search(final String mergeId,  
 			final String selectQuery, String whereQuery, String facetFields,
 			final KVRowI blankRow, final IEnricher... enrichers) 
@@ -171,7 +204,7 @@ public class Searcher {
 		if(!isWhereQueryEmpty){
 			whereQuery = parseWhereQuery(mergeId, whereQuery, whereParts);
 			matchIds = getIds(mergeId, whereQuery, whereParts);
-			matchIdsFoundT = ( null == matchIds) ? 0 : ( null == matchIds.getDocumentSequences()) ? 0 : matchIds.getDocumentSequences().size();
+			matchIdsFoundT = ( null == matchIds) ? 0 : ( null == matchIds.getDocumentSequences()) ? 0 : matchIds.getDocumentSequences().cardinality();
 			if(0 == matchIdsFoundT) return;
 		}
 
@@ -179,11 +212,11 @@ public class Searcher {
 		if ( null == this.joinedRows)
 			this.joinedRows = new HashMap<Integer, KVRowI>(joinedRowSize);
 		else this.joinedRows.clear();
-		
+
 		if ( null != matchIds) {
 			if ( null != this.plugIn) this.plugIn.onJoin(
 				mergeId, matchIds.getDocumentSequences(), whereParts, this.joinedRows);			
-			matchIdsFoundT = ( null == matchIds) ? 0 : ( null == matchIds.getDocumentSequences()) ? 0 : matchIds.getDocumentSequences().length();
+			matchIdsFoundT = ( null == matchIds) ? 0 : ( null == matchIds.getDocumentSequences()) ? 0 : matchIds.getDocumentSequences().cardinality();
 			if(0 == matchIdsFoundT) return;
 		}
 
@@ -206,6 +239,7 @@ public class Searcher {
 		 * Value fetch
 		 */
 		if ( null != matchIds) {
+			this.pageCalculator.keepPage(matchIds.getDocumentSequences());
 			if ( null != this.plugIn) 	{
 				this.plugIn.beforeSelect(mergeId, matchIds.getDocumentSequences());
 			}
@@ -230,6 +264,49 @@ public class Searcher {
 		}		
 		
 	}
+	
+
+	private final void getValuesAfterSorting(String mergeId, final String selectQuery, 
+			final KVRowI blankRow, final IEnricher... enrichers) 
+			throws IOException, InterruptedException, ExecutionException, FederatedSearchException, NumberFormatException, ParseException {
+		
+		/**
+		 * Value fetch
+		 */
+		if ( null == this.resultset) return;
+		if ( null == selectQuery) return; 
+		
+		BitSetWrapper onePageIds = this.pageCalculator.keepPage(this.resultset);
+		this.resultset.clear();
+		if(null != this.joinedRows)
+			joinedRows.clear();
+
+		if ( null != onePageIds) {
+			if ( null != this.plugIn) 	{
+				this.plugIn.beforeSelectOnSorted(mergeId, onePageIds);
+			}
+		}
+		
+		BitSetOrSet onePageIdsBits = new BitSetOrSet();
+		onePageIdsBits.setDocumentSequences(onePageIds);
+		getValues(mergeId, onePageIdsBits, selectQuery, blankRow);
+		
+		if ( null != onePageIds) {
+			if ( null != this.plugIn) 	{
+				this.plugIn.afterSelectOnSorted(mergeId, onePageIds);
+			}
+		}
+
+		/**
+		 * Apply Enricher
+		 */
+		if ( null != enrichers && null != this.resultset) {
+			for (IEnricher enricher : enrichers) {
+				if ( null != enricher) enricher.enrich(this.resultset);
+			}
+		}		
+	}
+	
 	
 	@SuppressWarnings("unchecked")
 	public final void getValues(final String mergeId, final BitSetOrSet matchIds, final String selectQuery,  
@@ -422,11 +499,12 @@ public class Searcher {
 		for (GroupSorterSequencer seq : sortSequencer) {
 			gs.setSorter(seq);
 		}
+		
 		int resultsetT = this.resultset.size();
 		GroupSortedObject[] sortedContainer = new GroupSortedObject[resultsetT];
 		this.resultset.toArray(sortedContainer);
 		gs.sort(sortedContainer);
-		this.resultset = new LinkedHashSet<KVRowI>();
+		this.resultset = new LinkedHashSet<KVRowI>(resultsetT);
 		for (int j=0; j < resultsetT; j++) {
 			this.resultset.add((KVRowI)sortedContainer[j]);
 		}

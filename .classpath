@@ -16,7 +16,6 @@
 	<classpathentry kind="lib" path="lib/lucene-queryparser-3.6.2.jar"/>
 	<classpathentry kind="con" path="org.eclipse.jdt.launching.JRE_CONTAINER"/>
 	<classpathentry kind="con" path="org.eclipse.jdt.junit.JUNIT_CONTAINER/3"/>
-	<classpathentry kind="var" path="TOOLS_JAR"/>
 	<classpathentry kind="lib" path="/hsearch-hbase/hbase-cdh4/lib/activation-1.1.jar"/>
 	<classpathentry kind="lib" path="/hsearch-hbase/hbase-cdh4/lib/aopalliance-1.0.jar"/>
 	<classpathentry kind="lib" path="/hsearch-hbase/hbase-cdh4/lib/asm-3.2.jar"/>
@@ -95,6 +94,6 @@
 	<classpathentry kind="lib" path="/hsearch-hbase/hbase-cdh4/lib/xmlenc-0.52.jar"/>
 	<classpathentry kind="lib" path="/hsearch-hbase/hbase-cdh4/lib/zookeeper-3.4.5-cdh4.2.0.jar"/>
 	<classpathentry kind="lib" path="lib/gson-2.2.2.jar"/>
-	<classpathentry kind="lib" path="D:/install/frameworks/jdk1.6.0_25/lib/tools.jar"/>
+	<classpathentry kind="lib" path="E:/mnt/install/java/jdk1.6/lib/tools.jar"/>
 	<classpathentry kind="output" path="classes"/>
 </classpath>

@@ -149,7 +149,7 @@ public class KVMapperHBase extends TableMapper<Text, Text> {
 					break;
 
 				default:
-					break;
+					throw new IOException("Unknown data type" + rowFld.getDataType());
 				}  
 				
 				if ( null == finalData) return;

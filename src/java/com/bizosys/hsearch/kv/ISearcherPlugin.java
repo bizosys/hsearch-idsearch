@@ -21,6 +21,7 @@
 package com.bizosys.hsearch.kv;
 
 import java.util.Map;
+import java.util.Set;
 
 import com.bizosys.hsearch.federate.BitSetWrapper;
 import com.bizosys.hsearch.federate.QueryPart;
@@ -34,6 +35,14 @@ public interface ISearcherPlugin {
 
 	void beforeSelect(String mergeId, BitSetWrapper foundIds);
 	
+	void beforeSelectOnSorted(String mergeId, BitSetWrapper foundIds);
+
 	void afterSelect(String mergeId, BitSetWrapper foundIds);
 
+	void afterSelectOnSorted(String mergeId, BitSetWrapper foundIds);
+
+	void beforeSort(String mergeId, Set<KVRowI> resultSet);
+
+	void afterSort(String mergeId, Set<KVRowI> resultSet);
+	
 }

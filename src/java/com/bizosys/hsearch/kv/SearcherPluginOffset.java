@@ -20,30 +20,81 @@
 
 package com.bizosys.hsearch.kv;
 
-import java.util.Map;
+import java.util.Collection;
 
 import com.bizosys.hsearch.federate.BitSetWrapper;
-import com.bizosys.hsearch.federate.QueryPart;
 
-public class SearcherPluginBase implements ISearcherPlugin {
+public class SearcherPluginOffset {
+	
+	int offset = 0;
+	int pageSize = 10000;
+	int outset = offset + pageSize;
+	public boolean onSortMode = false;
+	
+	public SearcherPluginOffset() {
+	}
+	
+	public void set(int offset, int pageSize) {
+		System.out.println("Query > Offset: " + offset + " , Page Size:" + pageSize);
+		this.offset = offset;
+		this.pageSize = pageSize;
+		outset = offset + pageSize;
+		this.onSortMode = false;
+	}
 
 	
-	public void onJoin(String mergeId, BitSetWrapper foundIds,
-			Map<String, QueryPart> whereParts,
-			Map<Integer, KVRowI> foundIdWithValueObjects) {
+	public void keepPage(BitSetWrapper foundIds) {
+		if ( onSortMode ) return;
+		if ( null == foundIds) return;
+		if ( offset < 0) return;
+
+		int rowId = -1;
+		for (int bitsIndex = foundIds.nextSetBit(0); bitsIndex >= 0; bitsIndex = foundIds.nextSetBit(bitsIndex+1)) {
+			rowId++;
+			if (rowId < offset ) foundIds.set(bitsIndex, false);
+			if ( rowId > outset ) {
+				foundIds.set(bitsIndex, foundIds.length() - 1, false);
+				break;
+			}
+		}
 	}
 
-	@Override
-	public void onFacets(String mergeId,
-			Map<String, Map<Object, FacetCount>> facets) {
+	public BitSetWrapper keepPage(Collection<KVRowI> sortedIds) {
+		if ( null == sortedIds) return null;
+		BitSetWrapper pageIds = new BitSetWrapper();
+		
+		int totalSize = sortedIds.size();
+		int offsetScoped = ( offset > totalSize) ? totalSize : offset;
+		if ( offsetScoped < 0) offsetScoped = 0;
+		int outsetScoped = ( outset > totalSize) ? totalSize : outset;
+		
+		int index = 0; 
+		for(KVRowI kv : sortedIds) {
+			index++;
+			if ( index < offsetScoped) continue;
+			if ( index > outsetScoped) break;
+			pageIds.set(kv.getId());
+		}
+		return pageIds;
 	}
 
-	@Override
-	public void beforeSelect(String mergeId, BitSetWrapper foundIds) {
-	}
+	public static void main(String[] args) {
+		
+		int offset = 99;
+		int pageSize = 10;
+		BitSetWrapper foundIds = new BitSetWrapper();
+		for ( int i=0; i<200; i++) {
+			if ( i % 2 == 0 ) foundIds.set(i/2);
+		}
+		
+		int outset = offset + pageSize;
+		int rowId = -1;
+		for (int i = foundIds.nextSetBit(0); i >= 0; i = foundIds.nextSetBit(i+1)) {
+			rowId++;
+			if (rowId < offset || rowId > outset) foundIds.set(i, false);
+		}
 
-	@Override
-	public void afterSelect(String mergeId, BitSetWrapper foundIds) {
+		System.out.println(foundIds.toString());
 	}
 
 }

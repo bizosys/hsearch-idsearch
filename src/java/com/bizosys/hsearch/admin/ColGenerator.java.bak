@@ -168,9 +168,7 @@ public class ColGenerator {
 		template = template.replace("--BYTE_SEQUENCER--", byteSequencer);
 		
 		//System.out.println(template);
-		String pathPrefix = ( path.equals(".") ) ? "" : path;
-		
-		FileWriterUtil.downloadToFile(template.getBytes(),new File(pathPrefix + className + ".java") );
+		FileWriterUtil.downloadToFile(template.getBytes(),new File(path + className + ".java") );
 	}
 
 	public static String getTextFileContent(String fileName) throws IOException {
@@ -212,16 +210,14 @@ public class ColGenerator {
 	}
 	
 	public static void main(String[] args) throws IOException, ParseException {
-		if (args.length != 3) {
-			System.err.println("ColGenerator schemaFile create-path class-name");
-			return;
+		FieldMapping fm = FieldMapping.getInstance();
+		if ( args.length < 1) {
+			File file = new File("./src/java/com/bizosys/hsearch/admin/schema.xml");
+			if ( ! file.exists()) {
+				System.err.println("java ColGenerator ./schema.xml");
+				System.exit(1);
+			}
 		}
-		
-		String schemaFile = args[0];
-		String valueObjectPath = args[1];
-		String valueObjectClassName = args[2];
-		
-		FieldMapping fm = FieldMapping.getInstance(schemaFile);
-    	ColGenerator.createVO(fm, valueObjectPath, valueObjectClassName);
+		ColGenerator.generate(fm, "/tmp", "Column");
 	}
 }

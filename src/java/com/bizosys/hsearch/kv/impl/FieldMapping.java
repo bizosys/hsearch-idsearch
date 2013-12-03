@@ -216,7 +216,92 @@ public class FieldMapping extends DefaultHandler {
 
 	public void startElement(String uri, String localName, String qName,Attributes attributes) throws SAXException {
 
-		if(qName.equalsIgnoreCase("schema")){
+		if (qName.equalsIgnoreCase("field")) {
+
+			String sourceName = null;
+			String dataType = null;
+			String defaultValue = null;
+			String analyzer = null;
+			String expr = null;
+			
+			try {
+				name = attributes.getValue("name");
+				if ( null == name) IdSearchLog.l.warn("Missing Field Name(name) attribute");
+				
+				sourceName = attributes.getValue("sourcename");
+
+				String fldVal = attributes.getValue("sourcesequence");
+				if ( null == fldVal) IdSearchLog.l.debug("Missing " + name + " Field Sequence(sourcesequence) attribute");
+				sourceSeq = (null == fldVal || (fldVal.length() == 0)) ? -1 : Integer.parseInt(fldVal);
+				
+				fldVal = attributes.getValue("type");
+				if ( null == fldVal) IdSearchLog.l.debug("Missing " + name + " Data Type(type) attribute");
+				dataType = fldVal;
+
+				fldVal = attributes.getValue("mergekey");
+				boolean isMergedKey = ( null == fldVal) ? false : fldVal.equalsIgnoreCase("true");
+				
+				int mergePosition = (null == attributes.getValue("mergeposition") || (attributes.getValue("mergeposition").length() == 0)) 
+									? -1 : Integer.parseInt(attributes.getValue("mergeposition"));
+				
+				fldVal = attributes.getValue("indexed");
+				if ( null == fldVal) IdSearchLog.l.debug("Missing " + name + " Index (indexed) Setting to true");
+				boolean isIndexable = ( null == fldVal) ? true : fldVal.equalsIgnoreCase("true");
+
+				fldVal = attributes.getValue("stored");
+				if ( null == fldVal) IdSearchLog.l.debug("Missing " + name + " Store setting (stored) Setting to true");
+				boolean isStored = ( null == fldVal) ? true : fldVal.equalsIgnoreCase("true");
+				
+				fldVal = attributes.getValue("repeatable");
+				if ( null == fldVal) IdSearchLog.l.debug("Missing " + name + " Repeat setting (repeatable) Setting to true");
+				boolean isRepeatable = ( null == fldVal) ? true : fldVal.equalsIgnoreCase("true");
+				
+				fldVal = attributes.getValue("skipNull");
+				if ( null == fldVal) IdSearchLog.l.debug("Missing " + name + " Null setting (skipNull) Setting to true");
+				boolean skipNull = ( null == fldVal) ? true : fldVal.equalsIgnoreCase("true");
+				
+				fldVal = attributes.getValue("defaultValue");
+				if ( null == fldVal) IdSearchLog.l.debug("Missing " + name + " Default Value (defaultValue) Setting to -");
+				defaultValue = ( null == fldVal) ? "-" : fldVal;
+				
+				fldVal = attributes.getValue("analyzer");
+				analyzer = ( null == fldVal) ? "" : fldVal;
+				
+				fldVal = attributes.getValue("analyzed");
+				boolean isAnalyzed = ( null == fldVal) ? false : fldVal.equalsIgnoreCase("true");
+				boolean isDocIndex = (null == analyzer) ? false : analyzer.length() > 0;
+
+				fldVal = attributes.getValue("compress");
+				boolean isCompressed = ( null == fldVal) ? false : fldVal.equalsIgnoreCase("true");
+
+				fldVal = attributes.getValue("cache");
+				boolean isCachable = ( null == fldVal) ? true : fldVal.equalsIgnoreCase("true");
+
+				fldVal = attributes.getValue("biword");
+				boolean biWord = ( null == fldVal) ? false : fldVal.equalsIgnoreCase("true");
+
+				fldVal = attributes.getValue("triword");
+				boolean triWord = ( null == fldVal) ? false : fldVal.equalsIgnoreCase("true");
+
+				fldVal = attributes.getValue("expression");
+				expr = ( null == fldVal) ? null : (fldVal.length() == 0 ) ? null : fldVal;
+
+				fldVal = attributes.getValue("sourceurl");
+				boolean sourceurl = ( null == fldVal) ? false : fldVal.equalsIgnoreCase("true");
+				
+				field = new Field(name, sourceName, sourceSeq, isIndexable, isStored, isRepeatable,
+						isMergedKey, mergePosition, skipNull, defaultValue, dataType, analyzer, 
+						isDocIndex, isAnalyzed, isCachable, isCompressed, biWord, triWord, sourceurl, expr);
+			} catch (Exception e) {
+				System.err.println(
+						"Name=" + name + "\tSourcename=" + sourceName + 
+						"\tDatatype=" + dataType + "\tDefaultValue=" + defaultValue + 
+						"\tAnalyzer=" + analyzer + "\tExpression=" + expr);
+				
+				throw new SAXException(e);
+			}
+		
+		} else if(qName.equalsIgnoreCase("schema")){
 			tableName = attributes.getValue("tableName");
 			tableName = (null == tableName) ? "hsearch" : (tableName.length() == 0 ? "hsearch" : tableName);
 			
@@ -242,76 +327,7 @@ public class FieldMapping extends DefaultHandler {
 			delete = (null == fldVal) ? false : fldVal.equals("true");
 
 		}
-		if (qName.equalsIgnoreCase("field")) {
-
-			name = attributes.getValue("name");
-			if ( null == name) IdSearchLog.l.warn("Missing Field Name(name) attribute");
-			
-			String sourceName = attributes.getValue("sourcename");
-
-			String fldVal = attributes.getValue("sourcesequence");
-			if ( null == fldVal) IdSearchLog.l.debug("Missing " + name + " Field Sequence(sourcesequence) attribute");
-			sourceSeq = (null == fldVal || (fldVal.length() == 0)) ? -1 : Integer.parseInt(fldVal);
-			
-			fldVal = attributes.getValue("type");
-			if ( null == fldVal) IdSearchLog.l.debug("Missing " + name + " Data Type(type) attribute");
-			String dataType = fldVal;
-
-			fldVal = attributes.getValue("mergekey");
-			boolean isMergedKey = ( null == fldVal) ? false : fldVal.equalsIgnoreCase("true");
-			
-			int mergePosition = (null == attributes.getValue("mergeposition") || (attributes.getValue("mergeposition").length() == 0)) 
-								? -1 : Integer.parseInt(attributes.getValue("mergeposition"));
-			
-			fldVal = attributes.getValue("indexed");
-			if ( null == fldVal) IdSearchLog.l.debug("Missing " + name + " Index (indexed) Setting to true");
-			boolean isIndexable = ( null == fldVal) ? true : fldVal.equalsIgnoreCase("true");
-
-			fldVal = attributes.getValue("stored");
-			if ( null == fldVal) IdSearchLog.l.debug("Missing " + name + " Store setting (stored) Setting to true");
-			boolean isStored = ( null == fldVal) ? true : fldVal.equalsIgnoreCase("true");
-			
-			fldVal = attributes.getValue("repeatable");
-			if ( null == fldVal) IdSearchLog.l.debug("Missing " + name + " Repeat setting (repeatable) Setting to true");
-			boolean isRepeatable = ( null == fldVal) ? true : fldVal.equalsIgnoreCase("true");
-			
-			fldVal = attributes.getValue("skipNull");
-			if ( null == fldVal) IdSearchLog.l.debug("Missing " + name + " Null setting (skipNull) Setting to true");
-			boolean skipNull = ( null == fldVal) ? true : fldVal.equalsIgnoreCase("true");
-			
-			fldVal = attributes.getValue("defaultValue");
-			if ( null == fldVal) IdSearchLog.l.debug("Missing " + name + " Default Value (defaultValue) Setting to -");
-			String defaultValue = ( null == fldVal) ? "-" : fldVal;
-			
-			fldVal = attributes.getValue("analyzer");
-			String analyzer = ( null == fldVal) ? "" : fldVal;
-			
-			fldVal = attributes.getValue("analyzed");
-			boolean isAnalyzed = ( null == fldVal) ? false : fldVal.equalsIgnoreCase("true");
-			boolean isDocIndex = (null == analyzer) ? false : analyzer.length() > 0;
-
-			fldVal = attributes.getValue("compress");
-			boolean isCompressed = ( null == fldVal) ? false : fldVal.equalsIgnoreCase("true");
-
-			fldVal = attributes.getValue("cache");
-			boolean isCachable = ( null == fldVal) ? true : fldVal.equalsIgnoreCase("true");
-
-			fldVal = attributes.getValue("biword");
-			boolean biWord = ( null == fldVal) ? false : fldVal.equalsIgnoreCase("true");
-
-			fldVal = attributes.getValue("triword");
-			boolean triWord = ( null == fldVal) ? false : fldVal.equalsIgnoreCase("true");
-
-			fldVal = attributes.getValue("expression");
-			String expr = ( null == fldVal) ? null : (fldVal.length() == 0 ) ? null : fldVal;
-
-			fldVal = attributes.getValue("sourceurl");
-			boolean sourceurl = ( null == fldVal) ? false : fldVal.equalsIgnoreCase("true");
-			
-			field = new Field(name, sourceName, sourceSeq, isIndexable, isStored, isRepeatable,
-					isMergedKey, mergePosition, skipNull, defaultValue, dataType, analyzer, 
-					isDocIndex, isAnalyzed, isCachable, isCompressed, biWord, triWord, sourceurl, expr);
-		}
+		
 	}
 
 	public void endElement(String uri, String localName, String qName)

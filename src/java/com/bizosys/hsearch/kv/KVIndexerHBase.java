@@ -48,16 +48,6 @@ import com.bizosys.hsearch.kv.impl.KVReducer;
 
 public class KVIndexerHBase {
 
-	public static class KV {
-
-		public Object key;
-		public Object value;
-
-		public KV(Object key, Object value) {
-			this.key = key;
-			this.value = value;
-		}
-	}
 	public static Map<String, Character> dataTypesPrimitives = new HashMap<String, Character>();
 	static {
 		dataTypesPrimitives.put("string", 't');
@@ -79,13 +69,12 @@ public class KVIndexerHBase {
  
     	if(args.length < 2){
             System.out.println("Please enter valid number of arguments.");
-            System.out.println("Usage : KVIndexer <<Input Table>> <<XML File Configuration>> <<Indexer Plugin>>");
+            System.out.println("Usage : KVIndexer <<Input Table>> <<XML File Configuration>>");
             System.exit(1);
         }
     	
     	String inputTable = args[0];
     	String schemaPath = args[1];
-    	String indexerPlugin = ( args.length > 2) ? args[3] : null;
 
     	if (null == inputTable || inputTable.trim().isEmpty()) {
             System.out.println("Please enter proper table");
@@ -105,7 +94,11 @@ public class KVIndexerHBase {
 
 		br.close();
 		FieldMapping fm = new FieldMapping();
-		fm.parseXMLString(sb.toString());    	
+		fm.parseXMLString(sb.toString());
+		
+		if ( fm.tableName.equals(inputTable)) {
+			throw new IOException("Input table and index table can not be same");
+		}
 
     	//create table in hbase
 		HBaseAdmin admin =  HBaseFacade.getInstance().getAdmin();
@@ -115,7 +108,6 @@ public class KVIndexerHBase {
 
 		conf.set(KVIndexer.XML_FILE_PATH, schemaPath);
 		conf.set(KVIndexer.TABLE_NAME, outputTableName);
-		conf.set(KVIndexer.PLUGIN_CLASS_NAME, indexerPlugin);
 		
 		Job job = new Job(conf,"KVIndexerHBase");
 		job.setJarByClass(KVIndexerHBase.class);     // class that contains mapper and reducer

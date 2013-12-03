@@ -147,7 +147,11 @@ public class KVMapperBase {
 	protected void map(String[] result, Context context) throws IOException, InterruptedException {
 
 		//get mergeId 
-		mergeId = createMergeId(result);
+		mergeId = createPartitionKey(result);
+		
+		/**
+		 * Keep all merge ids as one row.
+		 */
 		if(!mergeKeys.contains(mergeId)){
 			mergeKeys.add(mergeId);
 			context.write(new Text(KVIndexer.MERGEKEY_ROW), new Text(mergeId));
@@ -225,7 +229,7 @@ public class KVMapperBase {
 		}
 	}
 
-	public String createMergeId(String[] result){
+	public String createPartitionKey(String[] result){
 
 		rowIdMap.clear();
 		String fldValue = null;
@@ -257,6 +261,7 @@ public class KVMapperBase {
 	
 			rowId = rowId + megedKeyArr[j]; 
 		}
+		rowId = ( rowId.length() > 0 ) ? rowId : "part1";
 		return rowId;
 	}
 
