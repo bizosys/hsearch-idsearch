@@ -5,8 +5,8 @@ import java.util.Set;
 import junit.framework.TestCase;
 import junit.framework.TestFerrari;
 
+import com.bizosys.hsearch.idsearch.util.IdSearchLog;
 import com.bizosys.hsearch.kv.impl.FieldMapping;
-import com.bizosys.unstructured.util.IdSearchLog;
 import com.oneline.ferrari.TestAll;
 
 public class TestMergeIdsSearch extends TestCase {

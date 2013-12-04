@@ -34,10 +34,10 @@ import org.apache.hadoop.mapreduce.Mapper;
 import org.apache.hadoop.mapreduce.lib.input.FileInputFormat;
 import org.apache.hadoop.mapreduce.lib.input.TextInputFormat;
 
+import com.bizosys.hsearch.idsearch.util.IdSearchLog;
 import com.bizosys.hsearch.kv.impl.KVMapper;
 import com.bizosys.hsearch.kv.impl.KVPlugin;
 import com.bizosys.hsearch.kv.impl.KVReducer;
-import com.bizosys.unstructured.util.IdSearchLog;
 
 public class KVIndexer {
 

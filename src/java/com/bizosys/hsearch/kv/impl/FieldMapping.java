@@ -37,13 +37,12 @@ import org.xml.sax.InputSource;
 import org.xml.sax.SAXException;
 import org.xml.sax.helpers.DefaultHandler;
 
-import com.bizosys.hsearch.util.HSearchLog;
+import com.bizosys.hsearch.idsearch.util.IdSearchLog;
 import com.bizosys.unstructured.AnalyzerFactory;
-import com.bizosys.unstructured.util.IdSearchLog;
 
 public class FieldMapping extends DefaultHandler {
 
-	private static final boolean DEBUG_ENABLED = HSearchLog.l.isDebugEnabled();
+	private static final boolean DEBUG_ENABLED = IdSearchLog.l.isDebugEnabled();
 
 	public class Field implements Comparable<Field>{
 
@@ -190,7 +189,7 @@ public class FieldMapping extends DefaultHandler {
 			AnalyzerFactory.getInstance().init(this);
 			
 		} catch (Exception e) {
-			HSearchLog.l.fatal("File Path: ", e);
+			IdSearchLog.l.fatal("File Path: ", e);
 			throw new ParseException(e.getMessage(), 0);
 		}
 	}
@@ -209,7 +208,7 @@ public class FieldMapping extends DefaultHandler {
 			
 			
 		} catch (Exception e) {
-			HSearchLog.l.fatal("File Path:" + filePath , e);
+			IdSearchLog.l.fatal("File Path:" + filePath , e);
 			throw new ParseException(e.getMessage(), 0);
 		}
 	}
@@ -261,8 +260,17 @@ public class FieldMapping extends DefaultHandler {
 				boolean skipNull = ( null == fldVal) ? true : fldVal.equalsIgnoreCase("true");
 				
 				fldVal = attributes.getValue("defaultValue");
-				if ( null == fldVal) IdSearchLog.l.debug("Missing " + name + " Default Value (defaultValue) Setting to -");
-				defaultValue = ( null == fldVal) ? "-" : fldVal;
+				if ( ! skipNull ) {
+					if ( dataType.toLowerCase().equals("string") ) {
+						if ( null == fldVal) IdSearchLog.l.debug(
+							"Missing " + name + " Default Value (defaultValue) Setting to -");
+						fldVal = ( null == fldVal) ? "-" : fldVal;
+					} else {
+						boolean isDefaultNull = (fldVal == null) ? true : (fldVal.trim().length() == 0 );
+						if ( isDefaultNull ) fldVal = "0";
+					}
+				}
+				defaultValue = fldVal;
 				
 				fldVal = attributes.getValue("analyzer");
 				analyzer = ( null == fldVal) ? "" : fldVal;
@@ -342,6 +350,6 @@ public class FieldMapping extends DefaultHandler {
 		for (Map.Entry<Integer, Field> entry : sourceSeqWithField.entrySet()) {
 			System.out.println(entry.getKey() + " - "+ entry.getValue().toString());
 		}
-		if ( DEBUG_ENABLED )  HSearchLog.l.debug("sahema name is " + tableName);
+		if ( DEBUG_ENABLED )  IdSearchLog.l.debug("sahema name is " + tableName);
 	}
 }

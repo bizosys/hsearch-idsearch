@@ -21,6 +21,7 @@ package com.bizosys.hsearch.kv.dao;
 
 import java.io.IOException;
 
+import com.bizosys.hsearch.idsearch.util.IdSearchLog;
 import com.bizosys.hsearch.kv.dao.inverted.HSearchTableKVBooleanInverted;
 import com.bizosys.hsearch.kv.dao.inverted.HSearchTableKVByteInverted;
 import com.bizosys.hsearch.kv.dao.inverted.HSearchTableKVDoubleInverted;
@@ -43,12 +44,10 @@ import com.bizosys.hsearch.treetable.client.HSearchProcessingInstruction;
 import com.bizosys.hsearch.treetable.client.IHSearchPlugin;
 import com.bizosys.hsearch.treetable.client.IHSearchTable;
 import com.bizosys.hsearch.treetable.storage.HSearchScalarFilter;
-import com.bizosys.hsearch.util.HSearchLog;
-import com.bizosys.unstructured.util.IdSearchLog;
 
 public class ScalarFilter extends HSearchScalarFilter {
 
-	public static boolean DEBUG_ENABLED = HSearchLog.l.isDebugEnabled();
+	public static boolean DEBUG_ENABLED = IdSearchLog.l.isDebugEnabled();
 	
 	public ScalarFilter(){
 	}

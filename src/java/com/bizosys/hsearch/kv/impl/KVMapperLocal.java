@@ -46,9 +46,9 @@ import org.apache.hadoop.mapreduce.StatusReporter;
 import org.apache.hadoop.mapreduce.TaskAttemptID;
 import org.apache.hadoop.security.Credentials;
 
+import com.bizosys.hsearch.idsearch.util.IdSearchLog;
 import com.bizosys.hsearch.kv.KVIndexer;
 import com.bizosys.hsearch.util.LineReaderUtil;
-import com.bizosys.unstructured.util.IdSearchLog;
 
 public class KVMapperLocal extends Mapper<LongWritable, Text, Text, Text> {
     	

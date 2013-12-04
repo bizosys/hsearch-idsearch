@@ -48,6 +48,7 @@ import com.bizosys.hsearch.functions.GroupSortedObject.FieldType;
 import com.bizosys.hsearch.functions.GroupSorter;
 import com.bizosys.hsearch.functions.GroupSorter.GroupSorterSequencer;
 import com.bizosys.hsearch.hbase.HReader;
+import com.bizosys.hsearch.idsearch.util.IdSearchLog;
 import com.bizosys.hsearch.kv.dao.DataBlock;
 import com.bizosys.hsearch.kv.dao.MapperKVBaseEmpty;
 import com.bizosys.hsearch.kv.dao.ScalarFilter;
@@ -61,10 +62,8 @@ import com.bizosys.hsearch.kv.impl.TypedObject;
 import com.bizosys.hsearch.treetable.client.HSearchProcessingInstruction;
 import com.bizosys.hsearch.treetable.client.HSearchQuery;
 import com.bizosys.hsearch.treetable.client.IHSearchTable;
-import com.bizosys.hsearch.util.HSearchLog;
 import com.bizosys.hsearch.util.LineReaderUtil;
 import com.bizosys.hsearch.util.ShutdownCleanup;
-import com.bizosys.unstructured.util.IdSearchLog;
 
 public class Searcher {
 
@@ -82,8 +81,8 @@ public class Searcher {
 	private Map<String, List<HsearchFacet>> pivotFacetsMap = null;
 	private KVDataSchemaRepository repository = KVDataSchemaRepository.getInstance();
 	
-	public static boolean DEBUG_ENABLED = HSearchLog.l.isDebugEnabled();
-	public static boolean INFO_ENABLED = HSearchLog.l.isInfoEnabled();
+	public static boolean DEBUG_ENABLED = IdSearchLog.l.isDebugEnabled();
+	public static boolean INFO_ENABLED = IdSearchLog.l.isInfoEnabled();
 	
 	private boolean checkForAllWords = false;
 	private SearcherPluginOffset pageCalculator = new SearcherPluginOffset();	
@@ -383,7 +382,7 @@ public class Searcher {
 			return mixedQueryMatchedIds;
 			
 		} catch (Exception e) {
-			HSearchLog.l.fatal("Error in Searcher: could not execute " + e.getMessage(), e);
+			IdSearchLog.l.fatal("Error in Searcher: could not execute " + e.getMessage(), e);
 			throw new IOException("Federated Query Failure: " + whereQuery + "\n" + e.getMessage());
 		}
 	}

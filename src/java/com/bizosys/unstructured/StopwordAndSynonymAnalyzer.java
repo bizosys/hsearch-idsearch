@@ -52,8 +52,8 @@ import org.apache.lucene.document.Fieldable;
 import org.apache.lucene.util.CharsRef;
 import org.apache.lucene.util.Version;
 
+import com.bizosys.hsearch.idsearch.util.IdSearchLog;
 import com.bizosys.hsearch.util.LineReaderUtil;
-import com.bizosys.unstructured.util.IdSearchLog;
 
 public class StopwordAndSynonymAnalyzer extends Analyzer {
 	

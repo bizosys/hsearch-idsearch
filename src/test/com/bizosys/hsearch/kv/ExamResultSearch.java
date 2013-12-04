@@ -9,8 +9,8 @@ import junit.framework.TestFerrari;
 
 import com.bizosys.hsearch.federate.BitSetOrSet;
 import com.bizosys.hsearch.federate.BitSetWrapper;
+import com.bizosys.hsearch.idsearch.util.IdSearchLog;
 import com.bizosys.hsearch.kv.impl.FieldMapping;
-import com.bizosys.unstructured.util.IdSearchLog;
 import com.oneline.ferrari.TestAll;
 
 public class ExamResultSearch extends TestCase {

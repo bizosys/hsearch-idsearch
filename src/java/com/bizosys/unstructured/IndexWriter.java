@@ -40,6 +40,7 @@ import com.bizosys.hsearch.byteutils.SortedBytesInteger;
 import com.bizosys.hsearch.hbase.HWriter;
 import com.bizosys.hsearch.hbase.NV;
 import com.bizosys.hsearch.hbase.RecordScalar;
+import com.bizosys.hsearch.idsearch.util.IdSearchLog;
 import com.bizosys.hsearch.treetable.client.partition.IPartition;
 import com.bizosys.hsearch.treetable.storage.HBaseTableSchemaDefn;
 import com.bizosys.hsearch.treetable.unstructured.IIndexFrequencyTable;
@@ -47,7 +48,6 @@ import com.bizosys.hsearch.treetable.unstructured.IIndexMetadataFlagTable;
 import com.bizosys.hsearch.treetable.unstructured.IIndexMetadataFrequencyTable;
 import com.bizosys.hsearch.treetable.unstructured.IIndexOffsetTable;
 import com.bizosys.hsearch.treetable.unstructured.IIndexPositionsTable;
-import com.bizosys.hsearch.util.HSearchLog;
 import com.bizosys.hsearch.util.Hashing;
 
 public class IndexWriter {
@@ -61,7 +61,7 @@ public class IndexWriter {
 	private static final int DOCMETA_FLAG_TABLE = 5;
 	private int tableType = -1;
 	
-	static boolean INFO_ENABLED = HSearchLog.l.isInfoEnabled();
+	static boolean INFO_ENABLED = IdSearchLog.l.isInfoEnabled();
 	
 	private List<IndexRow> cachedIndex = new ArrayList<IndexWriter.IndexRow>();
 	
@@ -467,7 +467,7 @@ public class IndexWriter {
 		
 			case FREQUENCY_TABLE :
 				data = this.toBytes(rows, keepDuplicates);
-				if ( INFO_ENABLED )  HSearchLog.l.info("Total rows in frequency table:\t" + rows.size());
+				if ( INFO_ENABLED )  IdSearchLog.l.info("Total rows in frequency table:\t" + rows.size());
 				break;
 
 			case POSITION_TABLE  :
@@ -477,7 +477,7 @@ public class IndexWriter {
 						row.hashCode(), row.docId, positionsB);
 				}
 				data = this.toBytes(rows, keepDuplicates);
-				if ( INFO_ENABLED )  HSearchLog.l.info("Total rows in position table:\t" + rows.size());
+				if ( INFO_ENABLED )  IdSearchLog.l.info("Total rows in position table:\t" + rows.size());
 				this.tablePositions.clear();
 				break;
 		
@@ -488,18 +488,18 @@ public class IndexWriter {
 						row.hashCode(), row.docId, offsetB);
 				}
 				data = this.toBytes(rows, keepDuplicates);
-				if ( INFO_ENABLED )  HSearchLog.l.info("Total rows in offset table:\t" + rows.size());
+				if ( INFO_ENABLED )  IdSearchLog.l.info("Total rows in offset table:\t" + rows.size());
 				this.tableOffset.clear();
 				break;
 		
 			case DOCMETA_FREQUENCY_TABLE:
 				data = this.toBytes(rows, keepDuplicates);
-				if ( INFO_ENABLED )  HSearchLog.l.info("Total rows in docmeta table:\t" + rows.size());
+				if ( INFO_ENABLED )  IdSearchLog.l.info("Total rows in docmeta table:\t" + rows.size());
 				break;
 
 			case DOCMETA_FLAG_TABLE:
 				data = this.toBytes(rows, keepDuplicates);
-				if ( INFO_ENABLED )  HSearchLog.l.info("Total rows in docmeta flag table:\t" + rows.size());
+				if ( INFO_ENABLED )  IdSearchLog.l.info("Total rows in docmeta flag table:\t" + rows.size());
 				break;
 
 			default:

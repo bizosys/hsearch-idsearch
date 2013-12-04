@@ -46,8 +46,8 @@ import org.apache.hadoop.util.Progress;
 
 import com.bizosys.hsearch.hbase.HBaseFacade;
 import com.bizosys.hsearch.hbase.HTableWrapper;
+import com.bizosys.hsearch.idsearch.util.IdSearchLog;
 import com.bizosys.hsearch.kv.KVIndexer;
-import com.bizosys.unstructured.util.IdSearchLog;
 
 public class KVReducerLocal extends TableReducer<Text, Text, ImmutableBytesWritable> {
     

@@ -29,8 +29,8 @@ import com.bizosys.hsearch.byteutils.SortedBytesBitset;
 import com.bizosys.hsearch.federate.BitSetWrapper;
 import com.bizosys.hsearch.hbase.HBaseFacade;
 import com.bizosys.hsearch.hbase.HTableWrapper;
+import com.bizosys.hsearch.idsearch.util.LruCache;
 import com.bizosys.hsearch.treetable.client.HSearchProcessingInstruction;
-import com.bizosys.unstructured.util.LruCache;
 
 public class DataBlock {
 	

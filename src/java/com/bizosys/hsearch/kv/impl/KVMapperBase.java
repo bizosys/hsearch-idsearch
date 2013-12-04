@@ -48,6 +48,7 @@ import com.bizosys.hsearch.hbase.HReader;
 import com.bizosys.hsearch.hbase.HWriter;
 import com.bizosys.hsearch.hbase.NV;
 import com.bizosys.hsearch.hbase.RecordScalar;
+import com.bizosys.hsearch.idsearch.util.IdSearchLog;
 import com.bizosys.hsearch.kv.KVIndexer;
 import com.bizosys.hsearch.kv.KVIndexer.KV;
 import com.bizosys.hsearch.kv.impl.FieldMapping.Field;
@@ -55,7 +56,6 @@ import com.bizosys.hsearch.util.Hashing;
 import com.bizosys.hsearch.util.LineReaderUtil;
 import com.bizosys.hsearch.util.LuceneUtil;
 import com.bizosys.unstructured.AnalyzerFactory;
-import com.bizosys.unstructured.util.IdSearchLog;
 
 public class KVMapperBase {
 
@@ -119,7 +119,7 @@ public class KVMapperBase {
 			} else {
 				fm = FieldMapping.getInstance(path);
 			}
-
+			
 			AnalyzerFactory.getInstance().init(fm);
 
 		} catch (FileNotFoundException fex) {
@@ -261,7 +261,15 @@ public class KVMapperBase {
 	
 			rowId = rowId + megedKeyArr[j]; 
 		}
-		rowId = ( rowId.length() > 0 ) ? rowId : "part1";
+		/**
+		 * This is used for caching. So different schema with same field name may cause a conflict.
+		 * Make it unique by adding the tablename at the starting
+		 */
+		String partName = fm.tableName.replaceAll("[^A-Za-z0-9]", "");
+		if ( null == partName) partName = "p1";
+		else partName = partName + "p1";
+		
+		rowId = ( rowId.length() > 0 ) ? rowId : partName;
 		return rowId;
 	}
 

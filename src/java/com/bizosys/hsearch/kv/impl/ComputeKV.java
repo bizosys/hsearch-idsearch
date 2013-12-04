@@ -33,8 +33,8 @@ import com.bizosys.hsearch.byteutils.SortedBytesLong;
 import com.bizosys.hsearch.byteutils.SortedBytesShort;
 import com.bizosys.hsearch.byteutils.SortedBytesString;
 import com.bizosys.hsearch.federate.BitSetWrapper;
+import com.bizosys.hsearch.idsearch.util.IdSearchLog;
 import com.bizosys.hsearch.treetable.Cell2;
-import com.bizosys.hsearch.util.HSearchLog;
 
 public final class ComputeKV implements ICompute {
 	
@@ -188,7 +188,7 @@ public final class ComputeKV implements ICompute {
 				break;
 							
 			default:
-				HSearchLog.l.error( "Unable to find the datatype" + this.kvType);
+				IdSearchLog.l.error( "Unable to find the datatype" + this.kvType);
 				break;
 		}
 		

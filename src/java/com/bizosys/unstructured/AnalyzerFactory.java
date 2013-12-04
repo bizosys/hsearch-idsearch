@@ -10,10 +10,10 @@ import org.apache.lucene.analysis.WhitespaceAnalyzer;
 import org.apache.lucene.analysis.standard.StandardAnalyzer;
 import org.apache.lucene.util.Version;
 
+import com.bizosys.hsearch.idsearch.util.Constants;
+import com.bizosys.hsearch.idsearch.util.IdSearchLog;
 import com.bizosys.hsearch.kv.impl.FieldMapping;
 import com.bizosys.hsearch.kv.impl.FieldMapping.Field;
-import com.bizosys.unstructured.util.Constants;
-import com.bizosys.unstructured.util.IdSearchLog;
 
 public class AnalyzerFactory {
 		

@@ -43,6 +43,7 @@ import com.bizosys.hsearch.federate.BitSetWrapper;
 import com.bizosys.hsearch.federate.FederatedSearchException;
 import com.bizosys.hsearch.idsearch.config.DocumentTypeCodes;
 import com.bizosys.hsearch.idsearch.config.FieldTypeCodes;
+import com.bizosys.hsearch.idsearch.util.IdSearchLog;
 import com.bizosys.hsearch.kv.dao.DataBlock;
 import com.bizosys.hsearch.kv.dao.KvRowReaderFactory;
 import com.bizosys.hsearch.kv.dao.MapperKV;
@@ -51,15 +52,13 @@ import com.bizosys.hsearch.kv.impl.FieldMapping.Field;
 import com.bizosys.hsearch.treetable.client.HSearchProcessingInstruction;
 import com.bizosys.hsearch.treetable.client.HSearchQuery;
 import com.bizosys.hsearch.treetable.client.IHSearchTable;
-import com.bizosys.hsearch.util.HSearchLog;
 import com.bizosys.hsearch.util.Hashing;
 import com.bizosys.unstructured.AnalyzerFactory;
-import com.bizosys.unstructured.util.IdSearchLog;
 
 public class StorageReader implements Callable<Map<Integer, Object>> {
 
-	public static boolean DEBUG_ENABLED = HSearchLog.l.isDebugEnabled();
-	public static boolean INFO_ENABLED = HSearchLog.l.isInfoEnabled();
+	public static boolean DEBUG_ENABLED = IdSearchLog.l.isDebugEnabled();
+	public static boolean INFO_ENABLED = IdSearchLog.l.isInfoEnabled();
 
 	public KVDocIndexer indexer = new KVDocIndexer();
 	
@@ -132,12 +131,12 @@ public class StorageReader implements Callable<Map<Integer, Object>> {
 			if(DEBUG_ENABLED){
 				long end = System.currentTimeMillis();
 				if(null != finalResult)
-					HSearchLog.l.debug(rowId + " Fetch time " + (end - start) +" for " + finalResult.size() + " records");
+					IdSearchLog.l.debug(rowId + " Fetch time " + (end - start) +" for " + finalResult.size() + " records");
 			}
 
 		} catch (Exception e) {
 			String msg = e.getMessage() + "\nFor rowid = "+ rowId + " query = " + filterQuery;
-			HSearchLog.l.fatal("ReadStorage Exception " + msg , e );
+			IdSearchLog.l.fatal("ReadStorage Exception " + msg , e );
 			e.printStackTrace();
 			throw new IOException(msg, e);
 		}
