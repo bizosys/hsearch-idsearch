@@ -30,8 +30,6 @@ import org.apache.hadoop.hbase.io.ImmutableBytesWritable;
 import org.apache.hadoop.hbase.mapreduce.TableMapper;
 import org.apache.hadoop.io.Text;
 
-import com.bizosys.hsearch.byteutils.Storable;
-import com.bizosys.hsearch.kv.KVIndexer;
 import com.bizosys.hsearch.kv.impl.FieldMapping.Field;
 
 public class KVMapperHBase extends TableMapper<Text, Text> {
@@ -63,12 +61,6 @@ public class KVMapperHBase extends TableMapper<Text, Text> {
     @Override
     protected void map(ImmutableBytesWritable row, Result value, Context context) throws IOException, InterruptedException {
     	
-		/**
-    	for (KeyValue kv : value.list()) {
-			System.out.println(new String(value.getRow()) + "\t" + new String(kv.getQualifier()) + "\t" + kv.getValueLength());
-		}
-		*/
-
     	byte[] rowId = value.getRow();
     	if ( null == rowId) return;
     	if ( 0 == rowId.length) return;
@@ -81,134 +73,23 @@ public class KVMapperHBase extends TableMapper<Text, Text> {
     	Exception failure = null;
     	
     	try {
-    		if ( sourceNameWithFields.containsKey("ROWID")) {
-    			Field rowFld = sourceNameWithFields.get("ROWID");
-    			char rowFldDatatype = KVIndexer.dataTypesPrimitives.get(rowFld.getDataType());
-				Object finalData = null;
-				switch (rowFldDatatype) {
-				
-				case 't':
-				case 'e':
-					finalData = new String(rowId);
-					break;
-
-				case 'i':
-					if ( rowId.length != 4) {
-						System.err.println("Skipping bad Id :" + new String(rowId));
-						return;
-					}
-					finalData =  Storable.getInt(0, rowId);
-					break;
-
-				case 'f':
-					if ( rowId.length != 4) {
-						System.err.println("Skipping bad Id :" + new String(rowId));
-						return;
-					}
-					finalData = Storable.getFloat(0, rowId);
-					break;
-
-				case 'l':
-					if ( rowId.length != 8) {
-						System.err.println("Skipping bad Id :" + new String(rowId));
-						return;
-					}
-					finalData = Storable.getLong(0, rowId);
-					break;
-
-				case 'd':
-					if ( rowId.length != 8) {
-						System.err.println("Skipping bad Id :" + new String(rowId));
-						return;
-					}
-					finalData = Storable.getDouble(0, rowId);
-					break;
-					
-				case 's':
-					if ( rowId.length != 2) {
-						System.err.println("Skipping bad Id :" + new String(rowId));
-						return;
-					}
-					finalData = Storable.getShort(0, rowId);
-					break;
-
-				case 'b':
-					if ( rowId.length != 1) {
-						System.err.println("Skipping bad Id :" + new String(rowId));
-						return;
-					}
-					finalData = (rowId[0] == 1);
-					break;
-
-				case 'c':
-					if ( rowId.length != 1) {
-						System.err.println("Skipping bad Id :" + new String(rowId));
-						return;
-					}
-					finalData = new Byte( (byte) rowId[0] ).toString() ;
-					break;
-
-				default:
-					throw new IOException("Unknown data type" + rowFld.getDataType());
-				}  
-				
-				if ( null == finalData) return;
-    			result[rowFld.sourceSeq] = finalData.toString();
-    		}
-    		
 			for (KeyValue kv : value.list()) {
 				byte[] qualifierB = kv.getQualifier();
 				int qualifierLen = ( null == qualifierB) ? 0 : qualifierB.length;
 				if ( qualifierLen == 0 ) continue;
 				
-				qualifier = new String(kv.getQualifier());
+				qualifier = new String(qualifierB);
 				byte[] valB = kv.getValue();
 				String val = null;
 				fld = sourceNameWithFields.get(qualifier);
 				if ( null == fld) continue;
 				
 				int len = ( null == valB) ? 0 : valB.length;
-				if ( 0 == len) {
-					if ( fld.skipNull) continue;
-					val = fld.defaultValue; 
-				} else {
-					char type = KVIndexer.dataTypesPrimitives.get(fld.getDataType().toLowerCase());
-					switch ( type) {
-						case 't':
-							val = new String(valB);
-							break;
-						case 'i':
-							val = new Integer(Storable.getInt(0, valB)).toString();
-							break;
-						case 's':
-							val = new Short(Storable.getShort(0, valB)).toString();
-							break;
-						case 'f':
-							val = new Float(Storable.getFloat(0, valB)).toString();
-							break;
-						case 'd':
-							val = new Double(Storable.getDouble(0, valB)).toString();
-							break;
-						case 'l':
-							val = new Long(Storable.getLong(0, valB)).toString();
-							break;
-						case 'b':
-							val = (valB[0] == 1) ? "true" : "false";
-							break;
-						case 'c':
-							if ( valB.length == 1) {
-								val = new Byte( (byte) valB[0] ).toString() ;
-							} else {
-								val = new Byte(new String(valB)).toString();
-							}
-							
-							break;
-						default:
-							val = new String(valB);
-					}
+				if ( len > 0 ) {
+					val = new String(valB);
 				}
 				
-				result[sourceNameWithFields.get(qualifier).sourceSeq] = val;
+				result[fld.sourceSeq] = val;
 			}
 			
 			kBase.map(result, context);
