@@ -86,7 +86,6 @@ public class KVReducer extends TableReducer<Text, Text, ImmutableBytesWritable> 
 			fm.parseXMLString(sb.toString());
 			neededPositions = fm.sourceSeqWithField.keySet();
 			KVIndexer.FIELD_SEPARATOR = fm.fieldSeparator;
-			conf.set(KVIndexer.TABLE_NAME, fm.tableName);
 			
 			this.plugin = KVIndexer.createPluginClass(conf);
 			if ( null != this.plugin ) this.plugin.setFieldMapping(fm);

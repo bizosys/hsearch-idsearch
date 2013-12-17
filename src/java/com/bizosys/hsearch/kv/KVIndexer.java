@@ -20,12 +20,15 @@
 package com.bizosys.hsearch.kv;
 
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.hbase.HBaseConfiguration;
+import org.apache.hadoop.hbase.HColumnDescriptor;
 import org.apache.hadoop.hbase.mapreduce.TableMapReduceUtil;
 import org.apache.hadoop.hbase.mapreduce.TableReducer;
 import org.apache.hadoop.io.Text;
@@ -34,8 +37,12 @@ import org.apache.hadoop.mapreduce.Mapper;
 import org.apache.hadoop.mapreduce.lib.input.FileInputFormat;
 import org.apache.hadoop.mapreduce.lib.input.TextInputFormat;
 
+import com.bizosys.hsearch.hbase.HBaseException;
+import com.bizosys.hsearch.hbase.HDML;
 import com.bizosys.hsearch.idsearch.util.IdSearchLog;
+import com.bizosys.hsearch.kv.impl.FieldMapping;
 import com.bizosys.hsearch.kv.impl.KVMapper;
+import com.bizosys.hsearch.kv.impl.KVMapperBase;
 import com.bizosys.hsearch.kv.impl.KVPlugin;
 import com.bizosys.hsearch.kv.impl.KVReducer;
 
@@ -44,8 +51,7 @@ public class KVIndexer {
 	public static String XML_FILE_PATH = "CONFIG_XMLFILE_LOCATION";
 	public static String PLUGIN_CLASS_NAME = "PLUGIN_CLASS_NAME";
 	public static final String MERGEKEY_ROW = "--HSEARCH_PARTITION_KEYS--";	
-	public static String SKIP_HEADER = "false";
-	public static String TABLE_NAME = "Table";
+	public static String SKIP_HEADER = "false";	
 	public static final String INCREMENTAL_ROW = "auto";
 	public static char FIELD_SEPARATOR = '|';
 	public static byte[] FAM_NAME = "1".getBytes();
@@ -125,21 +131,30 @@ public class KVIndexer {
     	
     	String inputFile = ( args.length > 0 ) ? args[0] : "";
     	String xmlFilePath = ( args.length > 1 ) ? args[1] : "";
-    	String tableName = ( args.length > 2 ) ? args[2] : "";
-    	String skipHeader = ( args.length > 3 ) ? args[3] : "false";
-    	String pluginClassName = ( args.length > 4 ) ? args[4] : "";
+    	String skipHeader = ( args.length > 2 ) ? args[2] : "false";
+    	String pluginClassName = ( args.length > 3 ) ? args[3] : "";
 
     	if (null == inputFile || inputFile.trim().isEmpty()) {
             String err = this.getClass().getName() + " > Please enter input file path.";
             System.err.println(err);
             throw new IOException(err);
         }
- 
+    	
+    	
 		Configuration conf = HBaseConfiguration.create();
 		conf.set(XML_FILE_PATH, xmlFilePath);
-		conf.set(TABLE_NAME, tableName);
 		conf.set(PLUGIN_CLASS_NAME, pluginClassName);
 		conf.set(SKIP_HEADER, skipHeader);
+		
+		FieldMapping fm = KVMapperBase.createFieldMapping(conf, xmlFilePath, new StringBuilder());
+		try {
+			List<HColumnDescriptor> colFamilies = new ArrayList<HColumnDescriptor>();
+			HColumnDescriptor cols = new HColumnDescriptor(fm.familyName.getBytes());
+			colFamilies.add(cols);
+			HDML.create(fm.tableName, colFamilies);
+		} catch (HBaseException e) {
+			e.printStackTrace();
+		}
 		
         Job job = new Job(conf, "HSearch Key Value indexer");
         job.setJarByClass(this.getClass());
@@ -148,18 +163,16 @@ public class KVIndexer {
         job.setMapOutputKeyClass(Text.class);
         job.setMapOutputValueClass(Text.class);
         job.setReducerClass(reduce);
- 
         msg = this.getClass().getName() + " > Indexing from input file path " + inputFile;
         System.out.println(msg);
         IdSearchLog.l.info(msg);
         FileInputFormat.addInputPath(job, new Path(inputFile.trim()));
         
-        TableMapReduceUtil.initTableReducerJob(args[2], reduce, job);
+        TableMapReduceUtil.initTableReducerJob(fm.tableName, reduce, job);
         msg = this.getClass().getName() + " > TableMapReduceUtil initialized " + inputFile;
         System.out.println(msg);
         IdSearchLog.l.info(msg);
-
-        job.setNumReduceTasks(10);
-        job.waitForCompletion(true);
+        job.setNumReduceTasks(5);
+        job.waitForCompletion(false);
     }
 }	

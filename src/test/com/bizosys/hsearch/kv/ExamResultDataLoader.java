@@ -37,13 +37,13 @@ public class ExamResultDataLoader {
 		int [] ages = new int[] {22,23,24,25,26};
 		int agesCounter = 0;
 		
-		String [] role = new String[] {"scout","monitor","captain","student"};
+		String [] role = new String[] {"scout","monitor|topper","captain|Second Topper","student"};
 		int roleCounter = 0;
 		
-		String [] location = new String[] {"HSR Layout","Bommanahalli","Hebbal","BTM Layout"};
+		String [] location = new String[] {"HSR+Layout","Bommanahalli","Hebbal","BTM Layout"};
 		int locationCounter = 0;
 
-		String [] remarks = new String[] {"good boy and very authentic","fabulous in study","poor performance since previous time"};
+		String [] remarks = new String[] {"good \"boy\" and very authentic","fabulous in study","poor performance since previous time"};
 		int remarksCounter = 0;
 
 		String [] comments = new String[] {"He is a good boy and very authentic","Tremendous boy","blazing performance in this test"};
@@ -61,8 +61,8 @@ public class ExamResultDataLoader {
 	    	sb.append(classz[classzCounter]).append(FIELD_SEPARATOR).append(i).append(FIELD_SEPARATOR).append(ages[agesCounter])
 	    	.append(FIELD_SEPARATOR).append(role[roleCounter]).append(FIELD_SEPARATOR).append(location[locationCounter])
 	    	.append(FIELD_SEPARATOR).append((float)i/10).append(FIELD_SEPARATOR).append(remarks[remarksCounter])
-	    	.append(FIELD_SEPARATOR).append(comments[commentsCounter]).append(FIELD_SEPARATOR).append(sex.toString()).
-	    	append(FIELD_SEPARATOR).append(comments[commentsCounter]).append(RECORD_SEPARATOR);
+	    	.append(FIELD_SEPARATOR).append(comments[commentsCounter]).append(FIELD_SEPARATOR).append(sex.toString())
+	    	.append(FIELD_SEPARATOR).append(comments[commentsCounter]).append(RECORD_SEPARATOR);
 
 	    	classzCounter++;
 	    	if ( classzCounter > 1) classzCounter = 0;

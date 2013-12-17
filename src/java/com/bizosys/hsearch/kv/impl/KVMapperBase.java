@@ -70,6 +70,40 @@ public class KVMapperBase {
 			this.maxPointer = maxPointer;
 		}
 	}
+	
+	public static FieldMapping createFieldMapping(Configuration conf, String path,
+			StringBuilder sb) throws IOException {
+		try {
+			FieldMapping fm =null;
+			BufferedReader br = null;
+			Path hadoopPath = new Path(path);
+			FileSystem fs = FileSystem.get(conf);
+			if ( fs.exists(hadoopPath) ) {
+				br = new BufferedReader(new InputStreamReader(fs.open(hadoopPath)));
+				String line = null;
+				while((line = br.readLine())!=null) {
+					sb.append(line);
+				}
+				fm = new FieldMapping();
+				fm.parseXMLString(sb.toString());
+			} else {
+				fm = FieldMapping.getInstance(path);
+			}
+					
+			return fm;
+			
+
+		} catch (FileNotFoundException fex) {
+			System.err.println("Cannot read from path " + path);
+			throw new IOException(fex);
+		} catch (ParseException pex) {
+			System.err.println("Cannot Parse File " + path);
+			throw new IOException(pex);
+		} catch (Exception pex) {
+			System.err.println("Error : " + path);
+			throw new IOException(pex);
+		}
+	}	
 
 	Set<Integer> neededPositions = null; 
 	FieldMapping fm = null;
@@ -103,34 +137,12 @@ public class KVMapperBase {
 		String path = conf.get(KVIndexer.XML_FILE_PATH);
 		StringBuilder sb = new StringBuilder();
 
+		fm = createFieldMapping(conf, path, sb);
+
 		try {
-
-			BufferedReader br = null;
-			Path hadoopPath = new Path(path);
-			FileSystem fs = FileSystem.get(conf);
-			if ( fs.exists(hadoopPath) ) {
-				br = new BufferedReader(new InputStreamReader(fs.open(hadoopPath)));
-				String line = null;
-				while((line = br.readLine())!=null) {
-					sb.append(line);
-				}
-				fm = new FieldMapping();
-				fm.parseXMLString(sb.toString());
-			} else {
-				fm = FieldMapping.getInstance(path);
-			}
-			
 			AnalyzerFactory.getInstance().init(fm);
-
-		} catch (FileNotFoundException fex) {
-			System.err.println("Cannot read from path " + path);
-			throw new IOException(fex);
-		} catch (ParseException pex) {
-			System.err.println("Cannot Parse File " + path);
-			throw new IOException(pex);
-		} catch (Exception pex) {
-			System.err.println("Error : " + path);
-			throw new IOException(pex);
+		} catch (Exception ex) {
+			throw new IOException("UNable to instantiate the Analyzer Factory. Check classpath");
 		}
 
 		neededPositions = fm.sourceSeqWithField.keySet();
@@ -142,6 +154,8 @@ public class KVMapperBase {
 		this.plugin = KVIndexer.createPluginClass(conf);
 		if ( null != this.plugin ) this.plugin.setFieldMapping(fm);
 	}
+
+
 
 	@SuppressWarnings({ "rawtypes", "unchecked" })
 	protected void map(String[] result, Context context) throws IOException, InterruptedException {

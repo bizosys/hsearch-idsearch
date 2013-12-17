@@ -107,7 +107,6 @@ public class KVIndexerHBase {
     		createTable(outputTableName, fm.familyName);
 
 		conf.set(KVIndexer.XML_FILE_PATH, schemaPath);
-		conf.set(KVIndexer.TABLE_NAME, outputTableName);
 		
 		Job job = new Job(conf,"KVIndexerHBase");
 		job.setJarByClass(KVIndexerHBase.class);     // class that contains mapper and reducer

@@ -118,7 +118,8 @@ public class KVReducerLocal extends TableReducer<Text, Text, ImmutableBytesWrita
 		public synchronized void write(ImmutableBytesWritable arg0, Writable arg1) throws IOException, InterruptedException {
 
 			if ( null == tableName) {
-				tableName = this.conf.get(KVIndexer.TABLE_NAME);
+				String path = conf.get(KVIndexer.XML_FILE_PATH);
+				tableName = KVMapperBase.createFieldMapping(conf, path, new StringBuilder()).tableName;
 			}
 			
 			Put updates = (Put) arg1;

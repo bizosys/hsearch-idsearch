@@ -16,7 +16,7 @@ import com.oneline.ferrari.TestAll;
 public class ExamResultSearch extends TestCase {
 
 	public static String[] modes = new String[] {"all", "random", "method"};
-	public static String mode = modes[1];
+	public static String mode = modes[2];
 	public FieldMapping fm = null;
 	public static void main(final String[] args) throws Exception {
 		ExamResultSearch t = new ExamResultSearch();
@@ -29,8 +29,8 @@ public class ExamResultSearch extends TestCase {
 
 		} else if  ( modes[2].equals(mode) ) {
 			t.setUp();
-			t.testFacet();
-			//t.testSanity();
+			//t.testFacet();
+			t.testSanity();
 			/**
 			t.testFreeTextNotStored();
 			t.testFreeTextSearch();
@@ -73,12 +73,15 @@ public class ExamResultSearch extends TestCase {
 		KVRowI aBlankRow = new ExamResult();
 
 		IEnricher enricher = null;
-		searcher.search("A", "age,location,marks","age:25", aBlankRow, enricher);
+		searcher.search("A", "age,location,role,marks","location:HSR\\+Layout", aBlankRow, enricher);
 		Set<KVRowI> mergedResult = searcher.getResult();
 
 		long end = System.currentTimeMillis();
-		assertEquals(10, mergedResult.size());
-		//System.out.println("Fetched " + mergedResult.size() + " results in " + (end - start) + " ms.");
+		//assertEquals(10, mergedResult.size());
+		for (KVRowI kvRowI : mergedResult) {
+			System.out.println(kvRowI.getValue("location"));
+		}
+		System.out.println("Fetched " + mergedResult.size() + " results in " + (end - start) + " ms.");
 	}
 	
 	public final void testRepeatable() throws Exception {
