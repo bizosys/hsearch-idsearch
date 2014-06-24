@@ -30,6 +30,12 @@ import com.bizosys.hsearch.kv.impl.ComputeFactory;
 import com.bizosys.hsearch.kv.impl.ICompute;
 import com.bizosys.hsearch.treetable.client.HSearchProcessingInstruction;
 
+/**
+ * 
+ * A mapper class that maps the returned rows for a given query
+ * and sends it for aggregation.
+ *
+ */
 public final class MapperKV extends MapperKVBase {
 
     static boolean DEBUG_ENABLED = false;
@@ -40,6 +46,9 @@ public final class MapperKV extends MapperKVBase {
     public BitSetWrapper matchingIds = null;
     public BitSetWrapper returnIds = new BitSetWrapper();
     
+    /**
+     * Sets the hsearch instruction type that needs to be used for a search. 
+     */
     @Override
     public final void setOutputType(final HSearchProcessingInstruction outputTypeCode) {
         this.instruction = outputTypeCode;
@@ -47,6 +56,9 @@ public final class MapperKV extends MapperKVBase {
     	this.compute.setCallBackType(this.instruction.getOutputType());
     }
 
+    /**
+     * Sets the matching ids.
+     */
 	@Override
 	public final void setMergeId(final byte[] matchingIds) throws IOException {
 		this.matchingIds = SortedBytesBitset.getInstanceBitset().bytesToBitSet(matchingIds, 0, matchingIds.length);

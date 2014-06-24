@@ -20,29 +20,82 @@
 
 package com.bizosys.hsearch.kv;
 
+import java.io.IOException;
 import java.util.Map;
 import java.util.Set;
 
 import com.bizosys.hsearch.federate.BitSetWrapper;
 import com.bizosys.hsearch.federate.QueryPart;
 
+/**
+ * Way to influence and tap into the search processing flow.
+ * @author abinash
+ *
+ */
 public interface ISearcherPlugin {
 	
+	/**
+	 * Helps in joining with external data sources at bitset labels.
+	 * Calls after joining is performed.
+	 * @param mergeId - Partion Id
+	 * @param foundIds - Found Ids, The bitsets
+	 * @param whereParts - The where fields 
+	 * @param foundIdWithValueObjects -This is a clear object. Searcher does not use it for any purpose.
+	 */
 	void onJoin(String mergeId, BitSetWrapper foundIds, 
-		Map<String, QueryPart> whereParts, Map<Integer,KVRowI> foundIdWithValueObjects);
+		Map<String, QueryPart> whereParts, Map<Integer,KVRowI> foundIdWithValueObjects) throws IOException ;
 	
-	void onFacets(String mergeId, Map<String, Map<Object, FacetCount>> facets);
+	/**
+	 * Calls after the facet is computed. Any modification can be done after this.
+	 * @param mergeId
+	 * @param facets
+	 */
+	void onFacets(String mergeId, Map<String, Map<Object, FacetCount>> facets) throws IOException;
 
-	void beforeSelect(String mergeId, BitSetWrapper foundIds);
+	/**
+	 * Invokes before the select happenss
+	 * @param mergeId
+	 * @param foundIds
+	 */
+	void beforeSelect(String mergeId, BitSetWrapper foundIds) throws IOException;
 	
-	void beforeSelectOnSorted(String mergeId, BitSetWrapper foundIds);
+	/**
+	 * Calls after the selection is over.
+	 * @param mergeId
+	 * @param foundIds
+	 */
+	void afterSelect(String mergeId, BitSetWrapper foundIds, Set<KVRowI> resultset) throws IOException;
 
-	void afterSelect(String mergeId, BitSetWrapper foundIds);
+	/**
+	 * Calls before selection happens on a sorted fields
+	 * @param mergeId
+	 * @param foundIds
+	 */
+	void beforeSelectOnSorted(String mergeId, BitSetWrapper foundIds) throws IOException;
 
-	void afterSelectOnSorted(String mergeId, BitSetWrapper foundIds);
+	/**
+	 * Invokes after the selection is done on sorted fields 
+	 * @param mergeId
+	 * @param foundIds
+	 */
+	void afterSelectOnSorted(String mergeId, BitSetWrapper foundIds) throws IOException;
 
-	void beforeSort(String mergeId, Set<KVRowI> resultSet);
+	/**
+	 * Before the sort is performed. This is a place to influence the ranking also
+	 * Internal ranks are provided which are nothing but the phrase mapping.
+	 * @param mergeId
+	 * @param sortFields
+	 * @param resultSet Result set
+	 * @param defaultRankedIds Sorted Ids based on phrases
+	 * @return
+	 */
+	boolean beforeSort(String mergeId, String sortFields, Set<KVRowI> resultSet, Map<Integer, BitSetWrapper> rankBuckets) throws IOException;
 
-	void afterSort(String mergeId, Set<KVRowI> resultSet);
+	/**
+	 * After the sort is over.
+	 * @param mergeId
+	 * @param resultSet
+	 */
+	void afterSort(String mergeId, Set<KVRowI> resultSet) throws IOException;
 	
 }

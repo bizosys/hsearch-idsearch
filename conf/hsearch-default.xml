@@ -1,0 +1,141 @@
+<?xml version="1.0"?>
+<?xml-stylesheet type="text/xsl" href="configuration.xsl"?>
+<!--
+/*
+* Copyright 2013 Bizosys Technologies Limited
+*
+* Licensed to the Bizosys Technologies Limited (Bizosys) under one
+* or more contributor license agreements.  See the NOTICE file
+* distributed with this work for additional information
+* regarding copyright ownership.  The Bizosys licenses this file
+* to you under the Apache License, Version 2.0 (the
+* "License"); you may not use this file except in compliance
+* with the License.  You may obtain a copy of the License at
+*
+*     http://www.apache.org/licenses/LICENSE-2.0
+*
+* Unless required by applicable law or agreed to in writing, software
+* distributed under the License is distributed on an "AS IS" BASIS,
+* WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+* See the License for the specific language governing permissions and
+* limitations under the License.
+*/
+-->
+<configuration>
+
+    <property>
+        <name>partition.block.size</name>
+        <value>13035596</value>
+        <description>Table block cache</description>
+    </property>
+
+    <property>
+        <name>block.cache.enabled</name>
+        <value>true</value>
+        <description>Table level block cache</description>
+    </property>
+
+    <property>
+        <name>scanner.block.caching</name>
+        <value>true</value>
+        <description>Generic Coprocessor scanner block caching</description>
+    </property>
+
+    <property>
+        <name>scanner.block.caching.amount</name>
+        <value>1</value>
+        <description>Generic Coprocessor block caching amount</description>
+    </property>
+
+    <property>
+        <name>internal.scanner.block.caching</name>
+        <value>true</value>
+        <description>Generic Coprocessor Internal scanner block caching</description>
+    </property>
+
+    <property>
+        <name>internal.scanner.block.caching.amount</name>
+        <value>1</value>
+        <description>Generic Coprocessor Internal scanner cache amount</description>
+    </property>
+
+    <property>
+        <name>query.multi.threads.limit</name>
+        <value>-1</value>
+        <description>Number of threads for the parts execution</description>
+    </property>
+
+    <property>
+        <name>query.parts.threads.limit</name>
+        <value>-1</value>
+        <description>Number of threads for the query execution.</description>
+    </property>
+
+    <property>
+        <name>cache.singlequery.enabled</name>
+        <value>true</value>
+        <description>Single query coprocessor outputs are cached. The expectation is, large number of data will go through streaming calls to avoid network delay.</description>
+    </property>
+
+    <property>
+        <name>stopword.file.location</name>
+        <value>conf/stopwords.txt</value>
+        <description>Synonyms language file.</description>
+    </property>
+
+    <property>
+        <name>synonyms.file.location</name>
+        <value>conf/synonyms.txt</value>
+        <description>Synonyms language file.</description>
+    </property>
+
+    <property>
+        <name>lucene.analysis.lowercasefilter</name>
+        <value>true</value>
+        <description>Is LowerCaseFilter enabled</description>
+    </property>
+
+    <property>
+        <name>lucene.analysis.accentfilter</name>
+        <value>true</value>
+        <description>Is ASCIIFoldingFilter enabled</description>
+    </property>
+
+    <property>
+        <name>lucene.analysis.snowballfilter</name>
+        <value>true</value>
+        <description>Is Snowball Stemming enabled</description>
+    </property>
+
+    <property>
+        <name>lucene.analysis.stopfilter</name>
+        <value>true</value>
+        <description>Is StopFilter enabled</description>
+    </property>
+
+    <property>
+        <name>hsearch.facet.multithread.enabled</name>
+        <value>false</value>
+        <description>Use MultiThreads while calculating facets.</description>
+    </property>
+    
+    <property>
+        <name>internalid.increment.chunksize</name>
+        <value>1000</value>
+        <description>The generated internal id chunks to be fetched from hbase.</description>
+    </property>
+
+    <property>
+        <name>expected.index.rows.count</name>
+        <value>1000000</value>
+        <description>Expected number of rows that goes in hsearch index.</description>
+    </property>
+
+    <property>
+        <name>report.amaptime.cutoff</name>
+        <value>45000L</value>
+        <description>Approximate completion of hsearch indexing map time. 
+        The records taking longer than this time will be logged in log file.</description>
+    </property>
+
+</configuration>

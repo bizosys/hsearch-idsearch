@@ -37,12 +37,12 @@ import java.util.Set;
 
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
+import org.apache.lucene.analysis.ASCIIFoldingFilter;
 import org.apache.lucene.analysis.Analyzer;
 import org.apache.lucene.analysis.LowerCaseFilter;
 import org.apache.lucene.analysis.StopFilter;
 import org.apache.lucene.analysis.TokenStream;
-import org.apache.lucene.analysis.Tokenizer;
-import org.apache.lucene.analysis.standard.StandardTokenizer;
+import org.apache.lucene.analysis.snowball.SnowballFilter;
 import org.apache.lucene.analysis.synonym.SynonymFilter;
 import org.apache.lucene.analysis.synonym.SynonymMap;
 import org.apache.lucene.analysis.tokenattributes.CharTermAttribute;
@@ -51,60 +51,77 @@ import org.apache.lucene.document.Field;
 import org.apache.lucene.document.Fieldable;
 import org.apache.lucene.util.CharsRef;
 import org.apache.lucene.util.Version;
+import org.tartarus.snowball.ext.EnglishStemmer;
 
 import com.bizosys.hsearch.idsearch.util.IdSearchLog;
+import com.bizosys.hsearch.util.HSearchConfig;
 import com.bizosys.hsearch.util.LineReaderUtil;
+import com.bizosys.hsearch.util.conf.Configuration;
 
 public class StopwordAndSynonymAnalyzer extends Analyzer {
 	
 	private static final boolean DEBUG_ENABLED = IdSearchLog.l.isDebugEnabled();
-	Set<String> stopwords = null;
-	Map<String, String> conceptWithPipeSeparatedSynonums = null;
+	static Set<String> stopwords = null;
+	static Map<String, String> conceptWithPipeSeparatedSynonums = null;
 	char conceptWordSeparator = '|';
+
 	
-	List<String> tempList = new ArrayList<String>();
-	
+	boolean isLowerCaseEnabled = true;
+	boolean isAccentFilterEnabled = true;
+	boolean isSnoballStemEnabled = true;
+	boolean isStopFilterEnabled = true;
 	
 	public StopwordAndSynonymAnalyzer() throws IOException {
 		load();
 	}
 	
 	public StopwordAndSynonymAnalyzer(Set<String> stopwords, Map<String, String> conceptWithPipeSeparatedSynonum, char conceptWordSeparator) {
-		this.stopwords = stopwords;
-		this.conceptWithPipeSeparatedSynonums = conceptWithPipeSeparatedSynonum;
+		StopwordAndSynonymAnalyzer.stopwords = stopwords;
+		conceptWithPipeSeparatedSynonums = conceptWithPipeSeparatedSynonum;
 		this.conceptWordSeparator = conceptWordSeparator;
 	}
 
 	@Override
 	public TokenStream tokenStream(String field, Reader reader) {
-
-		Tokenizer tokenizer = new StandardTokenizer(Version.LUCENE_36, reader);
-		TokenStream ts = new LowerCaseFilter(Version.LUCENE_36, tokenizer);
+		
+		TokenStream ts = new HSearchTokenizer(Version.LUCENE_36, reader);
+		ts = new LowerCaseFilter(Version.LUCENE_36, ts);
+		
 		SynonymMap smap = null;
 		 try {
-			 if ( null != this.conceptWithPipeSeparatedSynonums) {
-				 SynonymMap.Builder sb = new SynonymMap.Builder(true); 
-				 for (String concept : this.conceptWithPipeSeparatedSynonums.keySet()) {
+			 if ( null != conceptWithPipeSeparatedSynonums) {
+				 SynonymMap.Builder sb = new SynonymMap.Builder(true);
+				 List<String> tempList = new ArrayList<String>();
+
+				 for (String concept : conceptWithPipeSeparatedSynonums.keySet()) {
 					 tempList.clear();
-					 LineReaderUtil.fastSplit(tempList, this.conceptWithPipeSeparatedSynonums.get(concept),
+					 LineReaderUtil.fastSplit(tempList, conceptWithPipeSeparatedSynonums.get(concept),
 							 this.conceptWordSeparator);
 					 for (String syn : tempList) {
+						 int synLen = ( null == syn ) ? 0 : syn.length();
+						 if ( synLen == 0 ) continue;
 						 sb.add(new CharsRef(syn), new CharsRef(concept), false); 
 					 }
 				}
-				if (this.conceptWithPipeSeparatedSynonums.size() > 0 ) {
+				if (conceptWithPipeSeparatedSynonums.size() > 0 ) {
 					smap = sb.build();
 					if ( null != smap) ts = new SynonymFilter(ts, smap, true);
 				}
 			 }
+			
+			if(isStopFilterEnabled){
+				int stopwordsT = ( null == stopwords) ? 0 : stopwords.size();
+				if ( stopwordsT > 0 ) {
+					ts = new StopFilter(Version.LUCENE_36, ts, stopwords );
+				} 				
+			}
 
-			//ts = new PorterStemFilter(ts);
-			int stopwordsT = ( null == stopwords) ? 0 : stopwords.size();
-			if ( stopwordsT > 0 ) {
-				ts = new StopFilter(Version.LUCENE_36, ts, stopwords );
-			} 
-			 
-			 return ts;
+			if(isAccentFilterEnabled)
+				ts = new ASCIIFoldingFilter(ts);
+			if(isSnoballStemEnabled)
+				ts = new SnowballFilter(ts, new EnglishStemmer());
+
+			return ts;
 		 
 		 } catch (IOException ex) {
 			 ex.printStackTrace(System.err);
@@ -117,28 +134,45 @@ public class StopwordAndSynonymAnalyzer extends Analyzer {
 		InputStream stopwordStream = null;
 		InputStream synonumStream = null;
 		
-		String FILENAME_SYNONYM = "synonyms.txt";
-		String FILENAME_STOPWORD = "stopwords.txt";
+		Configuration hsearchConf = HSearchConfig.getInstance().getConfiguration();
+		String filenameSynonum = hsearchConf.get("synonyms.file.location", "synonyms.txt");
+		String filenameStopword = hsearchConf.get("stopword.file.location", "stopwords.txt");
+		
+		isLowerCaseEnabled = hsearchConf.getBoolean("lucene.analysis.lowercasefilter", true);
+		isAccentFilterEnabled = hsearchConf.getBoolean("lucene.analysis.accentfilter", true);
+		isSnoballStemEnabled = hsearchConf.getBoolean("lucene.analysis.snowballfilter", true);
+		isStopFilterEnabled = hsearchConf.getBoolean("lucene.analysis.stopfilter", true);
+		
+		if ( null != stopwords) return;
 		
 		org.apache.hadoop.conf.Configuration conf = 
 			new org.apache.hadoop.conf.Configuration();
 		FileSystem fs = FileSystem.get(conf);
 
 		if ( null != fs) {
-			Path stopPath = new Path(FILENAME_STOPWORD);
+			
+			/**
+			 * STOPWORD
+			 */
+			Path stopPath = new Path(filenameStopword);
 			if ( fs.exists(stopPath) ) {
 				if ( DEBUG_ENABLED) IdSearchLog.l.debug( "Loading Stopword file from HDFS :" + stopPath.toString());
 				stopwordStream = fs.open(stopPath);
 			} else {
-				if ( DEBUG_ENABLED) IdSearchLog.l.debug("Stopword file not available in HDFS :" + stopPath.toString());
+				IdSearchLog.l.fatal("Stopword file not available in HDFS :" + stopPath.toString());
 			}
 			
-			Path synPath = new Path(FILENAME_SYNONYM);
+			/**
+			 * SYNONUM
+			 */
+			
+			Path synPath = new Path(filenameSynonum);
 			if ( fs.exists(synPath) ) {
 				synonumStream = fs.open(synPath);
-				if ( DEBUG_ENABLED) IdSearchLog.l.debug("Loading synonym file from HDFS :" + stopPath.toString());
+				if ( DEBUG_ENABLED) IdSearchLog.l.debug("Loading synonym file from HDFS :" + filenameSynonum.toString());
 			} else {
-				if ( DEBUG_ENABLED) IdSearchLog.l.debug("Synonym file not available in HDFS :" + stopPath.toString());
+				IdSearchLog.l.fatal("Synonym file not available in HDFS :" + filenameSynonum.toString());
+				IdSearchLog.l.fatal("Working Directory :" + fs.getWorkingDirectory().getName() );
 			}
 		}
 		
@@ -149,7 +183,7 @@ public class StopwordAndSynonymAnalyzer extends Analyzer {
 		}
 		
 		if ( null == stopwordStream) {
-			URL stopUrl = classLoader.getResource(FILENAME_STOPWORD);
+			URL stopUrl = classLoader.getResource(filenameStopword);
 			if ( null != stopUrl) {
 				String stopFile = stopUrl.getPath();
 				if ( null != stopFile) {
@@ -158,16 +192,17 @@ public class StopwordAndSynonymAnalyzer extends Analyzer {
 						stopwordStream = new FileInputStream(stopwordFile);
 						if ( DEBUG_ENABLED) IdSearchLog.l.debug("Loading Stopword file from Local :" + stopwordFile.getAbsolutePath());
 					} else {
-						if ( DEBUG_ENABLED) IdSearchLog.l.debug("Stopword file not available at :" + stopwordFile.getAbsolutePath());
+						IdSearchLog.l.fatal("Stopword file not available at :" + stopwordFile.getAbsolutePath());
+						IdSearchLog.l.fatal("Working Directory :" + fs.getHomeDirectory().getName() );
 					}
 				} else {
-					if ( DEBUG_ENABLED) IdSearchLog.l.debug("Ignoring Stopwords > " + FILENAME_STOPWORD);
+					if ( DEBUG_ENABLED) IdSearchLog.l.debug("Ignoring Stopwords > " + filenameStopword);
 				}
 			}
 		}
 
 		if ( null == synonumStream) {
-			URL synUrl = classLoader.getResource(FILENAME_SYNONYM);
+			URL synUrl = classLoader.getResource(filenameSynonum);
 			if ( null != synUrl) {
 				String synFileName = synUrl.getPath();
 				if ( null != synFileName) {
@@ -179,7 +214,7 @@ public class StopwordAndSynonymAnalyzer extends Analyzer {
 						if ( DEBUG_ENABLED) IdSearchLog.l.debug("Synonum file not available at :" + synFile.getAbsolutePath());
 					}
 				} else {
-					if ( DEBUG_ENABLED) IdSearchLog.l.debug("Ignoring Synonyms > " + FILENAME_SYNONYM);
+					if ( DEBUG_ENABLED) IdSearchLog.l.debug("Ignoring Synonyms > " + filenameSynonum);
 				}
 			}
 		}
@@ -188,8 +223,10 @@ public class StopwordAndSynonymAnalyzer extends Analyzer {
 	}
 	
 	public void load(InputStreamReader stopwordStream, InputStreamReader synonumStream) throws IOException {
-		this.stopwords = new HashSet<String>();
-		this.conceptWithPipeSeparatedSynonums = new HashMap<String, String>();
+		if ( null != stopwords) return;
+		
+		stopwords = new HashSet<String>();
+		conceptWithPipeSeparatedSynonums = new HashMap<String, String>();
 		
 		{
 			BufferedReader reader = null;
@@ -198,7 +235,7 @@ public class StopwordAndSynonymAnalyzer extends Analyzer {
 				String line = null;
 				while((line=reader.readLine())!=null) {
 					if (line.length() == 0) continue;
-					this.stopwords.add(line);
+					stopwords.add(line);
 				}
 			} 
 			
@@ -253,8 +290,8 @@ public class StopwordAndSynonymAnalyzer extends Analyzer {
 	}	
 	
 	public void load(InputStream stopwordStream, InputStream synonumStream) throws IOException {
-		this.stopwords = new HashSet<String>();
-		this.conceptWithPipeSeparatedSynonums = new HashMap<String, String>();
+		stopwords = new HashSet<String>();
+		conceptWithPipeSeparatedSynonums = new HashMap<String, String>();
 		
 		if ( null != stopwordStream) loadStopwords(stopwordStream);
 		if ( null != synonumStream) loadSynonums(synonumStream);
@@ -300,7 +337,7 @@ public class StopwordAndSynonymAnalyzer extends Analyzer {
 			String line = null;
 			while((line=reader.readLine())!=null) {
 				if (line.length() == 0) continue;
-				this.stopwords.add(line);
+				stopwords.add(line);
 			}
 		} 
 		
@@ -321,15 +358,19 @@ public class StopwordAndSynonymAnalyzer extends Analyzer {
 	public static void main(String[] args) throws IOException {
 		
 		Document doc = new Document();
-		doc.add(new Field("description", "bengalure is a good city", Field.Store.NO, Field.Index.ANALYZED));
+		doc.add(new Field("description", "dress/t-shirt dress for \"good boy\"", Field.Store.NO, Field.Index.ANALYZED));
 		Analyzer analyzer = new StopwordAndSynonymAnalyzer();
-
+		
 		for (Fieldable field : doc.getFields() ) {
-    		StringReader sr = new StringReader(field.stringValue());
+			String query = "dress/t-shirt dress for \"good boy\"";
+    		StringReader sr = new StringReader(query);
     		TokenStream stream = analyzer.tokenStream(field.name(), sr);
     		CharTermAttribute  termA = (CharTermAttribute)stream.getAttribute(CharTermAttribute.class);
-    		while ( stream.incrementToken()) {
-    			System.out.println( "Term:" + termA.toString() );
+    		
+    		if ( DEBUG_ENABLED ) {
+        		while ( stream.incrementToken()) {
+        			IdSearchLog.l.debug( "Term:" + termA.toString() );
+        		}
     		}
     		sr.close();
 		}	

@@ -20,31 +20,73 @@
 package com.bizosys.hsearch.kv.dao;
 
 import java.io.IOException;
-import java.util.Map;
 
+import com.bizosys.hsearch.byteutils.SortedBytesBitset;
 import com.bizosys.hsearch.federate.BitSetWrapper;
-import com.bizosys.hsearch.kv.impl.ComputeKV;
-import com.bizosys.hsearch.treetable.client.HSearchProcessingInstruction;
+import com.bizosys.hsearch.idsearch.util.ICache;
+import com.bizosys.hsearch.idsearch.util.LruCache;
+import com.bizosys.hsearch.storage.DatabaseReader;
+import com.bizosys.hsearch.storage.DatabaseReaderCached;
+import com.bizosys.hsearch.storage.DatablockFactory;
 
-public class KvRowReaderFactory {
+/**
+ * 
+ * A factory that returns the reader instances.
+ *
+ */
+public class KvRowReaderFactory  {
 
-	public interface RowReader {
-		Map<Integer, Object> getAllValues(
-			final String tableName, final byte[] row, 
-			final ComputeKV compute, final String filterQuery,
-			final HSearchProcessingInstruction inputMapperInstructions) throws IOException;
-		
-		Map<Integer, Object> getFilteredValues(final String tableName, 
-			final byte[] row, final ComputeKV compute, final byte[] matchingIdsB,
-			final BitSetWrapper matchingIds, final String filterQuery, 
-			final HSearchProcessingInstruction instruction) throws IOException;
-		
+	static KvRowReaderFactory instance = null;
+	public static KvRowReaderFactory getInstance() throws IOException {
+		if ( null != instance ) return instance;
+		synchronized (KvRowReaderFactory.class.getName()) {
+			if ( null != instance ) return instance;
+			instance = new KvRowReaderFactory();
+		}
+		return instance;
 	}
 	
-	public RowReader reader = null;
+	private DatabaseReader reader = null;
+	private DatabaseReader cachedReader = null;
 	
-	public KvRowReaderFactory(boolean isCache) {
-		if ( isCache ) reader = new KVRowReaderCached();
-		else reader = new KVRowReaderIpc();
+	private KvRowReaderFactory() throws IOException {
+		this.reader = DatablockFactory.initializeStorage();
+		this.cachedReader = new DatabaseReaderCached(this.reader, true);
 	}
+
+	public BitSetWrapper getPinnedBitSets (String tableName, String rowId) throws IOException {
+
+		BitSetWrapper dataBits = null;
+			
+		ICache cache = LruCache.getInstance();
+		if ( cache.containsKey(rowId)) {
+			dataBits = (BitSetWrapper) cache.getPinned(rowId);
+		} else {
+			
+			byte[] dataA = reader.readRowBlob(tableName, rowId.getBytes());
+			dataBits = SortedBytesBitset.getInstanceBitset().bytesToBitSet(dataA, 0, dataA.length);
+			cache.putPinned(rowId, dataBits);
+		}
+		return dataBits;
+	}
+	
+	/**
+	 * 
+	 * @param mergeId
+	 * @return list of delete ids that need to be removed from saerch result.
+	 */
+	public String getDeleteId ( String mergeId) {
+		return mergeId + "[[[deletes]]]";
+	}
+	
+	/**
+	 * 
+	 * @param isCache
+	 * @return reader instance use for reading hsearch index.
+	 */
+	public DatabaseReader getReader(boolean isCache) {
+		
+		if ( isCache) return this.cachedReader;
+		else return this.reader;
+	}	
 }

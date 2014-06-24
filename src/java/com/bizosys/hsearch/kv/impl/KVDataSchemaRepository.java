@@ -35,10 +35,24 @@ public class KVDataSchemaRepository {
 		return colMapper;
 	}
 	
+	/**
+	 * Contains the different mapping containers for the schema fields.
+	 * @author shubhendu
+	 *
+	 */
 	public static class KVDataSchema {
 		
-		public Map<String, Integer> nameToSeqMapping = new HashMap<String, Integer>(); 
-		public Map<Integer, String> seqToNameMapping = new HashMap<Integer, String>(); 
+		/**
+		 * Contains mapping of field name and the fields sequence number.
+		 */
+		public Map<String, Integer> nameToSeqMapping = new HashMap<String, Integer>();
+		/**
+		 * Contains mapping of fields sequence number and fields name. 
+		 */
+		public Map<Integer, String> seqToNameMapping = new HashMap<Integer, String>();
+		/**
+		 * Contains mapping of field and fields data type.
+		 */
 		public Map<String, Integer> fldWithDataTypeMapping = new HashMap<String, Integer>(); 
 		
 		public FieldMapping fm = null;
@@ -54,6 +68,10 @@ public class KVDataSchemaRepository {
     		dataTypesPrimitives.put("byte", 'c');
     	}
 
+    	/**
+    	 * Populates  the containers based on FieldMapping
+    	 * @param fm
+    	 */
 		public KVDataSchema(final FieldMapping fm) {
 			this.fm = fm;
 			String dataType = ""; 
@@ -104,7 +122,13 @@ public class KVDataSchemaRepository {
 				fldWithDataTypeMapping.put(fld.name, dataTypeField);
 			}
 		}
-
+		
+		/**
+		 * Returns whether the field is repeatable.
+		 * @param fldName
+		 * @return
+		 * @throws IOException
+		 */
 		public final boolean getRepetation(String fldName) throws IOException {
 			if ( null == this.fm ) throw new IOException("FieldMapping is not initialized"); 
 			return this.fm.nameWithField.get(fldName).isRepeatable;
@@ -114,12 +138,21 @@ public class KVDataSchemaRepository {
 	
 	Map<String, KVDataSchema> repositoryMap = new HashMap<String, KVDataSchemaRepository.KVDataSchema>();
 	
+	/**
+	 * Adds KVDataSchema in the repository 
+	 * @param repositoryName
+	 * @param fm
+	 */
 	public final void add(final String repositoryName, final FieldMapping fm) {
 		if(repositoryMap.containsKey(repositoryName))
 			return;
 		repositoryMap.put(repositoryName, new KVDataSchema(fm));
 	}
-	
+	/**
+	 * Returns the KVDataSchema for a given repository name.
+	 * @param repositoryName
+	 * @return
+	 */
 	public final KVDataSchema get(final String repositoryName) {
 		return repositoryMap.get(repositoryName);
 	}

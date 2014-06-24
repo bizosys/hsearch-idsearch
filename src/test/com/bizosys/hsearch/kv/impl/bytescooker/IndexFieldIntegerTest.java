@@ -8,11 +8,11 @@ import java.util.List;
 import org.apache.hadoop.io.Text;
 
 import com.bizosys.hsearch.federate.BitSetWrapper;
-import com.bizosys.hsearch.kv.KVIndexer;
 import com.bizosys.hsearch.kv.dao.MapperKVBase;
 import com.bizosys.hsearch.kv.dao.MapperKVBaseEmpty;
 import com.bizosys.hsearch.kv.dao.inverted.HSearchTableKVIntegerInverted;
 import com.bizosys.hsearch.kv.dao.plain.HSearchTableKVInteger;
+import com.bizosys.hsearch.kv.indexing.KVIndexer;
 import com.bizosys.hsearch.treetable.client.HSearchQuery;
 
 public class IndexFieldIntegerTest {
@@ -99,7 +99,7 @@ public class IndexFieldIntegerTest {
 		System.out.println("Time taken :" + + (e - s));
 	}
 	
-	private static void testKVIndexAppend() throws IOException, ParseException {
+	public static void testKVIndexAppend() throws IOException, ParseException {
 		List<Text> values = new ArrayList<Text>();
 		StringBuilder sb = new StringBuilder(1024);
 		for ( int i=0; i<100; i++) {

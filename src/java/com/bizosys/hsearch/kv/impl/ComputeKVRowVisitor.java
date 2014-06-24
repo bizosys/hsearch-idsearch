@@ -24,6 +24,12 @@ import java.util.Map;
 import com.bizosys.hsearch.federate.BitSetWrapper;
 import com.bizosys.hsearch.treetable.Cell2Visitor;
 
+/**
+ * A visitor class for a given row.
+ * @author shubhendu
+ *
+ * @param <V>
+ */
 public final class ComputeKVRowVisitor<V> implements Cell2Visitor<Integer, V> {
 	public Map<Integer, Object> container = null;
 	private BitSetWrapper matchingIds = null;
@@ -32,15 +38,26 @@ public final class ComputeKVRowVisitor<V> implements Cell2Visitor<Integer, V> {
 	public ComputeKVRowVisitor() {
 	}
 	
+	/**
+	 * Sets the matching ids.
+	 * @param matchingIds
+	 */
 	public void setMatchingIds(BitSetWrapper matchingIds) {
 		this.matchingIds = matchingIds;
 		this.isMatchingIds = ( null != this.matchingIds );
 	}
 	
+	/**
+	 * Initalizes the container
+	 * @param container
+	 */
 	public ComputeKVRowVisitor(final Map<Integer, Object> container) {		
 		this.container = container;
 	}
 	
+	/**
+	 * For each key-value pair this method is visited.
+	 */
 	@Override
 	public final void visit(final Integer k, final V v) {
 		if ( this.isMatchingIds ) {

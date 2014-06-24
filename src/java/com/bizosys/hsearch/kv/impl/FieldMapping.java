@@ -40,10 +40,22 @@ import org.xml.sax.helpers.DefaultHandler;
 import com.bizosys.hsearch.idsearch.util.IdSearchLog;
 import com.bizosys.unstructured.AnalyzerFactory;
 
+/**
+ * The hsearch index schema file is parsed by this class.
+ * @author shubhendu
+ *
+ */
 public class FieldMapping extends DefaultHandler {
+
+	private static final boolean INFO_ENABLED = IdSearchLog.l.isInfoEnabled();
 
 	private static final boolean DEBUG_ENABLED = IdSearchLog.l.isDebugEnabled();
 
+	/**
+	 * Representation of Single field in schema.
+	 * @author shubhendu
+	 *
+	 */
 	public class Field implements Comparable<Field>{
 
 		public String name;
@@ -60,16 +72,17 @@ public class FieldMapping extends DefaultHandler {
 		public String analyzer;
 		public boolean isAnalyzed;
 		public boolean isCompressed;
+		
+		public  boolean isPorous;
+		public  boolean isFilter;
+		public  boolean isAggregate;
 
-		public boolean biWord;
-		public boolean triWord;
+		public boolean isBiWord;
+		public boolean isTriWord;
 		
 		public boolean isDocIndex;
-
 		public boolean isCachable = true;
-		
 		public boolean isSourceUrl = false;
-
 		public String expression = null;
 		
 		public Field() {
@@ -79,6 +92,30 @@ public class FieldMapping extends DefaultHandler {
 			return dataType;
 		}
 
+		/**
+		 * Create a new field instance.
+		 * 
+		 * @param name
+		 * @param sourceName
+		 * @param sourceSeq
+		 * @param isIndexable
+		 * @param isStored
+		 * @param isRepeatable
+		 * @param isMergedKey
+		 * @param mergePosition
+		 * @param skipNull
+		 * @param defaultValue
+		 * @param fieldType
+		 * @param analyzer
+		 * @param isDocIndex
+		 * @param isAnalyzed
+		 * @param isCachable
+		 * @param isCompressed
+		 * @param biWord
+		 * @param triWord
+		 * @param isSourceUrl
+		 * @param expression
+		 */
 		public Field(String name,String sourceName, int sourceSeq, boolean isIndexable,boolean isStored,
 				boolean isRepeatable, boolean isMergedKey, int mergePosition,
 				boolean skipNull, String defaultValue, String fieldType, String analyzer, 
@@ -103,8 +140,8 @@ public class FieldMapping extends DefaultHandler {
 			
 			this.isCachable = isCachable;
 			this.isCompressed = isCompressed;
-			this.biWord = biWord;
-			this.triWord = triWord; 
+			this.isBiWord = biWord;
+			this.isTriWord = triWord; 
 			
 			this.expression = expression;
 			this.isSourceUrl = isSourceUrl;
@@ -119,7 +156,7 @@ public class FieldMapping extends DefaultHandler {
 					.append(skipNull).append('\t').append(defaultValue)
 					.append('\t').append(dataType).append('\t').append(analyzer)
 					.append('\t').append(isCachable).append('\t').append(isCompressed)
-					.append(biWord).append('\t').append(triWord).append('\t').append(expression);
+					.append(isBiWord).append('\t').append(isTriWord).append('\t').append(expression);
 
 			return sb.toString();
 		}
@@ -134,8 +171,18 @@ public class FieldMapping extends DefaultHandler {
 
 	public Field field;
 	
+	/**
+	 * This sourceSeqWithField container contains the mapping of 
+	 * schema source sequencenumber and the corresponding Field
+	 */
 	public Map<Integer, Field> sourceSeqWithField = new HashMap<Integer, Field>();
+
+	/**
+	 * This sourceSeqWithField container contains the mapping of 
+	 * schema name attribute and the corresponding Field
+	 */
 	public Map<String, Field> nameWithField = new HashMap<String, Field>();
+	
 	public String tableName = null;
 	public String familyName = null;
 	public String voClass = null;
@@ -143,14 +190,32 @@ public class FieldMapping extends DefaultHandler {
 	public String version = "0";
 	public boolean append = false;
 	public boolean delete = false;
+	public  int skewPoint = -1;
+	public  int internalKey = -1;
 	
 	
+	/**
+	 * Returns FieldMapping instance.
+	 * This is @deprecated method Please use getInstance(String fileLoc)  
+	 * @return FieldMapping instance
+	 */
 	@Deprecated
 	public static FieldMapping getInstance(){
 		return new FieldMapping();
 	}
-	
+
+	/**
+	 * This container caches the different field mapping instance 
+	 * for different schemas for subsequent reuse.
+	 */
 	static Map<String, FieldMapping> cache = new ConcurrentHashMap<String, FieldMapping>();
+	
+	/**
+	 * Returns a FieldMapping instance for a given schema file.
+	 * @param fileLoc
+	 * @return FieldMapping instance
+	 * @throws ParseException
+	 */
 	public static FieldMapping getInstance(String fileLoc) throws ParseException{
 		if ( cache.containsKey(fileLoc)) return cache.get(fileLoc);
 		FieldMapping fm = new FieldMapping();
@@ -158,26 +223,30 @@ public class FieldMapping extends DefaultHandler {
 		if ( ! cache.containsKey(fileLoc)) cache.put(fileLoc, fm);
 		return fm;
 	}
-	
+	/**
+	 * Clears the cache of FieldMapping instances.
+	 */
 	public void clear() {
 		cache.clear();
 	}
 	
 	public FieldMapping() {
-
 	}
 
 	public static void main(String[] args) throws IOException, SAXException,
 			ParserConfigurationException, ParseException {
-		
 		FieldMapping fm = FieldMapping.getInstance(args[0]);
 		fm.display();
-
 	}
 	
 	int sourceSeq = 0;
 	String name = null;
 	
+	/**
+	 * Given string content of schema file it parses xml content.
+	 * @param xmlString
+	 * @throws ParseException
+	 */
 	public void parseXMLString(final String xmlString) throws ParseException{
 		SAXParserFactory saxFactory = SAXParserFactory.newInstance();
 		SAXParser saxParser;
@@ -194,6 +263,11 @@ public class FieldMapping extends DefaultHandler {
 		}
 	}
 	
+	/**
+	 * Parses the given schema file.
+	 * @param filePath
+	 * @throws ParseException
+	 */
 	public void parseXML(final String filePath) throws ParseException {
 
 		SAXParserFactory saxFactory = SAXParserFactory.newInstance();
@@ -212,7 +286,28 @@ public class FieldMapping extends DefaultHandler {
 			throw new ParseException(e.getMessage(), 0);
 		}
 	}
-
+	
+	/**
+	 * For each field in the schema this method is executed.
+	 * Sets the default value for those attributes that are not present in
+	 * the schema file.
+	 * The Default values are :
+	 * isMergedKey = false
+	 * mergePosition = -1
+	 * isIndexable = true
+	 * isStored = true
+	 * isRepeatable = true
+	 * skipNull = true
+	 * fldVal = - (string) 0 (others) 
+	 * analyzer = EMPTY
+	 * isDocIndex = false
+	 * isAnalyzed = false
+	 * isCompressed = false
+	 * isCachable = true
+	 * biWord = false
+	 * triWord = false
+	 * sourceurl = false
+	 */
 	public void startElement(String uri, String localName, String qName,Attributes attributes) throws SAXException {
 
 		if (qName.equalsIgnoreCase("field")) {
@@ -333,6 +428,12 @@ public class FieldMapping extends DefaultHandler {
 			
 			fldVal = attributes.getValue("delete");
 			delete = (null == fldVal) ? false : fldVal.equals("true");
+			
+			fldVal = attributes.getValue("skewPoint");
+			skewPoint = (null == fldVal || (fldVal.length() == 0)) ? -1 : Integer.parseInt(fldVal);
+			
+			fldVal = attributes.getValue("internalKey");
+			internalKey = (null == fldVal || (fldVal.length() == 0)) ? -1 : Integer.parseInt(fldVal); 
 
 		}
 		
@@ -348,7 +449,7 @@ public class FieldMapping extends DefaultHandler {
 
 	public void display() {
 		for (Map.Entry<Integer, Field> entry : sourceSeqWithField.entrySet()) {
-			System.out.println(entry.getKey() + " - "+ entry.getValue().toString());
+			if ( INFO_ENABLED ) IdSearchLog.l.info(entry.getKey() + " - "+ entry.getValue().toString());
 		}
 		if ( DEBUG_ENABLED )  IdSearchLog.l.debug("sahema name is " + tableName);
 	}

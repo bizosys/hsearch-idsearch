@@ -46,7 +46,7 @@ public class IndexFieldShort {
 
 				@Override
 				public void add(int key, String val) {
-					table.put(key, Integer.parseInt(val));
+					table.put(key, Short.parseShort(val));
 				}
 
 				@Override
@@ -56,17 +56,14 @@ public class IndexFieldShort {
 				
 				@Override
 				public void append(byte[] data) throws IOException  {
-					table.parse(data, new Cell2Visitor<BitSetWrapper, Integer>() {
+					table.parse(data, new Cell2Visitor<BitSetWrapper, Short>() {
 
 						@Override
-						public void visit(BitSetWrapper k, Integer v) {
+						public void visit(BitSetWrapper k, Short v) {
 							table.put(k, v);
 						}
 					});
 				}
-				
-				
-				
 			};			
 		} else {
 				fld = new IndexField() {
@@ -75,7 +72,7 @@ public class IndexFieldShort {
 	
 				@Override
 				public void add(int key, String val) {
-					table.put(key, Integer.parseInt(val));
+					table.put(key, Short.parseShort(val));
 				}
 	
 				@Override
@@ -85,16 +82,14 @@ public class IndexFieldShort {
 
 				@Override
 				public void append(byte[] data) throws IOException  {
-					table.parse(data, new Cell2Visitor<Integer, Integer>() {
+					table.parse(data, new Cell2Visitor<Integer, Short>() {
 
 						@Override
-						public void visit(Integer k, Integer v) {
+						public void visit(Integer k, Short v) {
 							table.put(k, v);
 						}
 					});
 				}
-
-				
 			};
 		}
 		

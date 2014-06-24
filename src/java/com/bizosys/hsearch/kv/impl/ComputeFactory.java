@@ -20,13 +20,23 @@
 
 package com.bizosys.hsearch.kv.impl;
 
-
+/**
+ * 
+ * This factory class returns the ComputeKV instance.
+ *
+ */
 public class ComputeFactory {
 
 	public static ComputeFactory getInstance() {
 		return new ComputeFactory();
 	}
 	
+	/**
+	 * 
+	 * @param type
+	 * @return instance of {@link ComputeKV}
+	 * @throws NullPointerException
+	 */
 	public final ICompute getCompute(final String type) throws NullPointerException {
     	return new ComputeKV();
     }

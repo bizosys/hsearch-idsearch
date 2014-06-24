@@ -126,7 +126,7 @@ public final class HSearchTableKVBitSet implements IHSearchTable {
 				}
 			}
 			
-			System.out.println(cell1Key + " = " + cell1Val);
+			//System.out.println(cell1Key + " = " + cell1Val);
             if (null != plugin) {
             	switch (this.mode) {
         		case MODE_COLS :

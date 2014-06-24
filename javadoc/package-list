@@ -1,0 +1,14 @@
+com.bizosys.hsearch.idsearch.admin
+com.bizosys.hsearch.idsearch.config
+com.bizosys.hsearch.idsearch.meta
+com.bizosys.hsearch.idsearch.util
+com.bizosys.hsearch.kv
+com.bizosys.hsearch.kv.dao
+com.bizosys.hsearch.kv.dao.inverted
+com.bizosys.hsearch.kv.dao.plain
+com.bizosys.hsearch.kv.dao.vs
+com.bizosys.hsearch.kv.impl
+com.bizosys.hsearch.kv.impl.bytescooker
+com.bizosys.hsearch.kv.indexing
+com.bizosys.hsearch.storage
+com.bizosys.unstructured

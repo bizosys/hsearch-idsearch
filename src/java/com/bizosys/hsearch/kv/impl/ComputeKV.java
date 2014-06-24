@@ -36,6 +36,12 @@ import com.bizosys.hsearch.federate.BitSetWrapper;
 import com.bizosys.hsearch.idsearch.util.IdSearchLog;
 import com.bizosys.hsearch.treetable.Cell2;
 
+/**
+ * 
+ * A ComputeKV class deserializes the hsearch index blob
+ * if the repeatable property in schema is false.
+ *
+ */
 public final class ComputeKV implements ICompute {
 	
 	public ComputeKV() {
@@ -120,13 +126,18 @@ public final class ComputeKV implements ICompute {
 		}
 	}
 	
+	/**
+	 * Creates new ComputeKV Instance
+	 */
 	public final ComputeKV createNew() {
 		ComputeKV kv = new ComputeKV();
 		kv.kvType = this.kvType;
 		return kv;
 	}
 	
-	
+	/**
+	 * Clears the KV container.
+	 */
 	public final void clear() {
 		
 		switch (this.kvType) {
@@ -194,6 +205,9 @@ public final class ComputeKV implements ICompute {
 		
 	}	
 	
+	/**
+	 * Serializes the KV container. 
+	 */
 	public final byte[] toBytes() throws IOException {
 		
 		byte[] data = null; 
@@ -245,21 +259,38 @@ public final class ComputeKV implements ICompute {
 		return data;
 	}
 	
+	/**
+	 * Deserializes the hsearch index blob for a non-repeatable field.
+	 */
 	@Override
 	public final void put(final byte[] data) throws IOException {
 		put(data, null);
 	}
-	
+
+	/**
+	 * Deserializes the hsearch index blob for a non-repeatable field.
+	 */
 	public final void parse(final byte[] dataChunk) throws IOException {
 		parse(dataChunk, null);
 	}
-	
+
+	/**
+	 * Deserializes the hsearch index blob for a non-repeatable field.
+	 * Here the byte[] is an array of hsearch index blob.
+	 */
 	public final void put(final byte[] data, BitSetWrapper bitset) throws IOException {
 		for (byte[] dataChunk : SortedBytesArray.getInstanceArr().parse(data).values()) {
 			parse(dataChunk, bitset);
 		}
 	}
 	
+	/**
+	 * 
+	 * Deserializes the given chunk based on given matching ids.
+	 * @param dataChunk
+	 * @param bitset
+	 * @throws IOException
+	 */
 	public final void parse(final byte[] dataChunk, BitSetWrapper bitset) throws IOException {
 		switch (this.kvType) {
 			case Datatype.BOOLEAN:

@@ -24,7 +24,7 @@ import java.util.Arrays;
 
 import org.apache.hadoop.io.Text;
 
-import com.bizosys.hsearch.kv.KVIndexer;
+import com.bizosys.hsearch.kv.indexing.KVIndexer;
 
 public abstract class IndexField {
 	
@@ -34,23 +34,32 @@ public abstract class IndexField {
 		boolean hasValue = false;
     	String[] resultValue = new String[2];
     	String line = null;
+    	String currentF = null;
 
-		for (Text text : values) {
-			if ( null == text) continue;
-			Arrays.fill(resultValue, null);
-
-			line = text.toString();
-			
-			int index = line.indexOf(KVIndexer.FIELD_SEPARATOR);
-			if (index >= 0) {
-				resultValue[0] = line.substring(0, index);
-				if (index <= line.length() - 1) resultValue[1] = line.substring(index + 1);
+    	try {
+    		
+			for (Text text : values) {
+				if ( null == text) continue;
+				Arrays.fill(resultValue, null);
+	
+				line = text.toString();
+				
+				int index = line.indexOf(KVIndexer.FIELD_SEPARATOR);
+				if (index >= 0) {
+					resultValue[0] = line.substring(0, index);
+					if (index <= line.length() - 1) resultValue[1] = line.substring(index + 1);
+				}
+						
+				currentF = resultValue[0];
+				int containerKey = Integer.parseInt(currentF);
+				hasValue = true;
+				add(containerKey, resultValue[1]);
 			}
-					
-			int containerKey = Integer.parseInt(resultValue[0]);
-			hasValue = true;
-			add(containerKey, resultValue[1]);
-		}
+    	} catch (NumberFormatException ex) {
+    		ex.printStackTrace();
+    		throw new IOException("Unable to parse number - [" + currentF + "] for input " + line + " with line sep :" + KVIndexer.FIELD_SEPARATOR + " because " + ex.getMessage());
+    	}
+	
 		
 		if ( hasValue ) {
 			finalData = getBytes();

@@ -26,22 +26,9 @@ import java.util.List;
 import java.util.Map;
 import java.util.Timer;
 import java.util.TimerTask;
-
-import com.bizosys.hsearch.util.HSearchConfig;
  
-public class LruCache {
+public class LruCache extends ICache{
 	
-	public static LruCache instance = null;
-	public static LruCache getInstance() {
-		if ( null != instance) return instance;
-		synchronized (LruCache.class.getName()) {
-			if ( null != instance) return instance;
-			int lruCacheMb = HSearchConfig.getInstance().getConfiguration().getInt("cache.size.mb", 1024);
-			int cacheRefreshDurationInSecs = HSearchConfig.getInstance().getConfiguration().getInt("cache.refresh.secs", -1);
-			instance = new LruCache(lruCacheMb, cacheRefreshDurationInSecs);
-		}
-		return instance;
-	}
  
 	
 	Map<String, byte[]> syncedLruMap = null;
@@ -53,7 +40,12 @@ public class LruCache {
     private Timer cacheRefreshTimer = null;
     private CacheRefreshAgent cacheRefreshAgent = null;
 
-    private LruCache(int lruCacheMb, int cacheRefreshDurationInSecs) {
+    public LruCache() {
+    	
+    }
+    
+    @Override
+    public void set(int lruCacheMb, int cacheRefreshDurationInSecs) {
     	
 		syncedLruMap = Collections.synchronizedMap(new LruMap());
 		syncedPinnedMap = Collections.synchronizedMap(
@@ -74,31 +66,33 @@ public class LruCache {
         }
 	}
 	
-	private LruCache() {
-		
-	}
-	
+	@Override
     public byte[] get(String key) {
     	return this.syncedLruMap.get(key);
     }
 
+	@Override
     public Object getPinned(String key) {
     	return this.syncedPinnedMap.get(key);
     }
 
+	@Override
     public void clear() {
     	this.syncedLruMap.clear();
     	this.syncedPinnedMap.clear();
     }
     
+	@Override
     public boolean containsKey(String key) {
     	return this.syncedLruMap.containsKey(key);
     }
         
+	@Override
     public boolean containsPinnedKey(String key) {
     	return this.syncedPinnedMap.containsKey(key);
     }
 
+	@Override
     public void put(String key, byte[] val) {
     	
     	long newObjSize = ( null == val) ? 0 : val.length;
@@ -125,6 +119,7 @@ public class LruCache {
     	syncedLruMap.put(key, val);
     }
 
+	@Override
     public void putPinned(String key, Object val) {
 		String deleteId = null;
     	if ( this.syncedPinnedMap.size() > allowedPinnedObjects) {
@@ -243,7 +238,7 @@ public class LruCache {
     }    
     
     public static void main(String[] args) throws InterruptedException {
-    	LruCache cache = LruCache.getInstance();
+    	ICache cache = ICache.getInstance();
     	
     	cache.put("a1", new byte[1024*100]);
     	cache.put("a2", new byte[1024*100]);

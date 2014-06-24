@@ -28,13 +28,50 @@ public abstract class MapperKVBase implements IHSearchPlugin {
     public abstract TablePartsCallback getPart();
 	
     public interface TablePartsCallback {
-
+    	
+    	/**
+    	 * This is called when the hsearch instruction output type is 
+    	 * HSearchProcessingInstruction.OUTPUT_COLS and the repeatable property
+    	 * in schema is false.
+    	 * @param key
+    	 * @param value
+    	 * @return
+    	 */
         boolean onRowCols( final int key,  final Object value);
+
+    	/**
+    	 * This is called when the hsearch instruction output type is 
+    	 * HSearchProcessingInstruction.OUTPUT_ID and the repeatable property
+    	 * in schema is false.
+    	 * @param key
+    	 * @param value
+    	 * @return
+    	 */
         boolean onRowKey(final int id);
-        
+
+    	/**
+    	 * This is called when the hsearch instruction output type is 
+    	 * HSearchProcessingInstruction.OUTPUT_COLS and the repeatable property
+    	 * in schema is true.
+    	 * @param key
+    	 * @param value
+    	 * @return
+    	 */
         boolean onRowCols(final BitSetWrapper ids, final Object value);
+
+    	/**
+    	 * This is called when the hsearch instruction output type is 
+    	 * HSearchProcessingInstruction.OUTPUT_ID and the repeatable property
+    	 * in schema is true.
+    	 * @param key
+    	 * @param value
+    	 * @return
+    	 */
         boolean onRowKey(final BitSetWrapper ids);
         
+        /**
+         * This method is called when all the rows has been processed.
+         */
         void onReadComplete();
     }
 }

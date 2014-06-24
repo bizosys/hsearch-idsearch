@@ -1,5 +1,6 @@
 package com.bizosys.hsearch.kv;
 
+import java.io.IOException;
 import java.util.Map;
 import java.util.Set;
 
@@ -14,7 +15,7 @@ public class SearcherPluginTest implements ISearcherPlugin {
 	public void onJoin(String mergeId, BitSetWrapper foundIds,
 			Map<String, QueryPart> whereParts,
 			Map<Integer, KVRowI> foundIdWithValueObjects) {
-		
+		System.out.println("@@@@@@@@@@:" + foundIds.size());
 	}
 
 	@Override
@@ -32,12 +33,6 @@ public class SearcherPluginTest implements ISearcherPlugin {
 	}
 
 	@Override
-	public void afterSelect(String mergeId, BitSetWrapper foundIds) {
-		// TODO Auto-generated method stub
-
-	}
-
-	@Override
 	public void beforeSelectOnSorted(String mergeId, BitSetWrapper foundIds) {
 		// TODO Auto-generated method stub
 		
@@ -50,13 +45,21 @@ public class SearcherPluginTest implements ISearcherPlugin {
 	}
 
 	@Override
-	public void beforeSort(String mergeId, Set<KVRowI> resultSet) {
+	public boolean beforeSort(String mergeId, String sortFields,
+			Set<KVRowI> resultSet,
+			Map<Integer, BitSetWrapper> internalRanks) {
+		return false;
+	}
+
+	@Override
+	public void afterSort(String mergeId, Set<KVRowI> resultSet) {
 		// TODO Auto-generated method stub
 		
 	}
 
 	@Override
-	public void afterSort(String mergeId, Set<KVRowI> resultSet) {
+	public void afterSelect(String mergeId, BitSetWrapper foundIds,
+			Set<KVRowI> resultset) throws IOException {
 		// TODO Auto-generated method stub
 		
 	}

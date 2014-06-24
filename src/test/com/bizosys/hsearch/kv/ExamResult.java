@@ -12,14 +12,14 @@ import com.google.gson.annotations.Expose;
 
 public class ExamResult extends GroupSortedObject implements KVRowI{
 	
-	public String mergeId = null;
-	public int id = -1;
+	public String __mergeId__ = null;
+	public int __id__ = -1;
 	@Expose public int empid = 0;
 	@Expose public String sex = null;
 	@Expose public String classz = null;
 	@Expose public float marks = 0.0f;
 	@Expose public String location = null;
-	@Expose public int age = 0;
+	@Expose public byte age = 0;
 	@Expose public String commentsval = null;
 	@Expose public String role = null;
 
@@ -54,7 +54,7 @@ public class ExamResult extends GroupSortedObject implements KVRowI{
 			 this.location = value.toString();
 		 break;
 		case 2:
-			 this.age = (Integer)value;
+			 this.age = (Byte)value;
 		 break;
 		case 9:
 			 this.commentsval = value.toString();
@@ -132,6 +132,8 @@ public class ExamResult extends GroupSortedObject implements KVRowI{
 	@Override
 	public final byte getByteField(final int fldSequence) {
 		switch ( fldSequence ) {
+	case 2:
+		 return this.age;
 
 		}
 		return 0;
@@ -150,8 +152,6 @@ public class ExamResult extends GroupSortedObject implements KVRowI{
 		switch ( fldSequence ) {
 	case 1:
 		 return this.empid;
-	case 2:
-		 return this.age;
 
 		}
 		return 0;
@@ -220,8 +220,8 @@ public class ExamResult extends GroupSortedObject implements KVRowI{
 	public final KVRowI create(final KVDataSchema dataSchema, final Integer id, final String mergeId) {
 		
 		ExamResult clonedInstance = new ExamResult(dataSchema);
-		clonedInstance.id = id;
-		clonedInstance.mergeId = mergeId;
+		clonedInstance.__id__ = id;
+		clonedInstance.__mergeId__ = mergeId;
 		return clonedInstance;
 	}
 
@@ -233,22 +233,22 @@ public class ExamResult extends GroupSortedObject implements KVRowI{
 	
 	@Override
 	public final void setId(final Integer id) {
-		this.id = id;
+		this.__id__ = id;
 	}
 
 	@Override
 	public final int getId() {
-		return this.id;
+		return this.__id__;
 	}
 
 	@Override
 	public void setmergeId(String mergeId) {
-		this.mergeId = mergeId;
+		this.__mergeId__ = mergeId;
 	}
 
 	@Override
 	public String getmergeId() {
-		return this.mergeId;
+		return this.__mergeId__;
 	}
 	
 

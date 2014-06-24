@@ -45,23 +45,36 @@ import com.bizosys.hsearch.treetable.client.IHSearchPlugin;
 import com.bizosys.hsearch.treetable.client.IHSearchTable;
 import com.bizosys.hsearch.treetable.storage.HSearchScalarFilter;
 
+/**
+ * 
+ * This class extends the {@link HSearchScalarFilter} which is used to 
+ * filter the data on the regionserver based on a given filter query. 
+ *
+ */
 public class ScalarFilter extends HSearchScalarFilter {
 
 	public static boolean DEBUG_ENABLED = IdSearchLog.l.isDebugEnabled();
 	
-	public ScalarFilter(){
-	}
+	public ScalarFilter(){}
 	
 	public ScalarFilter(HSearchProcessingInstruction outputType, String query) {
 		super(outputType, query);
 	}
 	
 
+	/**
+	 * Create the Mapper plugin to be used
+	 */
 	@Override
 	public IHSearchPlugin createPlugIn() throws IOException {
 		return new MapperKV();
 	}
 
+	/**
+	 * Creates the Hsearch Table to be used.
+	 * If repeatable property is true than it creates KV Inverted table
+	 * else if repeatable property is false it creates KV table.
+	 */
 	@Override
 	public IHSearchTable createTable() {
 		try {

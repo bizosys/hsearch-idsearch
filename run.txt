@@ -1,0 +1,29 @@
+Usage : 
+hadoop com.bizosys.hsearch.kv.indexing.KVIndexer   <<Job Type(SF2HB|SF2HF|SF2MF...)>> <<Input Source>> <<Output Sink>> <<XML File Configuration>> <<Skip Header(true|false)>> <<Number Of reducer>> <<Plugin VO Class Name>>
+
+Simple File to Hbase :
+hadoop com.bizosys.hsearch.kv.indexing.KVIndexer SF2HB /data/examresult.tsv /output/custom /conf/examresult.xml false 2
+
+Simple File to MapFile:
+hadoop com.bizosys.hsearch.kv.indexing.KVIndexer SF2MF /data/examresult.tsv /output/custom /conf/examresult.xml false 1
+
+Indexed MapFile to HFile:
+hadoop com.bizosys.hsearch.kv.indexing.KVIndexer IMF2HF /output/custom/examresult/data /output/hfile /conf/examresult.xml false 1
+
+Simple File to HFile : 
+hadoop com.bizosys.hsearch.kv.indexing.KVIndexer SF2HF /data/examresult.tsv /output/hfile /conf/examresult.xml false 1
+
+HFile to Hbase :
+hadoop org.apache.hadoop.hbase.mapreduce.LoadIncrementalHFiles /output/hfile/examresult examresult 
+
+
+count 'examresult'
+scan 'examresult'
+truncate 'examresult'
+
+Build into a single jar file
+mkdir hsearch
+cd hsearch
+jar xvf ../lucene-core-3.6.2.jar;jar xvf ../lucene-analyzers-3.6.2.jar;jar xvf ../lucene-queryparser-3.6.2.jar
+jar xvf ../hsearch-core.jar;jar xvf ../hsearch-federated.jar;jar xvf ../hsearch-idsearch.jar
+jar cvf hsearch-1.0.0.jar META-INF/MANIFEST.MF com/* org/* hsearch-default.xml

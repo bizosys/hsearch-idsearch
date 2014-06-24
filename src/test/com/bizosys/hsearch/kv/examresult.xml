@@ -1,9 +1,9 @@
-<schema tableName="examresult" familyName="1" fieldSeparator="~" append="false" delete="false" >
+<schema tableName="examresult" familyName="1" fieldSeparator="~" append="false" delete="false" skewPoint="-1">
 <fields>
 		<field name="classz" sourcesequence="0" sourcename="classz" type="String" analyzer="" analyzed = "false" indexed="true" stored="true" mergekey="true" mergeposition="0" skipNull="false" defaultValue="-2147483648" cache="false"  />
 		<field name="empid" sourcesequence="1" sourcename="empid" type="int" analyzer="" analyzed = "false" indexed="true" stored="true" repeatable="false" mergekey="false" mergeposition="" skipNull="false" defaultValue="-2147483648" />
 
-		<field name="age" sourcesequence="2" sourcename="age" type="int" analyzer="" analyzed = "false" indexed="true" stored="true" repeatable="true" compress="true"  mergekey="false" mergeposition=""  skipNull="false" defaultValue="-2147483648" />
+		<field name="age" sourcesequence="2" sourcename="age" type="byte" analyzer="" analyzed = "false" indexed="true" stored="true" repeatable="true" compress="true"  mergekey="false" mergeposition=""  skipNull="false" defaultValue="0" />
 		<field name="role" sourcesequence="3" sourcename="role" type="String" analyzer="" analyzed = "false" indexed="true" stored="true" repeatable="true" mergekey="false" mergeposition=""  skipNull="false" defaultValue="-2147483648" />
 		<field name="location" sourcesequence="4" sourcename="location" type="String" analyzer="" analyzed = "false" indexed="true" stored="true" repeatable="true" mergekey="false" mergeposition=""  skipNull="false" defaultValue="-2147483648" />
 		<field name="marks" sourcesequence="5" sourcename="marks" type="float" analyzer="" analyzed = "false" indexed="true" stored="true" repeatable="false" mergekey="false" mergeposition=""  skipNull="false" defaultValue="-2147483648" />

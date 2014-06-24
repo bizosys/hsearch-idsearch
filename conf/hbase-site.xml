@@ -1,48 +1,29 @@
 <?xml version="1.0"?>
 <?xml-stylesheet type="text/xsl" href="configuration.xsl"?>
 <configuration>
-    <!--  
-    <property>
-        <name>hbase.coprocessor.region.classes</name>
-        <value>com.bizosys.hsearch.treetable.storage.HSearchGenericCoprocessorImpl,com.bizosys.hsearch.treetable.storage.HSearchMultiGetCoprocessor</value>
-    </property>
-    -->
+<property>
+<name>hbase.cluster.distributed</name>
+<value>true</value>
+</property>
 
-    <property>
-        <name>hbase.regionserver.handler.count</name>
-    	<value>1</value>
-    </property>
-    
+<property>
+<name>hbase.rootdir</name>
+<value>hdfs://master:8020/hbase</value>
+</property>
 
-    <property>
-        <name>hbase.hregion.max.filesize</name>
-    	<value>1073741824</value>
-    </property>
-    
-    <property>
-        <name>hbase.client.keyvalue.maxsize</name>
-    	<value>-1</value>
-    </property>
-    
-    <property>
-        <name>hbase.client.scanner.timeout.period</name>
-    	<value>600</value>
-    </property> 
-    
-    <property>
-		<name>hfile.block.cache.size</name>
-        <value>0.0</value>
-    </property> 
-       
-    <!--  
-    <property>
-        <name>hbase.mapreduce.hfileoutputformat.blocksize</name>
-    	<value>65536</value>
-    </property>
+<property>
+<name>hbase.zookeeper.quorum</name>
+<value>master</value>
+</property>
 
-
-
-	-->
-	
-	
+  <property>
+    <name>dfs.replication</name>
+    <value>1</value>
+    <description>The replication count for HLog and HFile storage. Should not be greater than HDFS datanode count.</description>
+  </property>
+<property>
+                <name>hbase.coprocessor.region.classes</name>
+                <value>com.bizosys.hsearch.treetable.storage.HSearchGenericCoprocessorImpl,com.bizosys.hsearch.treetable.storage.HSearchMultiGetCoprocessor,com.bizosys.hsearch.treetable.storage.HSearchBytesCoprocessor
+                </value>
+        </property>
 </configuration>

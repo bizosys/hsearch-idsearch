@@ -24,19 +24,41 @@ import java.util.HashMap;
 import java.util.Map;
 
 import com.bizosys.hsearch.federate.BitSetWrapper;
-import com.bizosys.hsearch.kv.dao.MapperKVBaseEmpty;
+import com.bizosys.hsearch.kv.dao.MapperKVBaseEmptyImpl;
 import com.bizosys.hsearch.kv.dao.ScalarFilter;
 import com.bizosys.hsearch.treetable.client.HSearchProcessingInstruction;
 import com.bizosys.hsearch.treetable.client.HSearchQuery;
 import com.bizosys.hsearch.treetable.client.IHSearchTable;
 
+/**
+ * The bitSetRow class deserializes the hsearch index blob and filters the
+ * values based on filterquery and returns a Map of key and value.
+ * 
+ */
 public final class BitSetRow {
 
+	/**
+	 * 
+	 * @param inputBytes
+	 * @param filterQuery
+	 * @param inputMapperInstructions
+	 * @return returns a Map of key and value
+	 * @throws IOException
+	 */
 	public static final Map<Integer, Object> process(final byte[] inputBytes, 
 			final String  filterQuery,final HSearchProcessingInstruction inputMapperInstructions) throws IOException{
 		return process(inputBytes, null, filterQuery, inputMapperInstructions);
 	}
-	
+	/**
+	 * 
+	 * Filters the hsearch index blob based on filter query given.
+	 * @param inputBytes
+	 * @param matchingIds
+	 * @param filterQuery
+	 * @param inputMapperInstructions
+	 * @return returns a Map of key and value
+	 * @throws IOException
+	 */
 	public static final Map<Integer, Object> process(final byte[] inputBytes, final BitSetWrapper matchingIds,
 			final String  filterQuery,final HSearchProcessingInstruction inputMapperInstructions) throws IOException{
 		
@@ -44,22 +66,7 @@ public final class BitSetRow {
 			IHSearchTable table = ScalarFilter.createTable(inputMapperInstructions);
 			final Map<Integer, Object> rowContainer = new HashMap<Integer, Object>();
 			
-			table.get(inputBytes, new HSearchQuery(filterQuery), new MapperKVBaseEmpty() {
-				
-				@Override
-				public boolean onRowKey(int id) {
-					return false;
-				}
-				
-				@Override
-				public boolean onRowCols(int k, Object value) {
-					return true;
-				}
-
-				@Override
-				public boolean onRowKey(BitSetWrapper ids) {
-					return false;
-				}
+			table.get(inputBytes, new HSearchQuery(filterQuery), new MapperKVBaseEmptyImpl() {
 
 				@Override
 				public boolean onRowCols(BitSetWrapper k, Object v) {
@@ -71,10 +78,10 @@ public final class BitSetRow {
 				}
 
 				@Override
-				public void setMergeId(byte[] mergeId) throws IOException {
+				public boolean onRowCols(int k, Object value) {
+					return true;
 				}
-			}
-			);
+			});
 			
 			return rowContainer;
 			

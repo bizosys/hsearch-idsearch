@@ -20,6 +20,11 @@
 
 package com.bizosys.hsearch.kv;
 
+/**
+ * 
+ * This keeps track of count for given facet value.
+ *
+ */
 public class FacetCount {
 
 	public int count = 1;
@@ -30,6 +35,10 @@ public class FacetCount {
 	
 	public FacetCount(int count) {
 		this.count = count;  
+	}
+	
+	public void add(int count){
+		this.count = this.count + count;
 	}
 	
 	@Override

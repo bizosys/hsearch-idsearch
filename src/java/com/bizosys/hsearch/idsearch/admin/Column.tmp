@@ -1,0 +1,188 @@
+--PACKAGE_NAME--
+
+import com.bizosys.hsearch.functions.GroupSortedObject;
+import com.bizosys.hsearch.kv.impl.KVDataSchemaRepository.KVDataSchema;
+
+import com.bizosys.hsearch.kv.impl.TypedObject;
+import com.bizosys.hsearch.kv.KVRowI;
+
+import com.bizosys.hsearch.idsearch.util.IdSearchLog;
+import com.google.gson.annotations.Expose;
+
+
+public class --COLUMN-NAME-- extends GroupSortedObject implements KVRowI{
+	
+	public String __mergeId__ = null;
+	public int __id__ = -1;
+--PARAMS--
+		
+	KVDataSchema dataSchema = null;
+	
+	public --COLUMN-NAME--() {}
+	public --COLUMN-NAME--(KVDataSchema dataScheme) {
+		this.dataSchema = dataScheme;
+	}
+
+	public final void setValue(final String key, final Object value){
+		if ( ! this.dataSchema.nameToSeqMapping.containsKey(key) ) {
+			IdSearchLog.l.warn("Warning: Field is not stored type or undefined > " + key);
+			return;
+		}
+		int keySeq = this.dataSchema.nameToSeqMapping.get(key);
+		switch ( keySeq ) {
+--SETTERS--
+		}
+	}
+	
+		@Override
+	public final Object getValue(final String key){
+		if ( ! this.dataSchema.nameToSeqMapping.containsKey(key) ) {
+			IdSearchLog.l.warn("Warning: Field is not stored type or undefined > " + key);
+			return null;
+		}
+	
+		int keySeq = this.dataSchema.nameToSeqMapping.get(key);
+		switch ( keySeq ) {
+--GETTERS--
+		}
+		return null;
+	}
+
+	@Override
+	public TypedObject getValueNative(String name) {
+		int keySeq = this.dataSchema.nameToSeqMapping.get(name);
+		switch ( keySeq ) {
+--GETTERS_NATIVE--
+		}
+		return null;
+	}		
+	
+	@Override
+	public final boolean getBooleanField(final int fldSequence) {
+		switch ( fldSequence ) {
+--BOOLEAN_SEQUENCER--
+		}
+		return false;
+	}
+
+	@Override
+	public final byte getByteField(final int fldSequence) {
+		switch ( fldSequence ) {
+--BYTE_SEQUENCER--
+		}
+		return 0;
+	}
+
+	@Override
+	public final short getShortField(final int fldSequence) {
+		switch ( fldSequence ) {
+--SHORT_SEQUENCER--
+		}
+		return 0;
+	}
+
+	@Override
+	public final int getIntegerField(final int fldSequence) {
+		switch ( fldSequence ) {
+--INTEGER_SEQUENCER--
+		}
+		return 0;
+	}
+
+	@Override
+	public final float getFloatField(final int fldSequence) {
+		switch ( fldSequence ) {
+--FLOAT_SEQUENCER--
+		}
+		return 0;
+	}
+
+	@Override
+	public final double getDoubleField(final int fldSequence) {
+		switch ( fldSequence ) {
+--DOUBLE_SEQUENCER--
+		}
+		return 0;
+	}
+
+	@Override
+	public final long getLongField(final int fldSequence) {
+		switch ( fldSequence ) {
+--LONG_SEQUENCER--
+		}
+		return 0;
+	}
+
+	@Override
+	public final String getStringField(final int fldSequence) {
+		switch ( fldSequence ) {
+--STRING_SEQUENCER--
+		}
+		return null;
+	}
+
+	@Override
+	public final Object getObjectField(final int fldSequence) {
+		return null;
+	}
+	
+	@Override
+	public final KVRowI create() {
+		return new --COLUMN-NAME--();
+	}
+
+	@Override
+	public final KVRowI create(final KVDataSchema dataSchema) {
+		return new --COLUMN-NAME--(dataSchema);
+	}
+	
+	@Override
+	public final KVRowI create(final KVDataSchema dataSchema, final Integer id, final String mergeId) {
+		
+		--COLUMN-NAME-- clonedInstance = new --COLUMN-NAME--(dataSchema);
+		clonedInstance.__id__ = id;
+		clonedInstance.__mergeId__ = mergeId;
+		return clonedInstance;
+	}
+
+
+	@Override
+	public final int getDataType(final String name) {
+		return 0;
+	}
+	
+	@Override
+	public final void setId(final Integer id) {
+		this.__id__ = id;
+	}
+
+	@Override
+	public final int getId() {
+		return this.__id__;
+	}
+
+	@Override
+	public void setmergeId(String mergeId) {
+		this.__mergeId__ = mergeId;
+	}
+
+	@Override
+	public String getmergeId() {
+		return this.__mergeId__;
+	}
+	
+
+	@Override
+	public int getValueSeq(String fldName) {
+		return this.dataSchema.nameToSeqMapping.get(fldName);
+	}
+	
+		@Override
+	public Object getValue(int fldSeq) {
+		switch ( fldSeq ) {
+--GETTERS--
+		}
+		return null;
+	}	
+
+}

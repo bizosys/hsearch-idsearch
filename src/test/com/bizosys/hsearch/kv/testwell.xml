@@ -1,0 +1,9 @@
+<schema tableName="Wellbore" familyName="1" fieldSeparator="\t" append="false" delete="false">
+<fields>
+	<field name="welboreid" sourcesequence="0" sourcename="welboreid" type="int" analyzer="" analyzed = "false" indexed="true" stored="true" repeatable="true" compress="false"  mergekey="false" mergeposition=""  skipNull="true" defaultValue="0" />
+	<field name="category" sourcesequence="1" sourcename="category" type="String" analyzer="" analyzed = "false" indexed="true" stored="true" repeatable="true" mergekey="false" mergeposition=""  skipNull="false" defaultValue="" />
+	<field name="readingtype" sourcesequence="2" sourcename="readingtype" type="int" analyzer="" analyzed = "false" indexed="true" stored="true" repeatable="true" mergekey="false" mergeposition=""  skipNull="false" defaultValue="-2147483648" />
+	<field name="timestampordepth" sourcesequence="3" sourcename="timestampordepth" type="long" analyzer="" analyzed = "false" indexed="true" stored="true" repeatable="false" mergekey="false" mergeposition=""  skipNull="false" defaultValue="-2147483648" />
+	<field name="readingvalue" stored="true" sourcesequence="4" sourcename="readingvalue" type="int" analyzer="" analyzed = "false" indexed="true" repeatable="false" mergekey="false" mergeposition=""  skipNull="false" defaultValue="-2147483648" />
+</fields>
+</schema>

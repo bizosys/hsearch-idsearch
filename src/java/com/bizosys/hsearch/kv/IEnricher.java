@@ -21,7 +21,17 @@ package com.bizosys.hsearch.kv;
 
 import java.util.Collection;
 
-
+/**
+ * 
+ * This interface is used for enriching the returned resultset for a given search query.
+ *
+ */
 public interface IEnricher {
+	/**
+	 * A collection of rows for a given search query 
+	 * is passed which when changed reflects in the final 
+	 * result returned for a search phrase.
+	 * @param rows
+	 */
 	void enrich(Collection<KVRowI> rows);
 }

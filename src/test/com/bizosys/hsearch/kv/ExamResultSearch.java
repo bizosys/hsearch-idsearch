@@ -1,5 +1,6 @@
 package com.bizosys.hsearch.kv;
 
+import java.io.IOException;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -9,8 +10,10 @@ import junit.framework.TestFerrari;
 
 import com.bizosys.hsearch.federate.BitSetOrSet;
 import com.bizosys.hsearch.federate.BitSetWrapper;
+import com.bizosys.hsearch.federate.QueryPart;
 import com.bizosys.hsearch.idsearch.util.IdSearchLog;
 import com.bizosys.hsearch.kv.impl.FieldMapping;
+import com.bizosys.hsearch.util.HSearchConfig;
 import com.oneline.ferrari.TestAll;
 
 public class ExamResultSearch extends TestCase {
@@ -29,18 +32,18 @@ public class ExamResultSearch extends TestCase {
 
 		} else if  ( modes[2].equals(mode) ) {
 			t.setUp();
+			t.testPhraseQuery();
+			//t.testMultipleFilters();
+			//t.testSorting();
 			//t.testFacet();
-			t.testSanity();
-			/**
-			t.testFreeTextNotStored();
-			t.testFreeTextSearch();
-			t.testRepeatable();
-			t.testMultipleFilters();
-			t.testPivotFacet();
-			t.testFacet();
-			t.testFreeTextStored();
+			//t.testMultiThreadedFacet();
+			//t.testSkewPoint();
+			//t.testFreeTextNotStored();
+			//t.testFreeTextSearch();
+			//t.testPivotFacet();
+			//t.testFacet();
+			//t.testFreeTextStored();
 
-			*/
 			
 			/*
 			t.testFreeTextWithNumericals();
@@ -58,7 +61,7 @@ public class ExamResultSearch extends TestCase {
 
 	@Override
 	protected final void setUp() throws Exception {
-		String schemaPath = "src/test/com/bizosys/hsearch/kv/examresult.xml";
+		String schemaPath = "hsearch-idsearch/src/test/com/bizosys/hsearch/kv/examresult.xml";
 		fm = FieldMapping.getInstance(schemaPath);
 	}
 
@@ -83,7 +86,25 @@ public class ExamResultSearch extends TestCase {
 		}
 		System.out.println("Fetched " + mergedResult.size() + " results in " + (end - start) + " ms.");
 	}
-	
+
+	public final void testSkewPoint() throws Exception {
+		if ( 1 == 1 ) return;
+		long start = System.currentTimeMillis();
+		Searcher searcher = new Searcher("test", fm);
+		KVRowI aBlankRow = new ExamResult();
+
+		IEnricher enricher = null;
+		searcher.searchSkew("A", "age,location,role,marks","location:HSR\\+Layout", aBlankRow, enricher);
+		Set<KVRowI> mergedResult = searcher.getResult();
+
+		long end = System.currentTimeMillis();
+		//assertEquals(10, mergedResult.size());
+		for (KVRowI kvRowI : mergedResult) {
+			System.out.println(kvRowI.getValue("location"));
+		}
+		System.out.println("Fetched " + mergedResult.size() + " results in " + (end - start) + " ms.");
+	}
+
 	public final void testRepeatable() throws Exception {
 		long start = System.currentTimeMillis();
 		Searcher searcher = new Searcher("test", fm);
@@ -104,10 +125,13 @@ public class ExamResultSearch extends TestCase {
 		KVRowI aBlankRow = new ExamResult();
 
 		IEnricher enricher = null;
-		searcher.search( "A", "age,location,marks","age:25 AND location:{Hebbal,HSR Layout} AND marks:!6.8", aBlankRow, enricher);
+		searcher.search( "A", "age,location,marks","age:24 AND location:{HSR+Layout,Hebbal} AND marks:!6.8", aBlankRow, enricher);
 		searcher.sort("location","marks");
 		Set<KVRowI> mergedResult = searcher.getResult();
-		assertEquals(9, mergedResult.size());
+		for (KVRowI kvRowI : mergedResult) {
+			//System.out.println(kvRowI.getValue("age") + "\t" + kvRowI.getValue("marks"));
+		}
+		assertEquals(10, mergedResult.size());
 		long end = System.currentTimeMillis();
 		//System.out.println("Fetched " + mergedResult.size() + " results in " + (end - start) + " ms.");
 	}
@@ -117,12 +141,14 @@ public class ExamResultSearch extends TestCase {
 		Searcher searcher = new Searcher("test", fm);
 		KVRowI aBlankRow = new ExamResult();
 		IEnricher enricher = null;
-		searcher.search("A", "sex,age,location,marks",null, aBlankRow, enricher);
-		searcher.sort("sex","^age","^location","^marks");
+		searcher.search("A", "sex,age,location,marks","age:*", aBlankRow, enricher);
 		Set<KVRowI> mergedResult = searcher.getResult();
 		assertEquals(50, mergedResult.size());
+		searcher.sort("sex","^age","^location","^marks");
+		mergedResult = searcher.getResult();
+		assertEquals(50, mergedResult.size());		
 		KVRowI firstRow = mergedResult.iterator().next();
-		String expected = "Male 22 HSR Layout 0.0";
+		String expected = "Male 22 HSR+Layout 0.0";
 		String actual = firstRow.getValue("sex") + " " +firstRow.getValue("age") + " " +firstRow.getValue("location") + " " +firstRow.getValue("marks");
 		assertEquals(expected, actual);
 		long end = System.currentTimeMillis();
@@ -151,9 +177,27 @@ public class ExamResultSearch extends TestCase {
 		SearcherPluginTest plugin = new SearcherPluginTest(); 
 
 		searcher.setPlugin(plugin);
-		searcher.search("B", "", "location:BTM Layout", "age,marks,location", aBlankRow);
+		searcher.search("B", "age,marks,location", "location:BTM Layout", "age,marks,location", aBlankRow);
 
 		long end = System.currentTimeMillis();
+		
+		assertEquals(25, plugin.facetResult.get("marks").size());
+		assertEquals(1, plugin.facetResult.get("location").size());
+		assertEquals(5, plugin.facetResult.get("age").size());
+	}
+
+	public final void testMultiThreadedFacet() throws Exception {
+		long start = System.currentTimeMillis();
+		Searcher searcher = new Searcher("test", fm);
+		KVRowI aBlankRow = new ExamResult();
+		SearcherPluginTest plugin = new SearcherPluginTest(); 
+		
+		HSearchConfig.getInstance().getConfiguration().set("hsearch.facet.multithread.enabled", true);
+		searcher.setPlugin(plugin);
+		searcher.search("B", "age,marks,location", "location:BTM Layout", "age,marks,location", aBlankRow);
+		
+		long end = System.currentTimeMillis();
+		
 		assertEquals(25, plugin.facetResult.get("marks").size());
 		assertEquals(1, plugin.facetResult.get("location").size());
 		assertEquals(5, plugin.facetResult.get("age").size());
@@ -204,7 +248,7 @@ public class ExamResultSearch extends TestCase {
 			assertTrue(kvRowI.getValue("commentsVal").toString().length() > 0);
 			assertEquals(kvRowI.getValue("commentsVal").toString(), "Tremendous boy");
 			assertTrue( (Integer) kvRowI.getValue("empid") > 0);
-			assertTrue( (Integer) kvRowI.getValue("age") > 0);
+			assertTrue( (Byte) kvRowI.getValue("age") > 0);
 		}
 		//System.out.println("Fetched " + mergedResult.size() + " results in " + (end - start) + " ms.");
 	}
@@ -221,7 +265,7 @@ public class ExamResultSearch extends TestCase {
 		assertEquals(16, mergedResult.size());
 		for (KVRowI kvRowI : mergedResult) {
 			assertNotNull(kvRowI.getValue("age"));
-			assertTrue( (Integer) kvRowI.getValue("age") > 0 );
+			assertTrue( (Byte) kvRowI.getValue("age") > 0 );
 		}
 	}
 
@@ -249,19 +293,66 @@ public class ExamResultSearch extends TestCase {
 	public final void testPhraseQuery() throws Exception {
 		long start = System.currentTimeMillis();
 		Searcher searcher = new Searcher(fm.tableName, fm);
-		searcher.setCheckForAllWords(true);
+		searcher.setCheckForAllWords(false);
 		KVRowI aBlankRow = new ExamResult();
 		IEnricher enricher = null;
-		searcher.search("A", "commentsVal","comments:'tremendous boy'", aBlankRow, enricher);
+		
+		searcher.setInternalFetchLimit(100);
+		//searcher.setPage(25, 20);
+		searcher.search("B", "commentsVal","comments:'good boy'", aBlankRow, enricher);
+		
+		searcher.setPlugin(new ISearcherPlugin() {
+			
+			@Override
+			public void onJoin(String mergeId, BitSetWrapper foundIds, Map<String, QueryPart> whereParts,
+					Map<Integer, KVRowI> foundIdWithValueObjects) {
+			}
+			
+			@Override
+			public void onFacets(String mergeId,Map<String, Map<Object, FacetCount>> facets) {}
+			
+			@Override
+			public void beforeSelectOnSorted(String mergeId, BitSetWrapper foundIds) {}
+			
+			@Override
+			public void beforeSelect(String mergeId, BitSetWrapper foundIds) {}
+			
+			@Override
+			public void afterSort(String mergeId, Set<KVRowI> resultSet) {}
+			
+			@Override
+			public void afterSelectOnSorted(String mergeId, BitSetWrapper foundIds) {}
+			
+
+			@Override
+			public boolean beforeSort(String mergeId, String sortFields,
+					Set<KVRowI> resultSet,
+					Map<Integer, BitSetWrapper> internalRanks) {
+				
+				for (int i=0; i<internalRanks.size(); i++) {
+					System.out.println("NNN:" + i + "\t" + internalRanks.get(i).toString());
+				}
+				return false;
+			}
+
+			@Override
+			public void afterSelect(String mergeId, BitSetWrapper foundIds,
+					Set<KVRowI> resultset) throws IOException {
+				// TODO Auto-generated method stub
+				
+			}
+		});
+		
 		Set<KVRowI> mergedResult = searcher.getResult();
 
 		long end = System.currentTimeMillis();
 		for (KVRowI kvRowI : mergedResult) {
 			assertNotNull(kvRowI.getValue("commentsVal"));
 			assertTrue(kvRowI.getValue("commentsVal").toString().length() > 0);
-			assertEquals(kvRowI.getValue("commentsVal").toString(), "Tremendous boy");
+			System.out.println(kvRowI.getValue("commentsVal").toString());
+			//assertEquals(kvRowI.getValue("commentsVal").toString(), "Tremendous boy");
 		}
-		assertEquals(16, mergedResult.size());
+		//assertEquals(16, mergedResult.size());
 	}		
 
 	public final void testUnknownWord() throws Exception {
