@@ -42,9 +42,10 @@ public class DatabaseReaderCached extends DatabaseReader {
 	}
 	
 	@Override
-	public byte[] readRowBlob(String tableName, byte[] row) throws IOException {
+	public final byte[] readRowBlob(final String tableName, final byte[] row) throws IOException {
 		byte[] dataA = null;
 		String rowId = new String(row);
+		rowId = tableName + "\t" + rowId;
 		
 		if ( isCachable) {
 		
@@ -74,9 +75,9 @@ public class DatabaseReaderCached extends DatabaseReader {
 	}
 
 	@Override
-	public Map<Integer, Object> readRow(String tableName, byte[] row,
-			ComputeKV compute, String filterQuery,
-			HSearchProcessingInstruction inputMapperInstructions)
+	public final Map<Integer, Object> readRow(final String tableName, final byte[] row,
+			final ComputeKV compute, final String filterQuery,
+			final HSearchProcessingInstruction inputMapperInstructions)
 			throws IOException {
 		
 		byte[] storedBytes = readRowBlob(tableName, row);
@@ -84,10 +85,10 @@ public class DatabaseReaderCached extends DatabaseReader {
 	}
 
 	@Override
-	public Map<Integer, Object> readStoredProcedure(String tableName,
-			byte[] row, ComputeKV compute, byte[] matchingIdsB,
-			BitSetWrapper matchingIds, String filterQuery,
-			HSearchProcessingInstruction instruction) throws IOException {
+	public final Map<Integer, Object> readStoredProcedure(final String tableName,
+			final byte[] row, final ComputeKV compute, final byte[] matchingIdsB,
+			final BitSetWrapper matchingIds, final String filterQuery,
+			final HSearchProcessingInstruction instruction) throws IOException {
 		
 		if ( isCachable ) {
 			if (DEBUG_ENABLED) {
@@ -112,9 +113,9 @@ public class DatabaseReaderCached extends DatabaseReader {
 	}
 
 	@Override
-	public byte[] readStoredProcedureBlob(String tableName, byte[] row,
-			ComputeKV compute, byte[] matchingIdsB, BitSetWrapper matchingIds,
-			String filterQuery, HSearchProcessingInstruction instruction)
+	public final byte[] readStoredProcedureBlob(final String tableName, final byte[] row,
+			final ComputeKV compute, final byte[] matchingIdsB, final BitSetWrapper matchingIds,
+			final String filterQuery, final HSearchProcessingInstruction instruction)
 			throws IOException {
 
 		if ( isCachable ) {
@@ -131,7 +132,7 @@ public class DatabaseReaderCached extends DatabaseReader {
 	}
 
 	@Override
-	public DatabaseReader get() {
+	public final DatabaseReader get() {
 		throw new RuntimeException("Not Applicable");
 	}
 

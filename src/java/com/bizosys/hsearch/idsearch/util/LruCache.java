@@ -93,7 +93,7 @@ public class LruCache extends ICache{
     }
 
 	@Override
-    public void put(String key, byte[] val) {
+    public final void put(final String key, final byte[] val) {
     	
     	long newObjSize = ( null == val) ? 0 : val.length;
     	long currentSize = new Double( Float.intBitsToFloat(syncedLruMap.size()) * 1024 * 1024).longValue();
@@ -120,7 +120,7 @@ public class LruCache extends ICache{
     }
 
 	@Override
-    public void putPinned(String key, Object val) {
+    public final void putPinned(final String key, final Object val) {
 		String deleteId = null;
     	if ( this.syncedPinnedMap.size() > allowedPinnedObjects) {
         	for (Map.Entry<String, Object> entry : syncedPinnedMap.entrySet()) {
@@ -151,7 +151,7 @@ public class LruCache extends ICache{
 	    }
 	    
 	    @Override
-	    public byte[] put(String key, byte[] val) {
+	    public final byte[] put(final String key, final byte[] val) {
 	    	if ( containsKey(key) ) {
 	    		byte[] existingB = get(key);
 	    		long existingSize = ( null == existingB) ? 0 : existingB.length;
@@ -165,7 +165,7 @@ public class LruCache extends ICache{
 	    }
 	    
 		@Override
-		public byte[] remove(Object key) {
+		public final byte[] remove(final Object key) {
 			Object valO = this.get(key);
 	    	long objSize = ( null == valO) ? 0 : ((byte[]) valO).length;
 	    	currentSizeInBytes = currentSizeInBytes - objSize;
@@ -173,13 +173,13 @@ public class LruCache extends ICache{
 		}
 
 		@Override
-		public void clear() {
+		public final void clear() {
 			super.clear();
 	    	currentSizeInBytes = 0;
 		}
 
 		@Override
-		public int size() {
+		public final int size() {
 			float fillSizeInMb = currentSizeInBytes;
 			fillSizeInMb = fillSizeInMb/1024/1024;
 			return Float.floatToIntBits(fillSizeInMb);
