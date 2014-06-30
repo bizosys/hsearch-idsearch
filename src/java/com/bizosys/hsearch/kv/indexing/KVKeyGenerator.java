@@ -20,6 +20,7 @@ import org.apache.hadoop.io.Text;
 import org.apache.hadoop.mapreduce.Mapper;
 import org.apache.hadoop.mapreduce.Reducer;
 
+import com.bizosys.hsearch.hbase.HReader;
 import com.bizosys.hsearch.kv.impl.FieldMapping;
 import com.bizosys.hsearch.kv.impl.FieldMapping.Field;
 import com.bizosys.hsearch.util.LineReaderUtil;
@@ -214,6 +215,17 @@ public class KVKeyGenerator {
 	
 	public static class KVKeyGeneratorReducerHBase extends TableReducer<Text, ImmutableBytesWritable, ImmutableBytesWritable> {
 
+		KVKeyGenerator keyGen = null;
+		String tableName = null;
+		
+		@Override
+		protected void setup(Context context)throws IOException, InterruptedException {
+			keyGen =  new KVKeyGenerator();
+			Configuration configuration = context.getConfiguration();
+			keyGen.initKeyGenerator(configuration);
+			tableName = configuration.get(KVIndexer.INPUT_SOURCE);
+		}
+
 		@Override
 		protected void reduce(Text mergeKey, Iterable<ImmutableBytesWritable> values, Context context)
 				throws IOException, InterruptedException {
@@ -221,20 +233,29 @@ public class KVKeyGenerator {
 			String partitionKey = mergeKey.toString();
 			
 			int internalId = 0;
+			byte[] row = null;
+			boolean isEmpty = true;
+			
 			for (ImmutableBytesWritable rowKey : values) {
 				
-				//insert internal key in hbase
-				Put internalKeyPut = new Put(rowKey.copyBytes());
-				internalKeyPut.add(KVIndexer.FAM_NAME, KVIndexer.INTERNAL_KEYB, new Integer(internalId).toString().getBytes());
+				row = rowKey.copyBytes();
+				byte[] hsearchIKey = HReader.getScalar(tableName, KVIndexer.FAM_NAME, KVIndexer.INTERNAL_KEYB, row);
+				isEmpty = (null == hsearchIKey) ? true : hsearchIKey.length == 0;
+				if(isEmpty){
+					//insert internal key in hbase as the key is not available.
+					Put internalKeyPut = new Put();
+					internalKeyPut.add(KVIndexer.FAM_NAME, KVIndexer.INTERNAL_KEYB, new Integer(internalId).toString().getBytes());
+					context.write(null, internalKeyPut);
+					
+					//insert partitionkey in hbase
+					Put partitionKeyPut = new Put(rowKey.copyBytes());
+					partitionKeyPut.add(KVIndexer.FAM_NAME, KVIndexer.PARTITION_KEYB, partitionKey.getBytes());
+					context.write(null, partitionKeyPut);
+					
+					context.setStatus("Merge key = " + partitionKey + " Internal key = " + internalId);
+				}
+				
 				internalId++;
-				context.write(null, internalKeyPut);
-				
-				//insert partitionkey in hbase
-				Put partitionKeyPut = new Put(rowKey.copyBytes());
-				partitionKeyPut.add(KVIndexer.FAM_NAME, KVIndexer.PARTITION_KEYB, partitionKey.getBytes());
-				context.write(null, partitionKeyPut);
-				
-				context.setStatus("Merge key = " + partitionKey + " Internal key = " + internalId);
 			}
 		}
 	}

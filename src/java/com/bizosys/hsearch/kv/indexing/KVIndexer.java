@@ -100,6 +100,7 @@ public class KVIndexer {
 
 	public static String SCANNER_CACHE_SIZE = "SCANNER_CACHE_SIZE";
 	public static String XML_FILE_PATH = "CONFIG_XMLFILE_LOCATION";
+	public static String INPUT_SOURCE = "input-source";
 	public static String OUTPUT_FOLDER = "output-filepath";
 	public static final String MERGEKEY_ROW = "--HSEARCH_PARTITION_KEYS--";
 	public static String SKIP_HEADER = "false";	
@@ -227,6 +228,7 @@ public class KVIndexer {
 		if(-1 != fm.internalKey && runKeyGenJob){
 			
         	Configuration keyGenConf = HBaseConfiguration.create();
+        	keyGenConf.set(INPUT_SOURCE, inputSource);
         	keyGenConf.set(XML_FILE_PATH, xmlFilePath);
         	keyGenConf.set(OUTPUT_FOLDER, outputSink);
         	keyGenConf.set(SKIP_HEADER, skipHeader);
