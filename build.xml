@@ -20,7 +20,7 @@
 * limitations under the License.
 -->
 
-<project name="hsearch-idsearch-old" basedir=".">
+<project name="hsearch-idsearch" basedir=".">
 
 	<property name="currdir" value="${basedir}" />
 	<property file="${currdir}/build.properties" />
