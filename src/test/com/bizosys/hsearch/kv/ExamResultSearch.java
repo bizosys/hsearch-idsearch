@@ -321,7 +321,7 @@ public class ExamResultSearch extends TestCase {
 			public void afterSort(String mergeId, Set<KVRowI> resultSet) {}
 			
 			@Override
-			public void afterSelectOnSorted(String mergeId, BitSetWrapper foundIds) {}
+			public void afterSelectOnSorted(String mergeId, BitSetWrapper foundIds, Set<KVRowI> resultset) {}
 			
 
 			@Override

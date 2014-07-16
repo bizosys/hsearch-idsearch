@@ -78,7 +78,7 @@ public interface ISearcherPlugin {
 	 * @param mergeId
 	 * @param foundIds
 	 */
-	void afterSelectOnSorted(String mergeId, BitSetWrapper foundIds) throws IOException;
+	void afterSelectOnSorted(String mergeId, BitSetWrapper foundIds, Set<KVRowI> resultset) throws IOException;
 
 	/**
 	 * Before the sort is performed. This is a place to influence the ranking also

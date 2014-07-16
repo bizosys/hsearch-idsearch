@@ -517,7 +517,7 @@ public class Searcher {
 		}
 		
 		
-		if ( null != matchIds) {
+		if ( null != matchIds && ! this.pageCalculator.disabled) {
 			if ( null != this.plugIn) 	{
 				this.plugIn.afterSelect(mergeId, matchIds.getDocumentSequences(), this.resultset);
 			}
@@ -583,7 +583,7 @@ public class Searcher {
 		
 		if ( null != onePageIds) {
 			if ( null != this.plugIn) 	{
-				this.plugIn.afterSelectOnSorted(mergeId, onePageIds);
+				this.plugIn.afterSelectOnSorted(mergeId, onePageIds, this.resultset);
 			}
 		}
 

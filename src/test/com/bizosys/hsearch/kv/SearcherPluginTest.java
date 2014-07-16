@@ -39,7 +39,7 @@ public class SearcherPluginTest implements ISearcherPlugin {
 	}
 
 	@Override
-	public void afterSelectOnSorted(String mergeId, BitSetWrapper foundIds) {
+	public void afterSelectOnSorted(String mergeId, BitSetWrapper foundIds, Set<KVRowI> resultset) {
 		// TODO Auto-generated method stub
 		
 	}
