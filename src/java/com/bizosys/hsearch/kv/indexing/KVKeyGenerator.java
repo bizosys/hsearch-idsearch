@@ -243,7 +243,7 @@ public class KVKeyGenerator {
 				isEmpty = (null == hsearchIKey) ? true : hsearchIKey.length == 0;
 				if(isEmpty){
 					//insert internal key in hbase as the key is not available.
-					Put internalKeyPut = new Put();
+					Put internalKeyPut = new Put(rowKey.copyBytes());
 					internalKeyPut.add(KVIndexer.FAM_NAME, KVIndexer.INTERNAL_KEYB, new Integer(internalId).toString().getBytes());
 					context.write(null, internalKeyPut);
 					
