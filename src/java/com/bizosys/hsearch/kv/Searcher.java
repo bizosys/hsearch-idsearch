@@ -359,6 +359,9 @@ public class Searcher {
 			this.pageCalculator.disabled = false; //Disable pagination
 			rankBuckets = this.search(mergeId, selectQuery, whereQuery,facetFields, blankRow, enrichers);
 			
+			if ( null == rankBuckets )
+				if ( null != this.plugIn) this.plugIn.onFacets(mergeId, this.facetsMap);
+			
 		} else {
 			StringBuilder sortSelect = new StringBuilder(sortFields.length());
 			for (char aChar : sortFields.toCharArray()) {
@@ -368,6 +371,10 @@ public class Searcher {
 			this.pageCalculator.disabled = true; //Disable pagination
 			rankBuckets = this.search(
 				mergeId, sortSelect.toString(), whereQuery, facetFields, blankRow, enrichers);
+
+			if ( null == rankBuckets )
+				if ( null != this.plugIn) this.plugIn.onFacets(mergeId, this.facetsMap);
+
 			this.pageCalculator.disabled = false; //Enable Pagination
 
 			/**
@@ -809,6 +816,67 @@ public class Searcher {
 		}
 
 		return this.resultset;
+	}
+	
+	/**
+	 * Sort given data on given fields
+	 * @param rows
+	 * @param sorters
+	 * @return
+	 * @throws ParseException
+	 */
+	public final Set<KVRowI> sort (Set<KVRowI> rows , final String... sorters) throws ParseException 
+	{
+		GroupSorterSequencer[] sortSequencer = new GroupSorterSequencer[sorters.length];
+
+		int index = 0;
+		int fieldSeq = 0;
+		int dataType = -1;
+		FieldType fldType = null;
+		boolean sortType = false;
+
+		KVDataSchema dataSchema = repository.get(schemaRepositoryName); 
+		for (String sorterName : sorters) 
+		{
+			int sorterLen = ( null == sorterName ) ? 0 : sorterName.length();
+			if ( sorterLen == 0 ) throw new ParseException("Invalid blank sorter", 0);
+			char firstChar = sorterName.charAt(0);
+			if('^' == firstChar)
+			{
+				sortType = true;
+				sorterName = sorterName.substring(1);
+			}
+			else
+			{
+				sortType = false;	
+			}
+			
+			fieldSeq = dataSchema.nameToSeqMapping.get(sorterName);
+			dataType = dataSchema.fldWithDataTypeMapping.get(sorterName);
+			fldType = Datatype.getFieldType(dataType);
+	
+			GroupSorterSequencer seq = new GroupSorterSequencer(fldType,fieldSeq,index,sortType);
+			sortSequencer[index++] = seq;
+		}
+
+		GroupSorter gs = new GroupSorter();
+		for (GroupSorterSequencer seq : sortSequencer) 
+		{
+			gs.setSorter(seq);
+		}
+		
+		int resultsetT = rows.size();
+		GroupSortedObject[] sortedContainer = new GroupSortedObject[resultsetT];
+		rows.toArray(sortedContainer);
+		gs.sort(sortedContainer);
+		rows = new LinkedHashSet<KVRowI>(resultsetT);
+		
+		for (int j=0; j < resultsetT; j++) 
+		{
+			rows.add((KVRowI)sortedContainer[j]);
+		}
+
+		return rows;
 	}
 	
 	/**
