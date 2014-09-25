@@ -272,6 +272,15 @@ public class KVIndexer {
 				scan.setCaching(scannerCacheSize);
 				scan.setCacheBlocks(false);
 				
+				// Added Filter
+				if ( null != filter) {
+					if ( filter.trim().length() > 0 ) {
+						int index = filter.indexOf('=');
+						scan.setFilter(new SingleColumnValueFilter(fm.familyName.getBytes(), 
+							filter.substring(0, index).getBytes(), CompareOp.EQUAL, filter.substring(index+1).getBytes()));
+					}
+				}
+				
 				byte[] family = fm.familyName.getBytes();
 				for(String name : fm.nameWithField.keySet()){
 					

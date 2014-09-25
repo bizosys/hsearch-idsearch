@@ -233,15 +233,15 @@ public class KVKeyGenerator {
 			String partitionKey = mergeKey.toString();
 			
 			int internalId = 0;
-			byte[] row = null;
-			boolean isEmpty = true;
+//			byte[] row = null;
+//			boolean isEmpty = true;
 			
 			for (ImmutableBytesWritable rowKey : values) {
 				
-				row = rowKey.copyBytes();
-				byte[] hsearchIKey = HReader.getScalar(tableName, KVIndexer.FAM_NAME, KVIndexer.INTERNAL_KEYB, row);
-				isEmpty = (null == hsearchIKey) ? true : hsearchIKey.length == 0;
-				if(isEmpty){
+//				row = rowKey.copyBytes();
+//				byte[] hsearchIKey = HReader.getScalar(tableName, KVIndexer.FAM_NAME, KVIndexer.INTERNAL_KEYB, row);
+//				isEmpty = (null == hsearchIKey) ? true : hsearchIKey.length == 0;
+//				if(isEmpty){
 					//insert internal key in hbase as the key is not available.
 					Put internalKeyPut = new Put(rowKey.copyBytes());
 					internalKeyPut.add(KVIndexer.FAM_NAME, KVIndexer.INTERNAL_KEYB, new Integer(internalId).toString().getBytes());
@@ -253,7 +253,7 @@ public class KVKeyGenerator {
 					context.write(null, partitionKeyPut);
 					
 					context.setStatus("Merge key = " + partitionKey + " Internal key = " + internalId);
-				}
+//				}
 				
 				internalId++;
 			}
