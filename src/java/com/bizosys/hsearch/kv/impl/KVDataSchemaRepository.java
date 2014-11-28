@@ -123,6 +123,48 @@ public class KVDataSchemaRepository {
 			}
 		}
 		
+		public static byte getDataTypeMapping(FieldMapping.Field fld) {
+			
+			String dataType;
+			dataType = fld.getDataType().toLowerCase();
+			char dataTypeChar = dataTypesPrimitives.get(dataType);
+			byte dataTypeField = -1;
+			switch (dataTypeChar) {
+			case 't':
+				
+				if(fld.isDocIndex && !fld.isStored)
+					dataTypeField = Datatype.FREQUENCY_INDEX;
+				else 
+					dataTypeField = Datatype.STRING;
+				
+				break;
+			case 'i':
+				dataTypeField = Datatype.INTEGER;
+				break;
+			case 'f':
+				dataTypeField = Datatype.FLOAT;
+				break;
+			case 'd':
+				dataTypeField = Datatype.DOUBLE;
+				break;
+			case 'l':
+				dataTypeField = Datatype.LONG;
+				break;
+			case 's':
+				dataTypeField = Datatype.SHORT;
+				break;
+			case 'b':
+				dataTypeField = Datatype.BOOLEAN;
+				break;
+			case 'c':
+				dataTypeField = Datatype.BYTE;
+				break;
+			default:
+				break;
+			}
+			return dataTypeField;
+		}
+
 		/**
 		 * Returns whether the field is repeatable.
 		 * @param fldName

@@ -38,6 +38,7 @@ import org.xml.sax.SAXException;
 import org.xml.sax.helpers.DefaultHandler;
 
 import com.bizosys.hsearch.idsearch.util.IdSearchLog;
+import com.bizosys.hsearch.kv.impl.KVDataSchemaRepository.KVDataSchema;
 import com.bizosys.unstructured.AnalyzerFactory;
 
 /**
@@ -69,6 +70,7 @@ public class FieldMapping extends DefaultHandler {
 		public boolean skipNull;
 		public String defaultValue;
 		public String dataType;
+		private byte dataTypeCode;
 		public String analyzer;
 		public boolean isAnalyzed;
 		public boolean isCompressed;
@@ -91,6 +93,15 @@ public class FieldMapping extends DefaultHandler {
 		public String getDataType() {
 			return dataType;
 		}
+		
+		public void setDataTypeCode(byte code){
+			this.dataTypeCode = code; 
+		}
+		
+		public byte getDataTypeCode(){
+			return this.dataTypeCode; 
+		}
+
 
 		/**
 		 * Create a new field instance.
@@ -395,6 +406,10 @@ public class FieldMapping extends DefaultHandler {
 				field = new Field(name, sourceName, sourceSeq, isIndexable, isStored, isRepeatable,
 						isMergedKey, mergePosition, skipNull, defaultValue, dataType, analyzer, 
 						isDocIndex, isAnalyzed, isCachable, isCompressed, biWord, triWord, sourceurl, expr);
+				
+				byte dataTypecode = KVDataSchema.getDataTypeMapping(field);
+				field.setDataTypeCode(dataTypecode);
+
 			} catch (Exception e) {
 				System.err.println(
 						"Name=" + name + "\tSourcename=" + sourceName + 
