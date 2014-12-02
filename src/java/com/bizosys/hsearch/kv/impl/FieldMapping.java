@@ -20,7 +20,6 @@
 
 package com.bizosys.hsearch.kv.impl;
 
-import java.io.File;
 import java.io.IOException;
 import java.io.StringReader;
 import java.text.ParseException;
@@ -37,6 +36,7 @@ import org.xml.sax.InputSource;
 import org.xml.sax.SAXException;
 import org.xml.sax.helpers.DefaultHandler;
 
+import com.bizosys.hsearch.idsearch.util.FileReaderHdfs;
 import com.bizosys.hsearch.idsearch.util.IdSearchLog;
 import com.bizosys.hsearch.kv.impl.KVDataSchemaRepository.KVDataSchema;
 import com.bizosys.unstructured.AnalyzerFactory;
@@ -280,20 +280,13 @@ public class FieldMapping extends DefaultHandler {
 	 * @throws ParseException
 	 */
 	public void parseXML(final String filePath) throws ParseException {
-
-		SAXParserFactory saxFactory = SAXParserFactory.newInstance();
-		SAXParser saxParser;
 		try {
-
-			saxParser = saxFactory.newSAXParser();
-			File file = new File(filePath);
-			saxParser.parse(file, this);
 			
-			AnalyzerFactory.getInstance().init(this);
-			
+			String schemaData = FileReaderHdfs.toString(filePath, null, true);
+			parseXMLString(schemaData);
 			
 		} catch (Exception e) {
-			IdSearchLog.l.fatal("File Path:" + filePath , e);
+			IdSearchLog.l.fatal("Error parsing schema from file : " + filePath, e );
 			throw new ParseException(e.getMessage(), 0);
 		}
 	}
